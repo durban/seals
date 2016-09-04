@@ -17,7 +17,6 @@
 package io.sigs.seals
 package circe
 
-import scala.util.Try
 import scala.util.hashing.MurmurHash3
 import io.circe._
 import cats.data.Xor
@@ -74,7 +73,7 @@ private object JsonRef {
 
   def apply(uri: String): Xor[String, JsonRef] = {
     for {
-      u <- Xor.fromTry(Try(java.net.URI.create(uri))).bimap(_.getMessage, identity)
+      u <- Xor.catchNonFatal(java.net.URI.create(uri)).bimap(_.getMessage, identity)
       p <- checkUri(u)
     } yield JsonRef(p)
   }

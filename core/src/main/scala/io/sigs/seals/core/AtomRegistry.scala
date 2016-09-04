@@ -18,7 +18,6 @@ package io.sigs.seals
 package core
 
 import java.util.UUID
-import scala.util.Try
 import cats.data.Xor
 import cats.implicits._
 
@@ -28,7 +27,7 @@ trait AtomRegistry extends Serializable {
 
   final def getAtom(s: String): Xor[String, Atom[_]] = {
     for {
-      uuid <- Xor.fromTry(Try(UUID.fromString(s))).bimap(_.getMessage, identity)
+      uuid <- Xor.catchNonFatal(UUID.fromString(s)).bimap(_.getMessage, identity)
       atom <- getAtom(uuid)
     } yield atom
   }
