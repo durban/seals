@@ -28,7 +28,8 @@ By using it, you will be able to
 - check the compatibility of different versions of a schema
   at compile time, as well as runtime;
 - automatically derive serializers and deserializers for your
-  schema-datatypes (currently only [circe] (de)serializers are implemented);
+  schema-datatypes (currently only [circe] encoders and decoders
+  are implemented);
 - and communicate between components using different (but compatible)
   versions of a schema.
 
