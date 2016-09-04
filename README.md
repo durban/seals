@@ -35,10 +35,11 @@ By using it, you will be able to
 
 Since it's a fairly new project, not all of these features are
 implemented yet. Bugs are to be expected as well. Contributions
-to improve the project, and reports about issues you encounter
+to improve the project, and reports about
+[issues](https://github.com/durban/seals/issues) you encounter
 are welcome.
 
-[//]: # (TODO: link to issue tracker + CONTRIBUTION.md)
+[//]: # (TODO: link to CONTRIBUTION.md)
 
 ## Getting started
 
