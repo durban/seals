@@ -43,6 +43,7 @@ lazy val seals = project.in(file("."))
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
+  scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -53,9 +54,9 @@ lazy val commonSettings = Seq[Setting[_]](
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
+    "-Ypartial-unification",
     "-Ywarn-unused-import"
   ),
-  addCompilerPlugin("com.milessabin" % "si2712fix-plugin" % "1.2.0" cross CrossVersion.full),
   libraryDependencies ++= Seq(
     Seq(
       dependencies.cats,
