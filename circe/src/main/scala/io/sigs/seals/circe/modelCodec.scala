@@ -273,7 +273,8 @@ trait ModelDecoder {
 
   private def decodeRef(implicit r: AtomRegistry): Decoder[DecSt[Model]] = Decoder.instance { cur =>
     cur.as[JsonRef].map { ref =>
-      XorT.xortTransLift.liftT(State.get[DecMap]).flatMap { map =>
+      // TODO: use the implicit (needs kind projector?)
+      XorT.catsDataTransLiftForXorT.liftT(State.get[DecMap]).flatMap { map =>
         map.get(ref.path).fold[DecSt[Model]] {
           XorT.left(State.pure(DecodingFailure(
             s"invalid backreference: ${ref.uri}",

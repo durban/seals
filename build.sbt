@@ -84,15 +84,16 @@ lazy val circeSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "0.6.1"
+  val catsVersion = "0.7.2"
+  val circeVersion = "0.5.1"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.1"
-  val cats = "org.typelevel" %% "cats" % catsVersion
+  val cats = "org.typelevel" %% "cats-core" % catsVersion
 
   val circe = Seq(
-    "io.circe" %% "circe-core" % "0.5.0-M1",
-    "io.circe" %% "circe-generic" % "0.5.0-M1",
-    "io.circe" %% "circe-parser" % "0.5.0-M1"
+    "io.circe" %% "circe-core" % circeVersion,
+    "io.circe" %% "circe-generic" % circeVersion,
+    "io.circe" %% "circe-parser" % circeVersion
   )
 
   val laws = Seq(

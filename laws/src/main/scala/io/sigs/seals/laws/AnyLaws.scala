@@ -18,7 +18,7 @@ package io.sigs.seals
 package laws
 
 import cats.kernel.laws._
-import cats.kernel.std.boolean._
+import cats.kernel.instances.boolean._
 import cats.kernel.Eq
 
 import org.typelevel.discipline.Laws
