@@ -124,7 +124,7 @@ For compilation, it uses the [Typelevel Scala compiler](https://github.com/typel
 Scala 2.11.8. However, as TLS contains a partial fix for
 [SI-7046](https://issues.scala-lang.org/browse/SI-7046), it might be beneficial to use it
 in cases where type class materialization fails for subclasses of a sealed trait. For more
-information see [this section](https://github.com/milessabin/shapeless#shapeless-and-typelevel-scala)
+information, see [this section](https://github.com/milessabin/shapeless#shapeless-and-typelevel-scala)
 in the shapeless documentation.)
 
 ## License

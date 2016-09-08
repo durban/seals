@@ -50,3 +50,18 @@ Useful config options for GPG v2 (put them into `~/.gnupg/gpg.conf`):
 - `with-fingerprint`: display the full key fingerprint by default
 - `no-comments`: don't put comments into the `.asc` output
 - `no-emit-version`: don't write the GPG version number into the `.asc` output
+
+## SSH authentication with GPG
+
+- export the authentication public key in SSH format with `gpg2 --export-ssh-key <key ID>`
+- add it to `~/.ssh/authorized_keys` / GitHub / etc.
+- enable `gpg-agent`: add `use-agent` to `~/.gnupg/gpg.conf`
+- enable the SSH support of `gpg-agent`: add `enable-ssh-support` to `~/.gnupg/gpg-agent.conf`
+- (reboot or at least restart X)
+- make sure that `gpg-agent` is the running SSH agent:
+    - the output of `echo $SSH_AUTH_SOCK` should contain the substring `gpg-agent`
+    - if it doesn't, other possible agents may need to be disabled:
+        - X11 default ssh-agent (disable with removing `use-ssh-agent` from `/etc/X11/Xsession.options`)
+        - GNOME Keyring agent (?)
+- the output of `ssh-add -l` should contain the auth key
+  (if it's on a smartcard, only when the card is inserted)
