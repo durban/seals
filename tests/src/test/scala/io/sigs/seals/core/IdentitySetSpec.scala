@@ -166,61 +166,82 @@ class IdentitySetSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks 
 
   "Laws" - {
 
-    implicit val arbIdentitySet: Arbitrary[IdentitySet[Cls]] = {
+    implicit def arbIdentitySet(implicit arbCls: Arbitrary[Cls]): Arbitrary[IdentitySet[Cls]] = {
       Arbitrary {
-        Gen.listOf(Cls.arbCls.arbitrary).map(
+        Gen.listOf(arbCls.arbitrary).map(
           _.foldLeft(IdentitySet.empty[Cls])(_ + _)
         )
       }
     }
 
-    "insert" in {
+    def genSetAndMissingItem(implicit arbCls: Arbitrary[Cls]): Gen[(IdentitySet[Cls], Cls)] = for {
+      lst <- Gen.listOf(arbCls.arbitrary)
+      idx <- Gen.choose(0, lst.length - 1)
+    } yield {
+      val item = lst(idx)
+      val rls = lst.filterNot(cls => cls eq item)
+      (rls.foldLeft(IdentitySet.empty[Cls])(_ + _), item)
+    }
 
-      forAll { (s: IdentitySet[Cls], c: Cls) =>
-        whenever(s contains c) {
-          val sum = s + c
-          sum should === (s)
-          sum should have size (s.size.toLong)
-          sum shouldBe theSameInstanceAs (s)
+    def genSetAndIncludedItem(implicit arbCls: Arbitrary[Cls]): Gen[(IdentitySet[Cls], Cls)] = for {
+      lst <- Gen.listOf(arbCls.arbitrary)
+      idx <- Gen.choose(0, lst.length - 1)
+    } yield (lst.foldLeft(IdentitySet.empty[Cls])(_ + _), lst(idx))
+
+    "insert" - {
+
+      "missing" in {
+        forAll(genSetAndMissingItem) { case (s, c) =>
+          whenever(!(s contains c)) {
+            val sum = s + c
+            sum should !== (s)
+            sum should have size (s.size + 1L)
+            sum.contains(c) should === (true)
+            val sum2 = sum + c
+            sum2 should === (sum)
+          }
         }
       }
 
-      forAll { (s: IdentitySet[Cls], c: Cls) =>
-        whenever(!(s contains c)) {
-          val sum = s + c
-          sum should !== (s)
-          sum should have size (s.size + 1L)
-          sum.contains(c) should === (true)
-          val sum2 = sum + c
-          sum2 should === (sum)
+      "included" in {
+        forAll(genSetAndIncludedItem) { case (s, c) =>
+          whenever(s contains c) {
+            val sum = s + c
+            sum should === (s)
+            sum should have size (s.size.toLong)
+            sum shouldBe theSameInstanceAs (s)
+          }
         }
       }
     }
 
-    "remove" in {
+    "remove" - {
 
-      forAll { (s: IdentitySet[Cls], c: Cls) =>
-        whenever(s contains c) {
-          val rem = s - c
-          rem should !== (s)
-          rem.contains(c) should === (false)
-          rem.size should === (s.size - 1)
-          val rem2 = s - c
-          rem2 should === (rem)
+      "included" in {
+        forAll(genSetAndIncludedItem) { case (s, c) =>
+          whenever(s contains c) {
+            val rem = s - c
+            rem should !== (s)
+            rem.contains(c) should === (false)
+            rem.size should === (s.size - 1)
+            val rem2 = s - c
+            rem2 should === (rem)
+          }
         }
       }
 
-      forAll { (s: IdentitySet[Cls], c: Cls) =>
-        whenever(!(s contains c)) {
-          val rem = s - c
-          rem should === (s)
-          rem shouldBe theSameInstanceAs (s)
+      "missing" in {
+        forAll(genSetAndMissingItem) { case (s, c) =>
+          whenever(!(s contains c)) {
+            val rem = s - c
+            rem should === (s)
+            rem shouldBe theSameInstanceAs (s)
+          }
         }
       }
     }
 
     "iterator" in {
-
       forAll { (s: IdentitySet[Cls]) =>
         val lst = s.toList
         lst.size should === (s.size)
@@ -241,7 +262,6 @@ class IdentitySetSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks 
     }
 
     "union" in {
-
       forAll { (a: IdentitySet[Cls], b: IdentitySet[Cls]) =>
         val u = a union b
         val u2 = b union a
@@ -254,7 +274,6 @@ class IdentitySetSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks 
     }
 
     "intersection" in {
-
       forAll { (a: IdentitySet[Cls], b: IdentitySet[Cls]) =>
         val i = a intersect b
         val i2 = b intersect a
