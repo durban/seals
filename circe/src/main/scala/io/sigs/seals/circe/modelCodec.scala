@@ -275,6 +275,7 @@ trait ModelDecoder {
     cur.as[JsonRef].map { ref =>
       // TODO: use the implicit (needs kind projector?)
       XorT.catsDataTransLiftForXorT.liftT(State.get[DecMap]).flatMap { map =>
+        // TODO: getOrElse
         map.get(ref.path).fold[DecSt[Model]] {
           XorT.left(State.pure(DecodingFailure(
             s"invalid backreference: ${ref.uri}",

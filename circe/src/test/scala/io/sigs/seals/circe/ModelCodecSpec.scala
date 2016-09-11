@@ -25,6 +25,7 @@ import io.circe._
 import io.circe.syntax._
 
 import laws.TestInstances
+import laws.TestTypes
 
 import ModelCodec._
 
@@ -552,6 +553,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       checkJson(cy3)
       checkJson(cy4)
       checkJson(cy5)
+      checkJson(Reified[TestTypes.adts.recursive.IntList].model)
     }
   }
 }

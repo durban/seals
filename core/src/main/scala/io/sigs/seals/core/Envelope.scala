@@ -40,6 +40,9 @@ sealed trait Envelope[A] extends Serializable {
     val s = MurmurHash3.mixLast(Envelope.envelopeSeed, value.##)
     MurmurHash3.finalizeHash(s, 1)
   }
+
+  final override def toString: String =
+    s"Envelope[${model}](${value})"
 }
 
 object Envelope {

@@ -22,8 +22,6 @@ import io.circe.syntax._
 
 import cats.data.Xor
 
-// TODO: tests!
-
 object EnvelopeCodec {
 
   implicit def envelopeEncoder[A]: ObjectEncoder[Envelope[A]] = new ObjectEncoder[Envelope[A]] {
@@ -37,7 +35,8 @@ object EnvelopeCodec {
   implicit def envelopeDecoder[A](implicit r: Reified[A]): Decoder[Envelope[A]] = new Decoder[Envelope[A]] {
     override def apply(cur: HCursor): Decoder.Result[Envelope[A]] = {
       for {
-        model <- cur.get[Model]("model")(ModelCodec.modelDecoder(r.model))
+        modCursor <- cur.downField("model").as[HCursor]
+        model <- dropContext(modCursor).as[Model](ModelCodec.modelDecoder(r.model))
         value <- if (model compatible r.model) {
           cur.get[A]("value")(Codec.decoderFromReified(r))
         } else {
@@ -49,4 +48,7 @@ object EnvelopeCodec {
       } yield Envelope(value)(r)
     }
   }
+
+  private[this] def dropContext(cur: HCursor): HCursor =
+    HCursor.fromCursor(Cursor.apply(cur.focus))
 }
