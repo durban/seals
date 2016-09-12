@@ -17,6 +17,8 @@
 package io.sigs.seals
 package tests
 
+import java.util.UUID
+
 import cats.kernel.laws._
 import cats.Eq
 
@@ -26,6 +28,7 @@ import io.sigs.seals.laws._
 
 import TestArbInstances._
 import TestArbInstances.forTestData._
+import TestInstances.atomic._
 
 class LawsSpec extends BaseLawsSpec {
 
@@ -36,6 +39,8 @@ class LawsSpec extends BaseLawsSpec {
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)
   checkAll("Model.OrderLaws.eqv", OrderLaws[Model].eqv)
+
+  checkAll("Atomic[UUID].AtomicLaws.roundtrip", AtomicLaws[UUID].roundtrip)
 
   def checkParametricLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], r: Reified[A]): Unit = {
     checkAll(s"Envelope[$name].AnyLaws.any", AnyLaws[Envelope[A]].any)

@@ -19,8 +19,7 @@ package laws
 
 import java.util.UUID
 
-import scala.util.Try
-
+import cats.Eq
 import cats.data.Xor
 
 import TestTypes.Whatever
@@ -31,6 +30,9 @@ object TestInstances {
 
     implicit val atomicUUID: Atomic[UUID] =
       AtomicUUID
+
+    implicit val eqUUID: Eq[UUID] =
+      Eq.fromUniversalEquals
 
     private[this] final case object AtomicUUID extends Atomic[UUID] {
 
