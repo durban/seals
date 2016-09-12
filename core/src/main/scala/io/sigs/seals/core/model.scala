@@ -593,6 +593,6 @@ private final class AtomicAtom[A](private val atomic: Atomic[A])
     case _ =>
       false
   }
-  override def fromString(s: String): Option[A] = atomic.fromString(s)
+  override def fromString(s: String): Option[A] = atomic.fromString(s).toOption
   override def stringRepr(a: A): String = atomic.stringRepr(a)
 }

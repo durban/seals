@@ -35,3 +35,7 @@ project/plugins/project/
 .classpath
 .project
 .settings/
+
+# Ensime specific
+.ensime
+.ensime_cache

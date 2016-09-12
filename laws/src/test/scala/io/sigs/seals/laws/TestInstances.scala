@@ -21,6 +21,8 @@ import java.util.UUID
 
 import scala.util.Try
 
+import cats.data.Xor
+
 import TestTypes.Whatever
 
 object TestInstances {
@@ -35,11 +37,11 @@ object TestInstances {
       def description: String =
         "java.util.UUID"
 
-      def fromString(s: String): Option[UUID] = {
+      def fromString(s: String): Xor[String, UUID] = {
         try {
-          Some(UUID.fromString(s))
+          Xor.right(UUID.fromString(s))
         } catch {
-          case _: IllegalArgumentException => None
+          case ex: IllegalArgumentException => Xor.left(ex.getMessage)
         }
       }
 
@@ -55,8 +57,8 @@ object TestInstances {
       def description: String =
         "whatever"
 
-      def fromString(s: String): Option[Whatever.type] =
-        Some(Whatever)
+      def fromString(s: String): Xor[String, Whatever.type] =
+        Xor.right(Whatever)
 
       def stringRepr(a: Whatever.type): String =
         Whatever.toString
@@ -72,8 +74,8 @@ object TestInstances {
         def description: String =
           "MyInt"
 
-        def fromString(s: String): Option[Int] =
-          Try(s.toInt).toOption
+        def fromString(s: String): Xor[String, Int] =
+          Xor.catchNonFatal(s.toInt).leftMap(_.getMessage)
 
         def stringRepr(a: Int): String =
           a.toString

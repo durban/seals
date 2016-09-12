@@ -19,14 +19,15 @@ package core
 
 import java.util.UUID
 
+import cats.data.Xor
+
 // TODO: laws (with Discipline?)
 
 trait Atomic[A] extends Serializable {
 
   def stringRepr(a: A): String
 
-  // TODO: Xor[String, A] for error msg
-  def fromString(s: String): Option[A]
+  def fromString(s: String): Xor[String, A]
 
   def description: String
 
