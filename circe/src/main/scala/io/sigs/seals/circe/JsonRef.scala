@@ -130,9 +130,7 @@ private object JsonRef {
 
   def fromCursor(cur: Cursor): JsonRef = {
     val path = cur.context.foldRight[List[String]](Nil) { (ctx, path) =>
-      val pathComp = ctx.field.orElse(ctx.index.map(_.toString)).getOrElse {
-        throw new IllegalStateException
-      }
+      val pathComp = ctx.fold(identity, _.toString)
       pathComp :: path
     }
 
