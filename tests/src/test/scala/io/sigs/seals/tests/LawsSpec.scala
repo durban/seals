@@ -32,24 +32,37 @@ import TestInstances.atomic._
 
 class LawsSpec extends BaseLawsSpec {
 
-  // TODO: check with other types too, not just these
-  checkParametricLaws[TestTypes.adts.defs.Adt1]("Adt1")
-  checkParametricLaws[TestTypes.adts.recursive.IntList]("IntList")
+  checkEnvelopeLaws[TestTypes.adts.defs.Adt1]("Adt1")
+  checkEnvelopeLaws[TestTypes.adts.recursive.IntList]("IntList")
+
+  checkReifiedLaws[TestTypes.adts.defs.Adt1]("Adt1")
+  checkReifiedLaws[TestTypes.adts.recursive.IntList]("IntList")
+
+  checkAtomicLaws[UUID]("UUID")
+  checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
 
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)
   checkAll("Model.OrderLaws.eqv", OrderLaws[Model].eqv)
 
-  checkAll("Atomic[UUID].AtomicLaws.roundtrip", AtomicLaws[UUID].roundtrip)
-
-  def checkParametricLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], r: Reified[A]): Unit = {
+  def checkEnvelopeLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], r: Reified[A]): Unit = {
     checkAll(s"Envelope[$name].AnyLaws.any", AnyLaws[Envelope[A]].any)
     checkAll(s"Envelope[$name].AnyLaws.equalitySerializability", AnyLaws[Envelope[A]].equalitySerializability)
     checkAll(s"Envelope[$name].OrderLaws.eqv", OrderLaws[Envelope[A]].eqv)
+  }
 
+  def checkReifiedLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], r: Reified[A]): Unit = {
     checkAll(s"Reified[$name].AnyLaws.any", AnyLaws[Reified[A]].any)
     checkAll(s"Reified[$name].AnyLaws.referenceEquality", AnyLaws[Reified[A]].referenceEquality)
     checkAll(s"Reified[$name].OrderLaws.eqv", OrderLaws[Reified[A]].eqv)
     checkAll(s"Reified[$name].ReifiedLaws.reified", ReifiedLaws[A].reified)
+  }
+
+  def checkAtomicLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], at: Atomic[A]): Unit = {
+    checkAll(s"Atomic[$name].AnyLaws.any", AnyLaws[Atomic[A]].any)
+    checkAll(s"Atomic[$name].AnyLaws.equalitySerializability", AnyLaws[Atomic[A]].equalitySerializability)
+    checkAll(s"Atomic[$name].AnyLaws.referenceEquality", AnyLaws[Atomic[A]].referenceEquality)
+    checkAll(s"Atomic[$name].OrderLaws.eqv", OrderLaws[Atomic[A]].eqv)
+    checkAll(s"Atomic[$name].AtomicLaws.roundtrip", AtomicLaws[A].roundtrip)
   }
 }

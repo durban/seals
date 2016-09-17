@@ -37,6 +37,10 @@ trait ArbInstances {
     Gen.const(r)
   }
 
+  implicit def arbAtomic[A](implicit a: Atomic[A]): Arbitrary[Atomic[A]] = Arbitrary {
+    Gen.const(a)
+  }
+
   implicit def arbModelHlist(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HList] = Arbitrary {
     Gen.oneOf(arbModelHnil.arbitrary, Gen.lzy(arbModelHcons(arbM).arbitrary))
   }

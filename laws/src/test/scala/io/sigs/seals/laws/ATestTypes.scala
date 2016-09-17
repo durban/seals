@@ -21,9 +21,14 @@ import java.util.UUID
 
 import cats.Eq
 
+import org.scalacheck.{ Arbitrary, Gen }
+
 object TestTypes {
 
-  final case object Whatever
+  final case object Whatever {
+    implicit val arbW: Arbitrary[Whatever.type] = Arbitrary(Gen.const(Whatever))
+    implicit val equW: Eq[Whatever.type] = Eq.fromUniversalEquals
+  }
 
   object adts {
 

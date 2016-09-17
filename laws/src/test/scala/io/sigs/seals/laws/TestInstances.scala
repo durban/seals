@@ -54,7 +54,10 @@ object TestInstances {
         UUID.fromString("85a168db-6ce3-47e7-b8aa-e45aa075d523")
     }
 
-    implicit val atomicWhatever: Atomic[Whatever.type] = new Atomic[Whatever.type] {
+    implicit val atomicWhatever: Atomic[Whatever.type] =
+      AtomicWhatever
+
+    private[this] object AtomicWhatever extends Atomic[Whatever.type] {
 
       def description: String =
         "whatever"
@@ -71,7 +74,10 @@ object TestInstances {
 
     object bad {
 
-      implicit val atomicInt: Atomic[Int] = new Atomic[Int] {
+      implicit val atomicInt: Atomic[Int] =
+        BadAtomicInt
+
+      private[this] final object BadAtomicInt extends Atomic[Int] {
 
         def description: String =
           "MyInt"

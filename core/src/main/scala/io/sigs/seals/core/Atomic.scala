@@ -19,11 +19,10 @@ package core
 
 import java.util.UUID
 
+import cats.Eq
 import cats.data.Xor
 
-// TODO: laws (with Discipline?)
-
-trait Atomic[A] extends Serializable {
+trait Atomic[A] extends Serializable { this: Singleton =>
 
   def stringRepr(a: A): String
 
@@ -32,4 +31,14 @@ trait Atomic[A] extends Serializable {
   def description: String
 
   def uuid: UUID
+
+  final override def equals(that: Any): Boolean = that match {
+    case that: AnyRef => this eq that
+    case _ => false
+  }
+}
+
+object Atomic {
+  implicit def eqForAtomic[A]: Eq[Atomic[A]] =
+    Eq.instance(_ eq _)
 }
