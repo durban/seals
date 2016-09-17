@@ -35,6 +35,7 @@ project/plugins/project/
 .classpath
 .project
 .settings/
+.eclipse/
 
 # Ensime specific
 .ensime
