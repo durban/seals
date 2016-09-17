@@ -3,7 +3,6 @@ package circe
 package claws
 
 import cats.kernel.laws._
-import cats.kernel.instances.boolean._
 import cats.kernel.Eq
 import cats.data.Xor
 
