@@ -39,9 +39,9 @@ class EnvelopeSpec extends BaseSpec {
   }
 
   "cats.Eq" in {
-    assert(Eq[Envelope[Int]].eqv(a1, a2))
-    assert(!Eq[Envelope[Int]].eqv(a1, Envelope[Int](67)))
-    assert(Eq[Envelope[Adt1]].eqv(b1, b2))
-    assert(!Eq[Envelope[Adt1]].eqv(b1, Envelope[Adt1](Adt1.C(76))))
+    Eq[Envelope[Int]].eqv(a1, a2) should === (true)
+    Eq[Envelope[Int]].eqv(a1, Envelope[Int](67)) should === (false)
+    Eq[Envelope[Adt1]].eqv(b1, b2) should === (true)
+    Eq[Envelope[Adt1]].eqv(b1, Envelope[Adt1](Adt1.C(76))) should === (false)
   }
 }
