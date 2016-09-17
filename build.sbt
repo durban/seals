@@ -51,6 +51,7 @@ lazy val commonSettings = Seq[Setting[_]](
     "-encoding", "UTF-8",
     "-Xlint:_",
     "-Xfuture",
+    "-Xfatal-warnings",
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
