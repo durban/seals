@@ -20,6 +20,7 @@ package tests
 import java.util.UUID
 
 import cats.kernel.laws._
+import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
 
 import org.scalacheck.Arbitrary
@@ -61,13 +62,35 @@ class LawsSpec extends BaseLawsSpec {
     rb: Reified[B],
     rc: Reified[C]
   ): Unit = {
-    checkAll(s"Reified[$name].AnyLaws.any", AnyLaws[Reified[A]].any)
+
+    checkAll(s"Reified[$name].AnyLaws.serializability", AnyLaws[Reified[A]].serializability)
     checkAll(s"Reified[$name].AnyLaws.referenceEquality", AnyLaws[Reified[A]].referenceEquality)
-    checkAll(s"Reified[$name].OrderLaws.eqv", OrderLaws[Reified[A]].eqv)
     checkAll(s"Reified[$name].ReifiedLaws.reified", ReifiedLaws[A].reified)
 
-    // TODO: fix these:
-    // checkAll(s"Reified[$name].InvariantMonoidal.invariantMonoidal", InvariantMonoidalTests[Reified].invariantMonoidal[A, B, C])
+    // these require a test Eq[Reified[X]] instance:
+
+    checkAll(
+      s"Reified[$name].OrderLaws.eqv",
+      OrderLaws[Reified[A]](testEqForReified, arbReified).eqv
+    )
+
+    // TODO: we pass these explicitly due to an ambiguous implicit
+    checkAll(
+      s"Reified[$name].InvariantMonoidal.invariantMonoidal",
+      InvariantMonoidalTests[Reified].invariantMonoidal[A, B, C](
+        aa,
+        ab,
+        ac,
+        arbReified,
+        arbReified,
+        arbReified,
+        testEqForReified,
+        testEqForReified,
+        implicitly,
+        testEqForReified,
+        testEqForReified
+      )
+    )
   }
 
   def checkAtomicLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], at: Atomic[A]): Unit = {

@@ -54,25 +54,25 @@ trait AnyLaws[A] extends Laws {
     }
   )
 
+  def serializability = new AnyRuleSet(
+    name = "serializability",
+    parent = Some(this.equalsHashCode),
+    bases = List(),
+    Rules.serializable[A]
+  )
+
   def equality(implicit Equ: Eq[A]) = new AnyRuleSet(
     name = "equality",
-    parent = Some(this.equalsHashCode),
+    parent = Some(this.serializability),
     bases = List(),
     "equals-Eq-consistent" -> forAll { (x: A, y: A) =>
       Equ.eqv(x, y) ?== (x == y)
     }
   )
 
-  def serializability(implicit Equ: Eq[A]) = new AnyRuleSet(
-    name = "serializability",
-    parent = Some(this.equality),
-    bases = List(),
-    Rules.serializable[A]
-  )
-
   def any(implicit Equ: Eq[A]) = new AnyRuleSet(
     name = "any",
-    parent = Some(this.serializability),
+    parent = Some(this.equality),
     bases = List()
   )
 

@@ -17,7 +17,10 @@
 package io.sigs.seals
 package laws
 
+import scala.annotation.tailrec
+
 import cats.Eq
+import cats.syntax.eq._
 import cats.data.Xor
 import cats.kernel.laws._
 import org.typelevel.discipline.Laws
@@ -33,22 +36,81 @@ object ReifiedLaws {
     def Equ = e
   }
 
-  sealed trait Tree
+  sealed trait Tree {
+
+    /**
+     * A simplified Tree, which doesn't
+     * care about product nesting and
+     * labels. (Useful for testing the
+     * invariant monoidal functor laws).
+     */
+    final def simplified: Tree =
+      fixpoint(this)(_.simplify)
+
+    private[this] def fixpoint[A: Eq](z: A)(f: A => A): A = {
+      @tailrec
+      def go(last: A): A = {
+        val curr = f(last)
+        if (curr === last) curr
+        else go(curr)
+      }
+      go(z)
+    }
+
+    protected final def simplify: Tree = this match {
+      case PNil => this
+      case PCons(_, h, t) => t match {
+        case PNil => h.simplify
+        case t @ PCons(_, _, _) => h.simplify match {
+          case PNil =>
+            t.simplify
+          case PCons(_, hh, ht) =>
+            hh.simplify ++ ht.simplify ++ t.simplify
+          case h: Tree =>
+            h.simplify ++ t.simplify
+        }
+      }
+      case Sum(_, _) => this
+      case Atom(_) => this
+    }
+
+    protected final def ++ (that: Tree): Tree = this match {
+      case PNil =>
+        that
+      case PCons(_, h, t) => (t.simplify ++ that.simplify).simplify match {
+        case tth: Prod => PCons(Tree.emptySym, h.simplify, tth)
+        case tth: Tree => PCons(Tree.emptySym, h.simplify, PCons(Tree.emptySym, tth, PNil))
+      }
+      case Sum(_, _) | Atom(_) => that.simplify match {
+        case that: Prod => PCons(Tree.emptySym, this, that)
+        case that: Tree => PCons(Tree.emptySym, this, PCons(Tree.emptySym, that, PNil))
+      }
+    }
+  }
+
   object Tree {
+
+    final val emptySym = Symbol("'")
+
     implicit val eqForTree: Eq[Tree] =
       Eq.fromUniversalEquals
   }
 
   final case class Atom(s: String) extends Tree
-  final case object PNil extends Tree
-  final case class PCons(sym: Symbol, h: Tree, t: Tree) extends Tree
   final case class Sum(sym: Symbol, t: Tree) extends Tree
+
+  sealed trait Prod extends Tree
+  final case object PNil extends Prod
+  final case class PCons(sym: Symbol, h: Tree, t: Prod) extends Prod
 
   def foldToTree[A](r: Reified[A], a: A): Tree = {
     r.fold[Tree](a)(
       atom = Atom.apply,
       hNil = () => PNil,
-      hCons = PCons.apply,
+      hCons = (s, h, t) => t match {
+        case t: Prod => PCons(s, h, t)
+        case _ => core.impossible("tail is not a prod")
+      },
       sum = Sum.apply
     )
   }

@@ -29,11 +29,14 @@ import org.scalacheck.Arbitrary
  */
 trait TestEqInstances {
 
-  implicit def testEqForReified[A](implicit arb: Arbitrary[A]): Eq[Reified[A]] = {
+  def referenceEq[A <: AnyRef]: Eq[A] =
+    Eq.instance(_ eq _)
+
+  def testEqForReified[A](implicit arb: Arbitrary[A]): Eq[Reified[A]] = {
     Eq.instance { (x, y) =>
       testInstances(arb).forall { a =>
-        val tx = ReifiedLaws.foldToTree(x, a)
-        val ty = ReifiedLaws.foldToTree(y, a)
+        val tx = ReifiedLaws.foldToTree(x, a).simplified
+        val ty = ReifiedLaws.foldToTree(y, a).simplified
         tx === ty
       }
     }
