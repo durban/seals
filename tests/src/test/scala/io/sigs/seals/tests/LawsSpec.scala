@@ -35,8 +35,8 @@ class LawsSpec extends BaseLawsSpec {
   checkEnvelopeLaws[TestTypes.adts.defs.Adt1]("Adt1")
   checkEnvelopeLaws[TestTypes.adts.recursive.IntList]("IntList")
 
-  checkReifiedLaws[TestTypes.adts.defs.Adt1]("Adt1")
-  checkReifiedLaws[TestTypes.adts.recursive.IntList]("IntList")
+  checkReifiedLaws[TestTypes.adts.defs.Adt1, Int, Int]("Adt1")
+  checkReifiedLaws[TestTypes.adts.recursive.IntList, Int, Int]("IntList")
 
   checkAtomicLaws[UUID]("UUID")
   checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
@@ -51,11 +51,23 @@ class LawsSpec extends BaseLawsSpec {
     checkAll(s"Envelope[$name].OrderLaws.eqv", OrderLaws[Envelope[A]].eqv)
   }
 
-  def checkReifiedLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], r: Reified[A]): Unit = {
+  def checkReifiedLaws[A, B, C](name: String)(
+    implicit
+    aa: Arbitrary[A],
+    ab: Arbitrary[B],
+    ac: Arbitrary[C],
+    e: Eq[A],
+    ra: Reified[A],
+    rb: Reified[B],
+    rc: Reified[C]
+  ): Unit = {
     checkAll(s"Reified[$name].AnyLaws.any", AnyLaws[Reified[A]].any)
     checkAll(s"Reified[$name].AnyLaws.referenceEquality", AnyLaws[Reified[A]].referenceEquality)
     checkAll(s"Reified[$name].OrderLaws.eqv", OrderLaws[Reified[A]].eqv)
     checkAll(s"Reified[$name].ReifiedLaws.reified", ReifiedLaws[A].reified)
+
+    // TODO: fix these:
+    // checkAll(s"Reified[$name].InvariantMonoidal.invariantMonoidal", InvariantMonoidalTests[Reified].invariantMonoidal[A, B, C])
   }
 
   def checkAtomicLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], at: Atomic[A]): Unit = {

@@ -34,10 +34,24 @@ object ReifiedLaws {
   }
 
   sealed trait Tree
+  object Tree {
+    implicit val eqForTree: Eq[Tree] =
+      Eq.fromUniversalEquals
+  }
+
   final case class Atom(s: String) extends Tree
   final case object PNil extends Tree
   final case class PCons(sym: Symbol, h: Tree, t: Tree) extends Tree
   final case class Sum(sym: Symbol, t: Tree) extends Tree
+
+  def foldToTree[A](r: Reified[A], a: A): Tree = {
+    r.fold[Tree](a)(
+      atom = Atom.apply,
+      hNil = () => PNil,
+      hCons = PCons.apply,
+      sum = Sum.apply
+    )
+  }
 }
 
 trait ReifiedLaws[A] extends Laws {
@@ -51,12 +65,7 @@ trait ReifiedLaws[A] extends Laws {
   def reified = new ReifiedRuleSet(
     name = "reified",
     "fold-unfold" -> forAll { (a: A) =>
-      val tree = Rei.fold[Tree](a)(
-        atom = Atom.apply,
-        hNil = () => PNil,
-        hCons = PCons.apply,
-        sum = Sum.apply
-      )
+      val tree = foldToTree(Rei, a)
       val x: Xor[String, A] = Rei.unfold[Tree, String](
         atom = {
           case Atom(s) => Xor.right(s)

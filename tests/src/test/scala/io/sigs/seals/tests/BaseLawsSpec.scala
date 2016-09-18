@@ -20,4 +20,7 @@ package tests
 import org.scalatest.FunSuite
 import org.typelevel.discipline.scalatest.Discipline
 
-trait BaseLawsSpec extends FunSuite with Discipline
+trait BaseLawsSpec
+  extends FunSuite
+  with Discipline
+  with laws.TestEqInstances

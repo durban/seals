@@ -17,7 +17,7 @@
 package io.sigs.seals
 package core
 
-import cats.{ Eq, InvariantMonoidal }
+import cats.InvariantMonoidal
 import cats.data.Xor
 import shapeless._
 import shapeless.labelled.{ field, FieldType }
@@ -99,9 +99,6 @@ object Reified {
 
   def apply[A](implicit d: Reified[A]): Aux[A, d.Mod] =
     d
-
-  implicit def reifiedEquality[A]: Eq[Reified[A]] =
-    Eq.fromUniversalEquals[Reified[A]]
 
   implicit val reifiedInvariantMonoidalFunctor: InvariantMonoidal[Reified] = new InvariantMonoidal[Reified] {
 
