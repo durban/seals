@@ -17,16 +17,13 @@
 package io.sigs.seals
 package core
 
-import cats.Eq
+import cats.{ Eq, InvariantMonoidal }
 import cats.data.Xor
 import shapeless._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
 
-// TODO: invariant functor
-// TODO: === method
-
-sealed trait Reified[A] extends Serializable {
+sealed trait Reified[A] extends Serializable { self =>
 
   type Mod <: Model
 
@@ -64,6 +61,30 @@ sealed trait Reified[A] extends Serializable {
     cCons: (B, Symbol) => Xor[E, Either[B, B]]
   )(b: B): Xor[E, A]
 
+  def imap[B](f: A => B)(g: B => A): Reified.Aux[B, self.Mod] = new Reified[B] {
+
+    override type Mod = self.Mod
+
+    override protected def modelComponent: Mod =
+      self.modelComponent
+
+    def fold[C](b: B)(
+      atom: String => C,
+      hNil: () => C,
+      hCons: (Symbol, C, C) => C,
+      sum: (Symbol, C) => C
+    ): C = self.fold[C](g(b))(atom, hNil, hCons, sum)
+
+    def unfold[C, E](
+      atom: C => Xor[E, String],
+      atomErr: C => E,
+      hNil: C => Xor[E, Unit],
+      hCons: (C, Symbol) => Xor[E, Xor[E, (C, C)]],
+      cNil: C => E,
+      cCons: (C, Symbol) => Xor[E, Either[C, C]]
+    )(c: C): Xor[E, B] = self.unfold[C, E](atom, atomErr, hNil, hCons, cNil, cCons)(c).map(f)
+  }
+
   private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod] =
     this
 }
@@ -81,6 +102,28 @@ object Reified {
 
   implicit def reifiedEquality[A]: Eq[Reified[A]] =
     Eq.fromUniversalEquals[Reified[A]]
+
+  implicit val reifiedInvariantMonoidalFunctor: InvariantMonoidal[Reified] = new InvariantMonoidal[Reified] {
+
+    type Fst = Witness.`'_1`.T
+    type Snd = Witness.`'_2`.T
+
+    def pure[A](a: A): Reified[A] =
+      Reified[HNil].imap(_ => a)(_ => HNil)
+
+    def imap[A, B](fa: Reified[A])(f: A => B)(g: B => A): Reified[B] =
+      fa.imap(f)(g)
+
+    def product[A, B](fa: Reified[A], fb: Reified[B]): Reified[(A, B)] = {
+      implicit val ra: Reified[A] = fa
+      implicit val rb: Reified[B] = fb
+      Reified[FieldType[Fst, A] :: FieldType[Snd, B] :: HNil].imap[(A, B)] { hl =>
+        (hl.head, hl.tail.head)
+      } { case (a, b) =>
+        field[Fst](a) :: field[Snd](b) :: HNil
+      }
+    }
+  }
 
   sealed abstract class WithLazy[H, T](
       private[this] var lazyHead: () => Lazy[H],
