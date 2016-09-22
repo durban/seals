@@ -17,6 +17,8 @@
 package io.sigs.seals
 package tests
 
+import java.util.UUID
+
 import shapeless._
 import shapeless.record._
 import shapeless.union._
@@ -167,6 +169,20 @@ class ReifiedSpec extends BaseSpec {
       cc.toString should === (hl.toString)
       cp.toString should === ("Reified['IS -> ('i -> Int :: 's -> String :: HNil) :+: 'IX -> ('i -> Int :: HNil) :+: CNil]")
       st.toString should === (cp.toString)
+    }
+  }
+
+  "Reified.imap" - {
+
+    import TestInstances.reified._
+
+    final case class C(i: Int, u: UUID)
+    final case class D(i: Int, u: (Long, Long))
+
+    "Instance embedded in ADT" in {
+      val rC = Reified[C]
+      val rD = Reified[D]
+      rC.model should === (rD.model)
     }
   }
 }
