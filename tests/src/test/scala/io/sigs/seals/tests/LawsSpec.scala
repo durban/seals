@@ -29,7 +29,6 @@ import io.sigs.seals.laws._
 
 import TestArbInstances._
 import TestArbInstances.forTestData._
-import TestInstances.atomic._
 
 class LawsSpec extends BaseLawsSpec {
 
@@ -39,8 +38,16 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[TestTypes.adts.defs.Adt1, Int, Int]("Adt1")
   checkReifiedLaws[TestTypes.adts.recursive.IntList, Int, Int]("IntList")
 
-  checkAtomicLaws[UUID]("UUID")
-  checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
+  {
+    import TestInstances.reified._
+    checkReifiedLaws[UUID, Int, Int]("UUID")
+  }
+
+  {
+    import TestInstances.atomic._
+    checkAtomicLaws[UUID]("UUID")
+    checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
+  }
 
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)

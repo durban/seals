@@ -17,10 +17,18 @@
 package io.sigs.seals
 package tests
 
+import java.util.UUID
+
+import cats.Eq
+
 import org.scalatest.FunSuite
 import org.typelevel.discipline.scalatest.Discipline
 
 trait BaseLawsSpec
   extends FunSuite
   with Discipline
-  with laws.TestEqInstances
+  with laws.TestEqInstances {
+
+  implicit val eqForUuid: Eq[UUID] =
+    Eq.fromUniversalEquals
+}

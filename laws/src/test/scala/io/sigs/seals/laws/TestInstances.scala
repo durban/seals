@@ -19,7 +19,6 @@ package laws
 
 import java.util.UUID
 
-import cats.Eq
 import cats.data.Xor
 
 import TestTypes.Whatever
@@ -30,9 +29,6 @@ object TestInstances {
 
     implicit val atomicUUID: Atomic[UUID] =
       AtomicUUID
-
-    implicit val eqUUID: Eq[UUID] =
-      Eq.fromUniversalEquals
 
     private[this] final case object AtomicUUID extends Atomic[UUID] {
 
@@ -90,6 +86,17 @@ object TestInstances {
 
         val uuid: UUID =
           UUID.fromString("fa786e05-9baf-4a87-a06d-712d83d3c5d7")
+      }
+    }
+  }
+
+  object reified {
+
+    implicit val imapReifiedForUuid: Reified[UUID] = {
+      Reified[(Long, Long)].imap[UUID] { case (a, b) =>
+        new UUID(a, b)
+      } { uuid =>
+        (uuid.getMostSignificantBits, uuid.getLeastSignificantBits)
       }
     }
   }
