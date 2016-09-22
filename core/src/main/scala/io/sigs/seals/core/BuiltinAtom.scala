@@ -32,6 +32,9 @@ object BuiltinAtom {
   implicit val builtinInt: BuiltinAtom[Int] =
     new Impl(SimpleInt)
 
+  implicit val builtinLong: BuiltinAtom[Long] =
+    new Impl(SimpleLong)
+
   implicit val builtinString: BuiltinAtom[String] =
     new Impl(SimpleString)
 
@@ -43,6 +46,13 @@ object BuiltinAtom {
     UUID.fromString("d9bfd653-c875-4dd0-8287-b806ee6eb85b")) {
     override def stringRepr(a: Int) = a.toString
     override def fromString(s: String) = Try(s.toInt).toOption
+  }
+
+  private object SimpleLong extends SimpleAtom[Long](
+    "Long",
+    UUID.fromString("44e10ec2-ef7a-47b8-9851-7a5fe18a056a")) {
+    override def stringRepr(a: Long) = a.toString
+    override def fromString(s: String) = Try(s.toLong).toOption
   }
 
   private object SimpleString extends SimpleAtom[String](
@@ -61,6 +71,7 @@ object BuiltinAtom {
 
   private[seals] val registry: Map[UUID, Atom[_]] = Map(
     entryOf[Int],
+    entryOf[Long],
     entryOf[String],
     entryOf[Float]
   )
