@@ -18,7 +18,9 @@ package com.example.invariant
 
 import spire.math.Polynomial
 import spire.std.float._
+import spire.syntax.eq._
 
+import io.circe._
 import io.circe.syntax._
 
 import io.sigs.seals.Reified
@@ -27,11 +29,20 @@ import io.sigs.seals.circe.Codec._
 object Main extends App with PolySupport {
 
   /** x² + 2.0x + 4.0 */
-  val myPoly: Polynomial[Float] =
+  val original: Polynomial[Float] =
     Polynomial(Map(2 -> 1.0f, 1 -> 2.0f, 0 -> 4.0f))
 
-  println(s"Original:     ${myPoly}")
-  println(s"Deserialized: ${myPoly.asJson.as[Polynomial[Float]].getOrElse(???)}")
+  val serialized: Json =
+    original.asJson
+
+  val deserialized: Polynomial[Float] =
+    serialized.as[Polynomial[Float]].getOrElse(???)
+
+  implicitly[spire.algebra.Eq[Polynomial[Float]]]
+
+  assert(original === deserialized)
+  println(s"Original:     ${original}")
+  println(s"Deserialized: ${deserialized}")
 }
 
 trait PolySupport {
