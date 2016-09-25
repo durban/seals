@@ -23,7 +23,6 @@
  <check level="error" class="org.scalastyle.file.FileTabChecker" enabled="true" />
  <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true" />
  <check level="error" class="org.scalastyle.file.NewLineAtEofChecker" enabled="true" />
- <check level="error" class="org.scalastyle.scalariform.PublicMethodsHaveTypeChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NullChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.ReturnChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NoCloneChecker" enabled="true" />
@@ -31,6 +30,11 @@
  <check level="error" class="org.scalastyle.scalariform.CovariantEqualsChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.ProcedureDeclarationChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NotImplementedErrorUsage" enabled="true" />
+ <check level="error" class="org.scalastyle.scalariform.PublicMethodsHaveTypeChecker" enabled="true">
+  <parameters>
+   <parameter name="ignoreOverride">true</parameter>
+  </parameters>
+ </check>
  <check level="error" class="org.scalastyle.scalariform.IllegalImportsChecker" enabled="true">
   <parameters>
    <parameter name="illegalImports">sun._,java.awt._</parameter>
