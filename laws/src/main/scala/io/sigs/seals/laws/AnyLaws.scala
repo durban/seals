@@ -41,7 +41,7 @@ trait AnyLaws[A] extends Laws {
 
   implicit def Arb: Arbitrary[A]
 
-  def equalsHashCode = new AnyRuleSet(
+  def equalsHashCode: this.RuleSet = new AnyRuleSet(
     name = "equals-hashCode",
     parent = None,
     bases = List(),
@@ -54,14 +54,14 @@ trait AnyLaws[A] extends Laws {
     }
   )
 
-  def serializability = new AnyRuleSet(
+  def serializability: this.RuleSet = new AnyRuleSet(
     name = "serializability",
     parent = Some(this.equalsHashCode),
     bases = List(),
     Rules.serializable[A]
   )
 
-  def equality(implicit Equ: Eq[A]) = new AnyRuleSet(
+  def equality(implicit Equ: Eq[A]): this.RuleSet = new AnyRuleSet(
     name = "equality",
     parent = Some(this.serializability),
     bases = List(),
@@ -70,13 +70,13 @@ trait AnyLaws[A] extends Laws {
     }
   )
 
-  def any(implicit Equ: Eq[A]) = new AnyRuleSet(
+  def any(implicit Equ: Eq[A]): this.RuleSet = new AnyRuleSet(
     name = "any",
     parent = Some(this.equality),
     bases = List()
   )
 
-  def referenceEquality = new AnyRuleSet(
+  def referenceEquality: this.RuleSet = new AnyRuleSet(
     name = "referenceEquality",
     parent = None,
     bases = List(),
@@ -90,7 +90,7 @@ trait AnyLaws[A] extends Laws {
     }
   )
 
-  def equalitySerializability(implicit Equ: Eq[A]) = new AnyRuleSet(
+  def equalitySerializability(implicit Equ: Eq[A]): this.RuleSet = new AnyRuleSet(
     name = "equalitySerializability",
     parent = None,
     bases = List(),

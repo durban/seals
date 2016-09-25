@@ -40,7 +40,7 @@ trait AtomicLaws[A] extends Laws {
   implicit def Atc: Atomic[A]
   implicit def Equ: Eq[A]
 
-  def roundtrip = new AtomicRuleSet(
+  def roundtrip: this.RuleSet = new AtomicRuleSet(
     name = "roundtrip",
     "stringRepr-fromString" -> forAll { (a: A) =>
       Atc.fromString(Atc.stringRepr(a)) ?== Xor.right(a)

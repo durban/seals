@@ -124,7 +124,7 @@ trait ReifiedLaws[A] extends Laws {
   implicit def Rei: Reified[A]
   implicit def Equ: Eq[A]
 
-  def reified = new ReifiedRuleSet(
+  def reified: this.RuleSet = new ReifiedRuleSet(
     name = "reified",
     "fold-unfold" -> forAll { (a: A) =>
       val tree = foldToTree(Rei, a)
