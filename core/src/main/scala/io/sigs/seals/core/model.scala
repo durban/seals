@@ -229,7 +229,7 @@ object Model {
       // clean the closure to
       // avoid capturing anything
       // longer than necessary:
-      h = null
+      h = null // scalastyle:ignore
       res
     }
     final lazy val tail: T = {
@@ -237,7 +237,7 @@ object Model {
       // clean the closure to
       // avoid capturing anything
       // longer than necessary:
-      t = null
+      t = null // scalastyle:ignore
       res
     }
     protected def checkType(that: Model): Option[Composite[H, T]]

@@ -128,12 +128,12 @@ object Reified {
   ) extends Serializable { this: Reified[_] =>
     protected lazy val head = {
       val res = lazyHead().value
-      lazyHead = null
+      lazyHead = null // scalastyle:ignore
       res
     }
     protected lazy val tail = {
       val res = lazyTail().value
-      lazyTail = null
+      lazyTail = null // scalastyle:ignore
       res
     }
     @throws[java.io.IOException]
