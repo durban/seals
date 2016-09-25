@@ -17,3 +17,4 @@
 addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M13")
 addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.4.4")
 addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.3.2")
+addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
