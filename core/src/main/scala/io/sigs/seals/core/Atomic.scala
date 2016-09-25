@@ -36,6 +36,9 @@ trait Atomic[A] extends Serializable { this: Singleton =>
     case that: AnyRef => this eq that
     case _ => false
   }
+
+  final override def hashCode: Int =
+    System.identityHashCode(this)
 }
 
 object Atomic {
