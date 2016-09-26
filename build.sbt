@@ -108,3 +108,5 @@ lazy val dependencies = new {
     "org.scalatest" %% "scalatest" % "3.0.0-M7"
   )
 }
+
+addCommandAlias("validate", ";test;scalastyle;tut")
