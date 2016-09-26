@@ -37,7 +37,7 @@ private final class IdentitySet[A <: AnyRef] private (m: HashMap[Int, List[A]])
   override def iterator: Iterator[A] = new AbstractIterator[A] {
 
     private[this] val lsts = self.map.valuesIterator
-    private[this] var curr: List[A] = Nil
+    private[this] var curr: List[A] = Nil // scalastyle:ignore
 
     def hasNext: Boolean = {
       nextNonEmptyList()

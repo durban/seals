@@ -24,12 +24,17 @@
  <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true" />
  <check level="error" class="org.scalastyle.file.NewLineAtEofChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NullChecker" enabled="true" />
+ <check level="error" class="org.scalastyle.scalariform.VarFieldChecker" enabled="true" />
+ <check level="error" class="org.scalastyle.scalariform.VarLocalChecker" enabled="true" />
+ <check level="error" class="org.scalastyle.scalariform.WhileChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.ReturnChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NoCloneChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NoFinalizeChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.CovariantEqualsChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.ProcedureDeclarationChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.NotImplementedErrorUsage" enabled="true" />
+ <check level="error" class="org.scalastyle.scalariform.DeprecatedJavaChecker" enabled="true" />
+ <check level="error" class="org.scalastyle.scalariform.XmlLiteralChecker" enabled="true" />
  <check level="error" class="org.scalastyle.scalariform.PublicMethodsHaveTypeChecker" enabled="true">
   <parameters>
    <parameter name="ignoreOverride">true</parameter>
@@ -128,6 +133,35 @@
  <check level="warning" class="org.scalastyle.scalariform.NumberOfMethodsInTypeChecker" enabled="true">
   <parameters>
    <parameter name="maxMethods">30</parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.EmptyClassChecker" enabled="true" />
+ <check level="warning" class="org.scalastyle.scalariform.EnsureSingleSpaceAfterTokenChecker" enabled="true">
+  <parameters>
+   <parameter name="tokens">
+    PACKAGE, NEW, IMPORT, VAL, VAR, CLASS, DEF, OBJECT, TRAIT,
+    SEALED, FINAL, ABSTRACT, IMPLICIT, LAZY, OVERRIDE, EXTENDS,
+    WHILE, DO, TRY, CATCH, THROW, IF, ELSE, MATCH, CASE, FOR, YIELD, FINALLY,
+    EQUALS, SUBTYPE, SUPERTYPE, OP, LARROW, ARROW, COMMA, PIPE, FORSOME
+   </parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.EnsureSingleSpaceBeforeTokenChecker" enabled="true">
+  <parameters>
+   <parameter name="tokens">
+    YIELD,
+    EQUALS, SUBTYPE, SUPERTYPE, OP, LARROW, ARROW, PIPE, FORSOME
+   </parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.DisallowSpaceBeforeTokenChecker" enabled="true">
+  <parameters>
+   <parameter name="tokens">COMMA, RPAREN</parameter>
+  </parameters>
+ </check>
+ <check level="warning" class="org.scalastyle.scalariform.DisallowSpaceAfterTokenChecker" enabled="true">
+  <parameters>
+   <parameter name="tokens">LPAREN</parameter>
   </parameters>
  </check>
 
