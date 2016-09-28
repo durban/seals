@@ -29,45 +29,50 @@ object BuiltinAtom {
   private final class Impl[A](override val atom: Atom[A])
     extends BuiltinAtom[A]
 
+  private object Impl{
+    def apply[A](atom: Atom[A]): BuiltinAtom[A] =
+      new Impl(atom)
+  }
+
   implicit val builtinInt: BuiltinAtom[Int] =
-    new Impl(SimpleInt)
-
-  implicit val builtinLong: BuiltinAtom[Long] =
-    new Impl(SimpleLong)
-
-  implicit val builtinString: BuiltinAtom[String] =
-    new Impl(SimpleString)
-
-  implicit val builtinFloat: BuiltinAtom[Float] =
-    new Impl(SimpleFloat)
+    Impl(SimpleInt)
 
   private object SimpleInt extends SimpleAtom[Int](
     "Int",
-    UUID.fromString("d9bfd653-c875-4dd0-8287-b806ee6eb85b")) {
-    override def stringRepr(a: Int) = a.toString
-    override def fromString(s: String) = Try(s.toInt).toOption
-  }
+    "d9bfd653-c875-4dd0-8287-b806ee6eb85b",
+    _.toString,
+    s => Try(s.toInt).toOption
+  )
+
+  implicit val builtinLong: BuiltinAtom[Long] =
+    Impl(SimpleLong)
 
   private object SimpleLong extends SimpleAtom[Long](
     "Long",
-    UUID.fromString("44e10ec2-ef7a-47b8-9851-7a5fe18a056a")) {
-    override def stringRepr(a: Long) = a.toString
-    override def fromString(s: String) = Try(s.toLong).toOption
-  }
+    "44e10ec2-ef7a-47b8-9851-7a5fe18a056a",
+    _.toString,
+    s => Try(s.toLong).toOption
+  )
+
+  implicit val builtinString: BuiltinAtom[String] =
+    Impl(SimpleString)
 
   private object SimpleString extends SimpleAtom[String](
     "String",
-    UUID.fromString("8cd4c733-4392-4a8c-9014-8decf160fffe")) {
-    override def stringRepr(a: String) = a
-    override def fromString(s: String) = Some(s)
-  }
+    "8cd4c733-4392-4a8c-9014-8decf160fffe",
+    identity,
+    Some(_)
+  )
+
+  implicit val builtinFloat: BuiltinAtom[Float] =
+    Impl(SimpleFloat)
 
   private object SimpleFloat extends SimpleAtom[Float](
     "Float",
-    UUID.fromString("13663ca9-1652-4e4b-8c88-f7a137773b75")) {
-    override def stringRepr(a: Float) = a.toString
-    override def fromString(s: String) = Try(s.toFloat).toOption
-  }
+    "13663ca9-1652-4e4b-8c88-f7a137773b75",
+    _.toString,
+    s => Try(s.toFloat).toOption
+  )
 
   private[seals] val registry: Map[UUID, Atom[_]] = Map(
     entryOf[Int],

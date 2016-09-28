@@ -575,11 +575,25 @@ private sealed abstract class AbstractAtom[A] extends Atom[A] {
 
 private abstract class SimpleAtom[A](
     private[core] override val atomDesc: String,
-    private[seals] override val uuid: UUID) extends AbstractAtom[A] {
+    uuidString: String,
+    a2s: A => String,
+    s2a: String => Option[A]
+) extends AbstractAtom[A] {
+
+  final override def stringRepr(a: A) =
+    a2s(a)
+
+  final override def fromString(s: String) =
+    s2a(s)
+
   final protected override def compEq(that: Atom[_]) =
     this eq that
+
   private[core] final override def atomHash =
     System.identityHashCode(this)
+
+  private[seals] final override val uuid =
+    UUID.fromString(uuidString)
 }
 
 private final class AtomicAtom[A](private val atomic: Atomic[A])
