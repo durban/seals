@@ -150,6 +150,16 @@ object BuiltinAtom {
     Some(_)
   )
 
+  implicit val builtinSymbol: BuiltinAtom[Symbol] =
+    Impl(SimpleSymbol)
+
+  private object SimpleSymbol extends SimpleAtom[Symbol](
+    "Symbol",
+    "8c750487-1a6b-4c99-b01a-f1392b8177ed",
+    _.name,
+    s => Some(Symbol(s))
+  )
+
   implicit val builtinBigInt: BuiltinAtom[BigInt] =
     Impl(SimpleBigInt)
 
@@ -185,6 +195,7 @@ object BuiltinAtom {
     entryOf[Unit],
     // other standard types:
     entryOf[String],
+    entryOf[Symbol],
     entryOf[BigInt],
     entryOf[BigDecimal]
   )
