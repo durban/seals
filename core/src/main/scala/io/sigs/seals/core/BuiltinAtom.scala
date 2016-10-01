@@ -150,9 +150,30 @@ object BuiltinAtom {
     Some(_)
   )
 
+  implicit val builtinBigInt: BuiltinAtom[BigInt] =
+    Impl(SimpleBigInt)
+
+  private object SimpleBigInt extends SimpleAtom[BigInt](
+    "BigInt",
+    "98ed3f70-7d50-4c18-9a07-caf57cfabced",
+    _.toString,
+    s => Try(BigInt(s)).toOption
+  )
+
+  implicit val builtinBigDecimal: BuiltinAtom[BigDecimal] =
+    Impl(SimpleBigDecimal)
+
+  private object SimpleBigDecimal extends SimpleAtom[BigDecimal](
+    "BigDecimal",
+    "46317726-b42f-4147-9f99-fbbac2adce9a",
+    _.toString,
+    s => Try(BigDecimal.exact(s)).toOption
+  )
+
   // Registry:
 
   private[seals] val registry: Map[UUID, Atom[_]] = Map(
+    // primitives:
     entryOf[Byte],
     entryOf[Short],
     entryOf[Char],
@@ -162,7 +183,10 @@ object BuiltinAtom {
     entryOf[Double],
     entryOf[Boolean],
     entryOf[Unit],
-    entryOf[String]
+    // other standard types:
+    entryOf[String],
+    entryOf[BigInt],
+    entryOf[BigDecimal]
   )
 
   private def entryOf[A](implicit a: Atom[A]): (UUID, Atom[A]) =

@@ -19,7 +19,7 @@ package tests
 
 class BuiltinAtomSpec extends BaseSpec {
 
-  "Primitives" in {
+  "Built-in atoms" in {
     val atoms = Vector(
       // primitives:
       Atom[Byte],
@@ -31,8 +31,10 @@ class BuiltinAtomSpec extends BaseSpec {
       Atom[Double],
       Atom[Boolean],
       Atom[Unit],
-      // JDK types:
-      Atom[String]
+      // std types:
+      Atom[String],
+      Atom[BigInt],
+      Atom[BigDecimal]
     )
     atoms.map(_.uuid).toSet should have size atoms.size.toLong
     atoms.foreach { a =>
