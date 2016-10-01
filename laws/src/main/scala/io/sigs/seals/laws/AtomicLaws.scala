@@ -45,6 +45,7 @@ trait AtomicLaws[A] extends Laws {
     "stringRepr-fromString" -> forAll { (a: A) =>
       Atc.fromString(Atc.stringRepr(a)) ?== Xor.right(a)
     }
+    // TODO: "fromString-stringRepr"
   )
 
   final class AtomicRuleSet(

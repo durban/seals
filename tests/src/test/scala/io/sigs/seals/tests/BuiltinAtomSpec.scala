@@ -22,9 +22,15 @@ class BuiltinAtomSpec extends BaseSpec {
   "Primitives" in {
     val atoms = Vector(
       // primitives:
+      Atom[Byte],
+      Atom[Short],
+      Atom[Char],
       Atom[Int],
       Atom[Long],
       Atom[Float],
+      Atom[Double],
+      Atom[Boolean],
+      Atom[Unit],
       // JDK types:
       Atom[String]
     )

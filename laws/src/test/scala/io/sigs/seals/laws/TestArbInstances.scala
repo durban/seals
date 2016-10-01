@@ -58,6 +58,7 @@ object TestArbInstances extends ArbInstances {
     )
   }
 
+  // TODO: use the one in Scalacheck
   implicit def arbUuid(implicit al: Arbitrary[Long]): Arbitrary[UUID] = Arbitrary {
     for {
       a <- al.arbitrary
