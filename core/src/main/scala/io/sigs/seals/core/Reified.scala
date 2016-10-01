@@ -367,6 +367,8 @@ object Reified {
     }
   }
 
+  // TODO: This should have a higher priority
+  // TODO: than the ones derived from Generic.
   implicit def reifiedFromAtom[A](
     implicit A: Atom[A]
   ): Aux[A, Atom[A]] = new Reified[A] {

@@ -180,6 +180,16 @@ object BuiltinAtom {
     s => Try(BigDecimal.exact(s)).toOption
   )
 
+  implicit val builtinUUID: BuiltinAtom[UUID] =
+    Impl(SimpleUUID)
+
+  private object SimpleUUID extends SimpleAtom[UUID](
+    "UUID",
+    "7eba2d39-7f93-4600-8901-1e4e5ec5e7ed",
+    _.toString,
+    s => Try(UUID.fromString(s)).toOption
+  )
+
   // Registry:
 
   private[seals] val registry: Map[UUID, Atom[_]] = Map(
@@ -197,7 +207,8 @@ object BuiltinAtom {
     entryOf[String],
     entryOf[Symbol],
     entryOf[BigInt],
-    entryOf[BigDecimal]
+    entryOf[BigDecimal],
+    entryOf[UUID]
   )
 
   private def entryOf[A](implicit a: Atom[A]): (UUID, Atom[A]) =

@@ -23,6 +23,7 @@ import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import shapeless.test.illTyped
 
+import laws.MyUUID
 import laws.TestArbInstances.arbUuid
 import laws.TestInstances.atomic._
 import laws.TestInstances.atomic.bad._
@@ -30,11 +31,11 @@ import laws.TestTypes.Whatever
 
 class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks {
 
-  val atom = Atom[UUID]
+  val atom = Atom[MyUUID]
   val whatever = Atom[Whatever.type]
 
   "Automatic Model derivation" in {
-    atom.desc should === ("java.util.UUID")
+    atom.desc should === ("MyUUID")
     atom.uuid should === (UUID.fromString("85a168db-6ce3-47e7-b8aa-e45aa075d523"))
   }
 
@@ -50,7 +51,7 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks {
   }
 
   "stringRepr/fromString" in {
-    forAll { u: UUID =>
+    forAll { u: MyUUID =>
       atom.fromString(atom.stringRepr(u)) should === (Some(u))
     }
   }

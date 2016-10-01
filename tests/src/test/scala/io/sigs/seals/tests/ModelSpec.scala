@@ -23,7 +23,8 @@ import scala.util.hashing.MurmurHash3
 
 import shapeless.test.illTyped
 
-import laws.TestInstances.atomic.atomicUUID
+import laws.MyUUID
+import laws.TestInstances.atomic.atomicMyUUID
 
 class ModelSpec extends BaseSpec {
 
@@ -37,7 +38,7 @@ class ModelSpec extends BaseSpec {
   val a1a = Atom[Int]
   val a1b = Atom[Int]
   val a2 = Atom[String]
-  val ac = Atom[UUID]
+  val ac = Atom[MyUUID]
 
   val p1a = l -> a2 :: m -> a1b :: Model.HNil
   val p1b = l -> Atom[String] :: m -> a1a :: Model.HNil
@@ -83,7 +84,7 @@ class ModelSpec extends BaseSpec {
   lazy val cy2b: Model.HCons = Model.HCons(
     p,
     cy1b,
-    Model.HCons(l, Atom[UUID], Model.HNil)
+    Model.HCons(l, Atom[MyUUID], Model.HNil)
   )
 
   "equals + hashCode" - {
@@ -250,9 +251,9 @@ class ModelSpec extends BaseSpec {
     p1a.desc should === ("'l -> String :: 'm -> Int :: HNil")
     p1a.toString should === ("Model['l -> String :: 'm -> Int :: HNil]")
 
-    c1a.desc should === ("'l -> java.util.UUID :+: 'm -> String :+: 'n -> String :+: CNil")
+    c1a.desc should === ("'l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil")
     pc1a.desc should === (
-      "'l -> ('l -> String :: 'm -> Int :: HNil) :+: 'm -> ('n -> Int :: 'p -> Int :: HNil) :+: 'n -> ('l -> java.util.UUID :+: 'm -> String :+: 'n -> String :+: CNil) :+: CNil"
+      "'l -> ('l -> String :: 'm -> Int :: HNil) :+: 'm -> ('n -> Int :: 'p -> Int :: HNil) :+: 'n -> ('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) :+: CNil"
     )
     cy1a.desc should === (
       "'l -> ('p -> String :: HNil) :+: 'm -> ('q -> <...> :: 'r -> String :: HNil) :+: CNil"
@@ -262,7 +263,7 @@ class ModelSpec extends BaseSpec {
       "'p -> String :: 'q -> String :: 'r -> Int? :: HNil"
     )
 
-    (('p, ac) :: Model.HNil).desc should === ("'p -> java.util.UUID :: HNil")
+    (('p, ac) :: Model.HNil).desc should === ("'p -> MyUUID :: HNil")
   }
 
   "Product" in {
@@ -291,7 +292,7 @@ class ModelSpec extends BaseSpec {
   "cats.Eq" in {
     val e = cats.Eq[Model]
     assert(e.eqv(Atom[String], a2))
-    assert(e.eqv(Atom[UUID], ac))
+    assert(e.eqv(Atom[MyUUID], ac))
   }
 
   "illegal structures" in {
@@ -332,7 +333,7 @@ class ModelSpec extends BaseSpec {
             Leaf("CNil")
           )
         ),
-        Branch("HCons", Leaf(Atom[UUID].toString), Leaf("HNil"))
+        Branch("HCons", Leaf(Atom[MyUUID].toString), Leaf("HNil"))
       )
 
       tree should === (expected)
@@ -370,7 +371,7 @@ class ModelSpec extends BaseSpec {
       )
 
       val a = Atom[String].uuid.##
-      val b = Atom[UUID].uuid.##
+      val b = Atom[MyUUID].uuid.##
       val expected = for {
         _ <- mix(a)
         _ <- mix(1)

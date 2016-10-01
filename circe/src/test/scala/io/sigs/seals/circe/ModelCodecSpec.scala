@@ -24,6 +24,7 @@ import cats.data.Xor
 import io.circe._
 import io.circe.syntax._
 
+import laws.MyUUID
 import laws.TestInstances
 import laws.TestTypes
 
@@ -537,9 +538,9 @@ class ModelCodecSpec extends BaseJsonSpec {
 
     "custom atoms" in {
       // TODO: better API for custom registries
-      import TestInstances.atomic.atomicUUID
-      implicit val r: AtomRegistry = AtomRegistry.builtinAtomRegistry + Atom[UUID]
-      checkJson[Model](Atom[UUID])
+      import TestInstances.atomic.atomicMyUUID
+      implicit val r: AtomRegistry = AtomRegistry.builtinAtomRegistry + Atom[MyUUID]
+      checkJson[Model](Atom[MyUUID])
     }
 
     "simple models" in {

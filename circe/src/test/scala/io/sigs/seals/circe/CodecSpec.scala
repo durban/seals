@@ -25,11 +25,12 @@ import io.circe._
 import io.circe.syntax._
 
 import Codec._
-import laws.TestInstances.atomic.atomicUUID
+import laws.MyUUID
+import laws.TestInstances.atomic.atomicMyUUID
 
 object CodecSpec {
 
-  final case class FooBarU(fb: FooBar, u: UUID)
+  final case class FooBarU(fb: FooBar, u: MyUUID)
 
   sealed trait FooBar extends Product with Serializable
   final case class Foo(a: Int, b: String = "ert") extends FooBar
@@ -138,7 +139,7 @@ class CodecSpec extends BaseJsonSpec {
   }
 
   "Roundtrip" - {
-    val x = FooBarU(Foo(42), UUID.fromString("69fd9ed5-4789-4290-b55c-f5f1a773265a"))
+    val x = FooBarU(Foo(42), MyUUID(UUID.fromString("69fd9ed5-4789-4290-b55c-f5f1a773265a")))
     val j = x.asJson
     val y = j.as[FooBarU]
     y should === (Xor.right(x))

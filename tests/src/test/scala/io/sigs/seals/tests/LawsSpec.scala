@@ -45,7 +45,7 @@ class LawsSpec extends BaseLawsSpec {
 
   {
     import TestInstances.atomic._
-    checkAtomicLaws[UUID]("UUID")
+    checkAtomicLaws[MyUUID]("MyUUID")
     checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
   }
 

@@ -17,6 +17,8 @@
 package io.sigs.seals
 package tests
 
+import java.util.UUID
+
 class BuiltinAtomSpec extends BaseSpec {
 
   "Built-in atoms" in {
@@ -35,7 +37,8 @@ class BuiltinAtomSpec extends BaseSpec {
       Atom[String],
       Atom[Symbol],
       Atom[BigInt],
-      Atom[BigDecimal]
+      Atom[BigDecimal],
+      Atom[UUID]
     )
     atoms.map(_.uuid).toSet should have size atoms.size.toLong
     atoms.foreach { a =>

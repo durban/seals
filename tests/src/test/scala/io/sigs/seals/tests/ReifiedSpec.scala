@@ -82,7 +82,7 @@ class ReifiedSpec extends BaseSpec {
 
         "should work with Atomic" in {
           import TestTypes.custom.WithUuid
-          import TestInstances.atomic.atomicUUID
+          import TestInstances.atomic.atomicMyUUID
           Reified[WithUuid].model should === (WithUuid.expModel)
         }
 

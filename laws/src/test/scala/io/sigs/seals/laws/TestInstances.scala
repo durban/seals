@@ -27,24 +27,24 @@ object TestInstances {
 
   object atomic {
 
-    implicit val atomicUUID: Atomic[UUID] =
-      AtomicUUID
+    implicit val atomicMyUUID: Atomic[MyUUID] =
+      AtomicMyUUID
 
-    private[this] final case object AtomicUUID extends Atomic[UUID] {
+    private[this] final case object AtomicMyUUID extends Atomic[MyUUID] {
 
       def description: String =
-        "java.util.UUID"
+        "MyUUID"
 
-      def fromString(s: String): Xor[String, UUID] = {
+      def fromString(s: String): Xor[String, MyUUID] = {
         try {
-          Xor.right(UUID.fromString(s))
+          Xor.right(MyUUID(UUID.fromString(s)))
         } catch {
           case ex: IllegalArgumentException => Xor.left(ex.getMessage)
         }
       }
 
-      def stringRepr(a: UUID): String =
-        a.toString
+      def stringRepr(a: MyUUID): String =
+        a.uuid.toString
 
       val uuid: UUID =
         UUID.fromString("85a168db-6ce3-47e7-b8aa-e45aa075d523")

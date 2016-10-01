@@ -19,7 +19,7 @@ package tests
 
 import java.util.UUID
 
-import laws.{ TestInstances, TestTypes }
+import laws.{ TestInstances, TestTypes, MyUUID }
 
 // TODO: check serial version IDs
 
@@ -33,10 +33,11 @@ class SerializableSpec extends BaseSpec {
     }
 
     "Atoms should be serializable" in {
-      import TestInstances.atomic.atomicUUID
+      import TestInstances.atomic.atomicMyUUID
       checkSer(Atom[Int])
       checkSer(Atom[String])
       checkSer(Atom[UUID])
+      checkSer(Atom[MyUUID])
     }
 
     "Products should be serializable" in {
