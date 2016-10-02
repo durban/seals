@@ -38,6 +38,7 @@ trait ModelEncoder {
         hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
         cNil = _ => State.pure(()),
         cCons = (c, l, h, t) => compositePre("CCons", c, l, h, t),
+        kleene = (c, e) => State.pure(()),
         atom = (_, a) => State.pure(()),
         cycle = _ => State.pure(())
       )
@@ -47,6 +48,10 @@ trait ModelEncoder {
         hCons = (c, l, o, h, t) => composite("HCons", l, Some(o), h, t),
         cNil = _ => JsonObject.singleton("CNil", Json.obj()),
         cCons = (c, l, h, t) => composite("CCons", l, None, h, t),
+        kleene = (c, e) => JsonObject.singleton(
+          "Kleene",
+          Json.obj("elem" -> Json.fromJsonObject(e))
+        ),
         atom = (_, a) => JsonObject.singleton(
           "Atom",
           Json.obj("id" -> Json.fromString(a.uuid.toString))
@@ -140,6 +145,7 @@ trait ModelDecoder {
         else if (obj.contains("Atom")) decodeAtom.prepare(_.downField("Atom")).map(_.map[Model](identity))
         else if (obj.contains("HCons")) decodeHCons.prepare(_.downField("HCons")).map(_.map[Model](identity))
         else if (obj.contains("CCons")) decodeCCons.prepare(_.downField("CCons")).map(_.map[Model](identity))
+        else if (obj.contains("Kleene")) decodeKleene.prepare(_.downField("Kleene")).map(_.map[Model](identity))
         else if (obj.contains(JsonRef.key)) decodeRef
         else Decoder.failed[DecSt[Model]](DecodingFailure("not a Model", Nil))
       }
@@ -269,6 +275,14 @@ trait ModelDecoder {
       ),
       decodeOptional = false
     )
+  }
+
+  private def decodeKleene(implicit r: AtomRegistry): Decoder[DecSt[Kleene]] = {
+    Decoder.instance { cur =>
+      for {
+        e <- cur.get[DecSt[Model]]("elem")(decodeModel)
+      } yield e.map(e => Kleene(e))
+    }
   }
 
   private def decodeRef(implicit r: AtomRegistry): Decoder[DecSt[Model]] = Decoder.instance { cur =>

@@ -24,6 +24,9 @@ package object seals {
   type Model = core.Model
   val Model = core.Model
 
+  type Kleene = core.Kleene
+  val Kleene = core.Kleene
+
   type Atom[A] = core.Atom[A]
   val Atom = core.Atom
 

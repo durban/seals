@@ -55,6 +55,10 @@ class SerializableSpec extends BaseSpec {
       )
     }
 
+    "Kleene should be serializable" in {
+      checkSer('x -> Kleene(Atom[String]))
+    }
+
     "Cyclic models should be serializable" in {
       lazy val mod1: Model.CCons = Model.CCons(
         'p,

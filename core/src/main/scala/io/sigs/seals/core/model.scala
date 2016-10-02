@@ -36,18 +36,20 @@ sealed trait Model extends Serializable with AtomRegistry {
       hCons = (l, o, h, t) => Desc.Branch("::", l, h, t, headPostfix = if (o) "?" else ""),
       cNil = () => Desc.Leaf("CNil"),
       cCons = (l, h, t) => Desc.Branch(":+:", l, h, t),
+      kleene = e => e.withPostfix("*"),
       atom = a => Desc.Leaf(a.atomDesc),
       cycle = () => Desc.Leaf("<...>")
     ).toString
   }
 
-  protected def compEq(that: Model, compat: Boolean, memo: IdMemo): Boolean
+  protected[core] def compEq(that: Model, compat: Boolean, memo: IdMemo): Boolean
 
   final def fold[R](
     hNil: () => R,
     hCons: (Symbol, Boolean, R, R) => R,
     cNil: () => R,
     cCons: (Symbol, R, R) => R,
+    kleene: R => R,
     atom: Atom[_] => R,
     cycle: () => R
   ): R = {
@@ -56,6 +58,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       (_, l, o, h: R, t: R) => hCons(l, o, h, t),
       _ => cNil(),
       (_, l, h: R, t: R) => cCons(l, h, t),
+      (_, e: R) => kleene(e),
       (_, a) => atom(a),
       _ => cycle(),
       Memo.valMemo,
@@ -68,15 +71,17 @@ sealed trait Model extends Serializable with AtomRegistry {
     hCons: (Ctx, Symbol, Boolean, R, R) => R,
     cNil: Ctx => R,
     cCons: (Ctx, Symbol, R, R) => R,
+    kleene: (Ctx, R) => R,
     atom: (Ctx, Atom[_]) => R,
     cycle: Ctx => R
-  ): R = foldImpl(hNil, hCons, cNil, cCons, atom, cycle, Memo.valMemo, Path.empty)
+  ): R = foldImpl(hNil, hCons, cNil, cCons, kleene, atom, cycle, Memo.valMemo, Path.empty)
 
-  protected def foldImpl[R](
+  protected[core] def foldImpl[R](
     hNil: Ctx => R,
     hCons: (Ctx, Symbol, Boolean, R, R) => R,
     cNil: Ctx => R,
     cCons: (Ctx, Symbol, R, R) => R,
+    kleene: (Ctx, R) => R,
     atom: (Ctx, Atom[_]) => R,
     cycle: Ctx => R,
     memo: Memo,
@@ -100,6 +105,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       hCons = (_, l, o, h, t) => hash.mix(o).flatMap(_ => hash.mixLht(l, h, t, hash.hCons)),
       cNil = _ => hash.mix(hash.cNil),
       cCons = (_, l, h, t) => hash.mixLht(l, h, t, hash.cCons),
+      kleene = (_, e) => hash.mix(hash.kleene).flatMap(_ => e),
       atom = (_, a) => hash.mix(a.atomHash),
       cycle = _ => State.pure(()),
       memo = Memo.valMemo,
@@ -119,6 +125,7 @@ sealed trait Model extends Serializable with AtomRegistry {
     case CNil => "CNil"
     case _: CCons => CCons.pathComp
     case _: Atom[_] => Atom.pathComp
+    case _: Kleene => "Kleene"
   }
 
   final override def getAtom(id: UUID): Xor[String, Atom[_]] =
@@ -130,6 +137,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       hCons = (_, _, h, t) => h ++ t,
       cNil = () => Map.empty,
       cCons = (_, h, t) => h ++ t,
+      kleene = e => e,
       atom = a => Map(a.uuid -> a),
       cycle = () => Map.empty
     )
@@ -158,6 +166,7 @@ object Model {
     final val hCons = 0x47d21c6c
     final val cNil = 0x23ae37b5
     final val cCons = 0xae125fa4
+    final val kleene = 0x6e9f217b
 
     final val `true` = 0x2460f70d
     final val `false` = 0x1312ff7f
@@ -192,24 +201,42 @@ object Model {
       MurmurHash3.mix(state, mix)
   }
 
-  private sealed trait Desc
+  private sealed trait Desc {
+    def withPostfix(postfix: String): Desc
+  }
+
   private object Desc {
-    final case class Leaf(label: String) extends Desc {
-      override def toString = label
+
+    final case class Leaf(label: String, postfix: String = "") extends Desc {
+      override def toString = label + postfix
+      override def withPostfix(postfix: String): Leaf = this.copy(postfix = postfix)
     }
+
     final case class Branch(
       label: String,
       l: Symbol,
       h: Desc,
       t: Desc,
-      headPostfix: String = ""
+      headPostfix: String = "",
+      postfix: String = ""
     ) extends Desc {
-      override def toString = h match {
-        case Branch(_, _, _, _, _) =>
-          s"${l} -> (${h}${headPostfix}) ${label} ${t}"
-        case _ =>
-          s"${l} -> ${h}${headPostfix} ${label} ${t}"
+
+      override def toString = {
+        val repr = h match {
+          case Branch(_, _, _, _, _, _) =>
+            s"${l} -> (${h}${headPostfix}) ${label} ${t}"
+          case _ =>
+            s"${l} -> ${h}${headPostfix} ${label} ${t}"
+        }
+        if (postfix.nonEmpty) {
+          s"(${repr})${postfix}"
+        } else {
+          repr
+        }
       }
+
+      override def withPostfix(postfix: String): Branch =
+        this.copy(postfix = postfix)
     }
   }
 
@@ -235,7 +262,7 @@ object Model {
       res
     }
     protected def checkType(that: Model): Option[Composite[H, T]]
-    protected override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
+    protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       this.checkType(that).map { that =>
         if (memo contains that) {
           true
@@ -312,7 +339,7 @@ object Model {
   final case object HNil extends HList with Sentinel {
     def ::(h: (Symbol, Model)): HCons =
       HCons(h._1, h._2, this)
-    protected override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
+    protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       if (compat) {
         that match {
           case hl: HList =>
@@ -326,11 +353,12 @@ object Model {
         this eq that
       }
     }
-    protected final override def foldImpl[R](
+    protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
+      kleene: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -352,7 +380,7 @@ object Model {
       case _ =>
         None
     }
-    protected override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
+    protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       if (compat) {
         that match {
           case HNil =>
@@ -366,11 +394,12 @@ object Model {
         super.compEq(that, compat, memo)
       }
     }
-    protected final override def foldImpl[R](
+    protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
+      kleene: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -389,6 +418,7 @@ object Model {
             hCons,
             cNil,
             cCons,
+            kleene,
             atom,
             cycle,
             newMemo,
@@ -399,6 +429,7 @@ object Model {
             hCons,
             cNil,
             cCons,
+            kleene,
             atom,
             cycle,
             newMemo,
@@ -430,13 +461,14 @@ object Model {
   final case object CNil extends Coproduct with Sentinel {
     def :+:(h: (Symbol, Model)): CCons =
       CCons(h._1, h._2, this)
-    protected override def compEq(that: Model, compat: Boolean, memo: IdMemo) =
+    protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) =
       this eq that
-    protected final override def foldImpl[R](
+    protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
+      kleene: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -455,11 +487,12 @@ object Model {
       case that: CCons => Some(that)
       case _ => None
     }
-    protected final override def foldImpl[R](
+    protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
+      kleene: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -477,6 +510,7 @@ object Model {
             hCons,
             cNil,
             cCons,
+            kleene,
             atom,
             cycle,
             newMemo,
@@ -487,6 +521,7 @@ object Model {
             hCons,
             cNil,
             cCons,
+            kleene,
             atom,
             cycle,
             newMemo,
@@ -518,7 +553,7 @@ sealed trait Atom[A] extends Model {
 
   private[seals] def uuid: UUID
 
-  final protected override def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = {
+  final protected[core] override def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = {
     that match {
       case that: Atom[_] =>
         this.compEq(that)
@@ -542,11 +577,12 @@ object Atom {
 }
 
 private sealed abstract class AbstractAtom[A] extends Atom[A] {
-  protected final override def foldImpl[R](
+  protected[core] final override def foldImpl[R](
     hNil: Model.Ctx => R,
     hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
     cNil: Model.Ctx => R,
     cCons: (Model.Ctx, Symbol, R, R) => R,
+    kleene: (Model.Ctx, R) => R,
     atom: (Model.Ctx, Atom[_]) => R,
     cycle: Model.Ctx => R,
     memo: Model.Memo,
@@ -591,4 +627,50 @@ private final class AtomicAtom[A](private val atomic: Atomic[A])
   }
   override def fromString(s: String): Option[A] = atomic.fromString(s).toOption
   override def stringRepr(a: A): String = atomic.stringRepr(a)
+}
+
+// TODO: figure out how to derive this
+// (both built-in and user-extensible).
+// Maybe this should be inside Model,
+// and there should be something public
+// like Atomic? Also, does it need a
+// type parameter? (The public one certainly
+// does, since it'll be a type class).
+final class Kleene private (val elem: Model) extends Model {
+
+  def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
+    case that: Kleene =>
+      this.elem.compEq(that.elem, compat, memo)
+    case _ =>
+      false
+  }
+
+  def foldImpl[R](
+    hNil: Model.Ctx => R,
+    hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
+    cNil: Model.Ctx => R,
+    cCons: (Model.Ctx, Symbol, R, R) => R,
+    kleene: (Model.Ctx, R) => R,
+    atom: (Model.Ctx, Atom[_]) => R,
+    cycle: Model.Ctx => R,
+    memo: Model.Memo,
+    path: Model.Path): R = kleene(
+    Model.Ctx(this, path :+ this.pathComp),
+    elem.foldImpl(
+      hNil,
+      hCons,
+      cNil,
+      cCons,
+      kleene,
+      atom,
+      cycle,
+      memo,
+      path :+ this.pathComp :+ "elem"
+    )
+  )
+}
+
+object Kleene {
+  def apply(elem: Model): Kleene =
+    new Kleene(elem)
 }

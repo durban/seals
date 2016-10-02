@@ -56,6 +56,13 @@ class ModelSpec extends BaseSpec {
   val pc2a = p -> c1a :: Model.HNil
   val pc2b = p -> c1b :: Model.HNil
 
+  val k1a = Kleene(a1a)
+  val k1b = Kleene(a1b)
+  val k2a = Kleene(pc1a)
+  val k2b = Kleene(pc1b)
+  val k3a = 'x -> Kleene(p3o) :: Model.HNil
+  val k3aMinus = 'x -> Kleene(p3oMinus) :: Model.HNil
+
   lazy val cy1a: Model.CCons = Model.CCons(
     l,
     Model.HCons(p, a2, Model.HNil),
@@ -179,6 +186,17 @@ class ModelSpec extends BaseSpec {
       checkNotEqHashCompat(pc2b, pc1b)
     }
 
+    "kleene" in {
+      checkEqHashCompat(k1a, k1a)
+      checkEqHashCompat(k1a, k1b)
+      checkEqHashCompat(k2a, k2a)
+      checkEqHashCompat(k2a, k2b)
+      checkNotEqHashCompat(k1a, k2a)
+      checkNotEqHashCompat(k2a, k1a)
+      checkNotEqHashCompat(k1a, a1a)
+      checkNotEqHashCompat(k2a, pc1a)
+    }
+
     "cyclic model" in {
       checkEqHashCompat(cy1a, cy1a)
       checkEqHashCompat(cy1a, cy1b)
@@ -243,6 +261,7 @@ class ModelSpec extends BaseSpec {
   "compatible" in {
     checkCompatible(p2, p2plus)
     checkCompatible(p3o, p3oMinus)
+    checkCompatible(k3a, k3aMinus)
   }
 
   "toString/desc" in {
@@ -250,9 +269,11 @@ class ModelSpec extends BaseSpec {
     p1a.toString should === ("Model['l -> String :: 'm -> Int :: HNil]")
 
     c1a.desc should === ("'l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil")
-    pc1a.desc should === (
+
+    val pc1aExp =
       "'l -> ('l -> String :: 'm -> Int :: HNil) :+: 'm -> ('n -> Int :: 'p -> Int :: HNil) :+: 'n -> ('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) :+: CNil"
-    )
+    pc1a.desc should === (pc1aExp)
+
     cy1a.desc should === (
       "'l -> ('p -> String :: HNil) :+: 'm -> ('q -> <...> :: 'r -> String :: HNil) :+: CNil"
     )
@@ -262,12 +283,16 @@ class ModelSpec extends BaseSpec {
     )
 
     (('p, ac) :: Model.HNil).desc should === ("'p -> MyUUID :: HNil")
+
+    k1a.desc should === ("Int*")
+    k2a.desc should === (s"(${pc1aExp})*")
   }
 
   "cats.Eq" in {
     val e = cats.Eq[Model]
     assert(e.eqv(Atom[String], a2))
     assert(e.eqv(Atom[MyUUID], ac))
+    assert(e.eqv(k1a, k1b))
   }
 
   "illegal structures" in {
@@ -293,6 +318,7 @@ class ModelSpec extends BaseSpec {
         hCons = (_, _, h, t) => Branch("HCons", h, t),
         cNil = () => Leaf("CNil"),
         cCons = (_, h, t) => Branch("CCons", h, t),
+        kleene = (e) => Branch("Kleene", e, Leaf("⊥")),
         atom = (a) => Leaf(s"$a"),
         cycle = () => Leaf("CYCLE")
       )
@@ -341,6 +367,7 @@ class ModelSpec extends BaseSpec {
           _ <- t
           _ <- mix(4)
         } yield (),
+        kleene = (e) => e,
         atom = (a) => mix(a.uuid.##),
         cycle = () => State.pure(())
       )
