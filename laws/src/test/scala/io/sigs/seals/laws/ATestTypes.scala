@@ -60,6 +60,15 @@ object TestTypes {
     implicit val equW: Eq[Whatever.type] = Eq.fromUniversalEquals
   }
 
+  final case class CaseClass(n: Long)
+
+  object CaseClass {
+    implicit val arbCC: Arbitrary[CaseClass] =
+      Arbitrary(Arbitrary.arbitrary[Long].map(CaseClass(_)))
+    implicit val equCC: Eq[CaseClass] =
+      Eq.fromUniversalEquals
+  }
+
   object adts {
 
     object iso {

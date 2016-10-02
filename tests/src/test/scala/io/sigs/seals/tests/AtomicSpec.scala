@@ -20,16 +20,18 @@ package tests
 import java.util.UUID
 
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatest.Inside
 
+import cats.data.Xor
 import shapeless.test.illTyped
 
 import laws.MyUUID
 import laws.TestArbInstances.arbUuid
 import laws.TestInstances.atomic._
 import laws.TestInstances.atomic.bad._
-import laws.TestTypes.Whatever
+import laws.TestTypes.{ CaseClass, Whatever }
 
-class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks {
+class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside {
 
   val atom = Atom[MyUUID]
   val whatever = Atom[Whatever.type]
@@ -61,5 +63,50 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks {
       "Atom[Int]",
       ".*ambiguous implicit values.*"
     )
+  }
+
+  "have higher priority than generic Reified" in {
+    // derived instance:
+    val r1 = Reified[CaseClass]
+
+    // define an atomic:
+    val constUuid = UUID.fromString("3ba1f17e-c0cd-4b17-8cca-771e90b60498")
+    val r2 = {
+      object ACC extends Atomic[CaseClass] {
+
+        def description: String = "CaseClass"
+
+        def fromString(s: String): Xor[String, CaseClass] = {
+          try {
+            Xor.right(CaseClass(s.toLong))
+          } catch {
+            case ex: IllegalArgumentException => Xor.left(ex.getMessage)
+          }
+        }
+
+        def stringRepr(a: CaseClass): String = a.n.toString
+
+        val uuid: UUID = constUuid
+      }
+
+      implicit val atomicCaseClass: Atomic[CaseClass] = ACC
+
+      // now this should take priority over the derived instance:
+      Reified[CaseClass]
+    }
+
+    r1.model should !== (r2.model)
+
+    inside (r1.model) {
+      case _: Atom[_] =>
+        fail("not expected an Atom")
+      case _ =>
+        // OK
+    }
+
+    inside (r2.model) {
+      case a: Atom[_] =>
+        a.uuid should === (constUuid)
+    }
   }
 }

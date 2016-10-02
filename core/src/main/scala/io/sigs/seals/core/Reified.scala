@@ -30,7 +30,7 @@ sealed trait Reified[A] extends Serializable { self =>
   final def model: Model =
     modelComponent
 
-  protected def modelComponent: Mod
+  private[core] def modelComponent: Mod
 
   final override def toString: String =
     s"Reified[${model.desc}]"
@@ -65,7 +65,7 @@ sealed trait Reified[A] extends Serializable { self =>
 
     override type Mod = self.Mod
 
-    override protected def modelComponent: Mod =
+    override private[core] def modelComponent: Mod =
       self.modelComponent
 
     def fold[C](b: B)(
@@ -89,7 +89,7 @@ sealed trait Reified[A] extends Serializable { self =>
     this
 }
 
-object Reified {
+object Reified extends LowPrioReified {
 
   final val hashSeed = 0xf2fe2bb5
 
@@ -122,38 +122,43 @@ object Reified {
     }
   }
 
-  sealed abstract class WithLazy[H, T](
-      private[this] var lazyHead: () => Lazy[H],
-      private[this] var lazyTail: () => Lazy[T]
-  ) extends Serializable { this: Reified[_] =>
-    protected lazy val head = {
-      val res = lazyHead().value
-      lazyHead = null // scalastyle:ignore
-      res
-    }
-    protected lazy val tail = {
-      val res = lazyTail().value
-      lazyTail = null // scalastyle:ignore
-      res
-    }
-    @throws[java.io.IOException]
-    private def writeObject(out: java.io.ObjectOutputStream): Unit = {
-      // force evaluation of the lazy val thunks,
-      // to clean any captured state which we
-      // don't want to serialize:
-      this.head
-      this.tail
-      // now it should work by default:
-      out.defaultWriteObject()
+  implicit def reifiedFromAtom[A](
+    implicit A: Atom[A]
+  ): Reified.Aux[A, Atom[A]] = new Reified[A] {
+    override type Mod = Atom[A]
+    private[core] override val modelComponent = A
+    override def fold[B](a: A)(
+      atom: String => B,
+      hNil: () => B,
+      hCons: (Symbol, B, B) => B,
+      sum: (Symbol, B) => B
+    ): B = atom(this.modelComponent.stringRepr(a))
+    override def unfold[B, E](
+      atom: B => Xor[E, String],
+      atomErr: B => E,
+      hNil: B => Xor[E, Unit],
+      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
+      cNil: B => E,
+      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+    )(b: B): Xor[E, A] = {
+      atom(b).flatMap { str =>
+        Xor.fromOption(
+          A.fromString(str),
+          atomErr(b)
+        )
+      }
     }
   }
+}
+
+private[core] sealed trait LowPrioReified {
 
   implicit def reifiedFromHcons[HK <: Symbol, HV, T <: HList, MT <: Model.HList](
     implicit
     label: Witness.Aux[HK],
     rh0: Lazy[Reified[HV]],
     rt0: Lazy[Reified.Aux[T, MT]]
-  ): Aux[FieldType[HK, HV] :: T, Model.HCons] = {
+  ): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons] = {
     new HConsReified[HK, HV, T, MT](label, None, () => rh0, () => rt0)
   }
 
@@ -167,10 +172,10 @@ object Reified {
 
     override type Mod = Model.HCons
 
-    lazy protected override val modelComponent: Mod =
+    lazy private[core] override val modelComponent: Mod =
       Model.HCons(label.value, head.modelComponent, tail.modelComponent)
 
-    private[core] override def unsafeWithDefaults(defs: List[Option[Any]]): Aux[FieldType[HK, HV] :: T, Model.HCons] = {
+    private[core] override def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons] = {
       new HConsReified[HK, HV, T, MT](
         label,
         defs.head.map(_.asInstanceOf[HV]),
@@ -213,10 +218,10 @@ object Reified {
     }
   }
 
-  implicit val reifiedFromHnil: Aux[HNil, Model.HNil.type] = {
+  implicit val reifiedFromHnil: Reified.Aux[HNil, Model.HNil.type] = {
     new Reified[HNil] {
       override type Mod = Model.HNil.type
-      protected override val modelComponent: Mod = Model.HNil
+      private[core] override val modelComponent: Mod = Model.HNil
       override def fold[B](a: HNil)(
         atom: String => B,
         hNil: () => B,
@@ -241,12 +246,12 @@ object Reified {
     label: Witness.Aux[HK],
     rh0: Lazy[Reified[HV]],
     rt0: Lazy[Reified.Aux[T, MT]]
-  ): Aux[FieldType[HK, HV] :+: T, Model.CCons] = new WithLazy[Reified[HV], Reified.Aux[T, MT]](
+  ): Reified.Aux[FieldType[HK, HV] :+: T, Model.CCons] = new WithLazy[Reified[HV], Reified.Aux[T, MT]](
       () => rh0,
       () => rt0
   ) with Reified[FieldType[HK, HV] :+: T] {
     override type Mod = Model.CCons
-    lazy protected override val modelComponent: Mod = Model.CCons(label.value, head.modelComponent, tail.modelComponent)
+    lazy private[core] override val modelComponent: Mod = Model.CCons(label.value, head.modelComponent, tail.modelComponent)
     override def fold[B](a: FieldType[HK, HV] :+: T)(
       atom: String => B,
       hNil: () => B,
@@ -283,9 +288,9 @@ object Reified {
     }
   }
 
-  implicit val reifiedFromCnil: Aux[CNil, Model.CNil.type] = new Reified[CNil] {
+  implicit val reifiedFromCnil: Reified.Aux[CNil, Model.CNil.type] = new Reified[CNil] {
     override type Mod = Model.CNil.type
-    protected override val modelComponent: Mod = Model.CNil
+    private[core] override val modelComponent: Mod = Model.CNil
     override def fold[B](a: CNil)(
       atom: String => B,
       hNil: () => B,
@@ -309,12 +314,12 @@ object Reified {
     DL: ToTraversable.Aux[DA, List, Option[Any]],
     WD: Model.WithDefaults[DA],
     RA: Lazy[Reified.Aux[GA, MA]]
-  ): Aux[A, Model.HList] = new WithLazy[Reified[GA] { type Mod = MA }, None.type](
+  ): Reified.Aux[A, Model.HList] = new WithLazy[Reified[GA] { type Mod = MA }, None.type](
       () => RA.map(_.unsafeWithDefaults(D.apply().toList)),
       () => None
   ) with Reified[A] {
     override type Mod = Model.HList
-    lazy protected override val modelComponent: Mod = {
+    lazy private[core] override val modelComponent: Mod = {
       WD.unsafeWithDefaults(head.modelComponent)(D())
     }
     override def fold[B](a: A)(
@@ -341,12 +346,12 @@ object Reified {
     implicit
     A: LabelledGeneric.Aux[A, GA],
     RA: Lazy[Reified.Aux[GA, MA]]
-  ): Reified.Aux[A, MA] = new Reified.WithLazy[Reified[GA] { type Mod = MA }, None.type](
+  ): Reified.Aux[A, MA] = new WithLazy[Reified[GA] { type Mod = MA }, None.type](
       () => RA,
       () => None
   ) with Reified[A] {
     override type Mod = MA
-    lazy protected override val modelComponent: Mod = head.modelComponent
+    lazy private[core] override val modelComponent: Mod = head.modelComponent
     override def fold[B](a: A)(
       atom: String => B,
       hNil: () => B,
@@ -366,34 +371,33 @@ object Reified {
       head.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(b).map(A.from)
     }
   }
+}
 
-  // TODO: This should have a higher priority
-  // TODO: than the ones derived from Generic.
-  implicit def reifiedFromAtom[A](
-    implicit A: Atom[A]
-  ): Aux[A, Atom[A]] = new Reified[A] {
-    override type Mod = Atom[A]
-    protected override val modelComponent = A
-    override def fold[B](a: A)(
-      atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
-    ): B = atom(this.modelComponent.stringRepr(a))
-    override def unfold[B, E](
-      atom: B => Xor[E, String],
-      atomErr: B => E,
-      hNil: B => Xor[E, Unit],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
-    )(b: B): Xor[E, A] = {
-      atom(b).flatMap { str =>
-        Xor.fromOption(
-          A.fromString(str),
-          atomErr(b)
-        )
-      }
-    }
+private sealed abstract class WithLazy[H, T](
+    private[this] var lazyHead: () => Lazy[H],
+    private[this] var lazyTail: () => Lazy[T]
+) extends Serializable { this: Reified[_] =>
+
+  protected lazy val head = {
+    val res = lazyHead().value
+    lazyHead = null // scalastyle:ignore
+    res
+  }
+
+  protected lazy val tail = {
+    val res = lazyTail().value
+    lazyTail = null // scalastyle:ignore
+    res
+  }
+
+  @throws[java.io.IOException]
+  private def writeObject(out: java.io.ObjectOutputStream): Unit = {
+    // force evaluation of the lazy val thunks,
+    // to clean any captured state which we
+    // don't want to serialize:
+    this.head
+    this.tail
+    // now it should work by default:
+    out.defaultWriteObject()
   }
 }
