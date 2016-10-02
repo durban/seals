@@ -23,34 +23,15 @@ import cats.Eq
 
 import org.scalacheck.{ Arbitrary, Gen }
 
-final class MyUUID(u: UUID) {
-
-  // TODO: this is a workaround to
-  // avoid having a Generic instance
-  // for this class. This should be
-  // unnecessary when the Reified
-  // instances will be prioritized
-  // correctly.
-  def uuid: UUID = u
-
-  override def equals(that: Any): Boolean = that match {
-    case that: MyUUID =>
-      this.uuid == that.uuid
-    case _ =>
-      false
-  }
-}
+final case class MyUUID(uuid: UUID)
 
 object MyUUID {
-
-  def apply(u: UUID): MyUUID =
-    new MyUUID(u)
 
   implicit def arbMyUUID(implicit a: Arbitrary[UUID]): Arbitrary[MyUUID] =
     Arbitrary(a.arbitrary.map(MyUUID(_)))
 
-  implicit def eqMyUUID(implicit e: Eq[UUID]): Eq[MyUUID] =
-    Eq.instance { (x, y) => e.eqv(x.uuid, y.uuid) }
+  implicit def eqMyUUID: Eq[MyUUID] =
+    Eq.fromUniversalEquals
 }
 
 object TestTypes {
