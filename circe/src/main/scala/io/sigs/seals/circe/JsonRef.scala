@@ -23,8 +23,7 @@ import cats.data.Xor
 import cats.implicits._
 
 private final class JsonRef private (val path: Vector[String])
-    extends Product // FIXME: do we need this?
-    with Serializable {
+    extends Serializable {
 
   lazy val uri: String = {
     if (path.isEmpty) {
@@ -52,19 +51,6 @@ private final class JsonRef private (val path: Vector[String])
 
   override def hashCode: Int =
     MurmurHash3.seqHash(path)
-
-  override def canEqual(that: Any): Boolean = that match {
-    case JsonRef(_) => true
-    case _ => false
-  }
-
-  override def productArity: Int =
-    1
-
-  override def productElement(n: Int): Any = n match {
-    case 0 => path
-    case _ => throw new IndexOutOfBoundsException
-  }
 }
 
 private object JsonRef {

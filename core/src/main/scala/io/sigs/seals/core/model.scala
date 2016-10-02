@@ -25,9 +25,8 @@ import cats.data.{ State, Xor }
 import cats.implicits._
 
 // TODO: maybe rename HNil -> PNil and CNil -> SNil
-// FIXME: do we need to extend `Product`?
 
-sealed trait Model extends Product with Serializable with AtomRegistry {
+sealed trait Model extends Serializable with AtomRegistry {
 
   import Model._
 
@@ -113,11 +112,6 @@ sealed trait Model extends Product with Serializable with AtomRegistry {
 
   final override def toString: String =
     s"Model[${this.desc}]"
-
-  final override def canEqual(that: Any): Boolean = that match {
-    case _: Model => true
-    case _ => false
-  }
 
   final def pathComp: String = this match {
     case HNil => "HNil"
@@ -265,14 +259,6 @@ object Model {
       this.tail
       // now it should work by default:
       out.defaultWriteObject()
-    }
-    // FIXME: should we include `optional`?
-    final override def productArity: Int = 3
-    final override def productElement(n: Int): Any = n match {
-      case 0 => label
-      case 1 => head
-      case 2 => tail
-      case _ => throw new IndexOutOfBoundsException
     }
   }
 
@@ -540,10 +526,6 @@ sealed trait Atom[A] extends Model {
         false
     }
   }
-
-  final override def productArity: Int = 0
-  final override def productElement(n: Int): Any =
-    throw new IndexOutOfBoundsException
 }
 
 object Atom {

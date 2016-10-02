@@ -17,8 +17,6 @@
 package io.sigs.seals
 package tests
 
-import java.util.UUID
-
 import scala.util.hashing.MurmurHash3
 
 import shapeless.test.illTyped
@@ -264,29 +262,6 @@ class ModelSpec extends BaseSpec {
     )
 
     (('p, ac) :: Model.HNil).desc should === ("'p -> MyUUID :: HNil")
-  }
-
-  "Product" in {
-    for (m <- Seq[Product](Model.HNil, Model.CNil, Atom[Int], Atom[String], Atom[UUID])) {
-      m.productArity should === (0)
-      a [IndexOutOfBoundsException] shouldBe thrownBy {
-        m.productElement(0)
-      }
-      m.canEqual("") should === (false)
-    }
-    val p: Product = l -> Atom[Int] :: Model.HNil
-    p.productArity should === (3)
-    p.productElement(0) should === ('l)
-    p.productElement(1) should === (Atom[Int])
-    p.productElement(2) should === (Model.HNil)
-
-    p.canEqual("") should === (false)
-    val s: Product = l -> Atom[String] :+: Model.CNil
-    s.productArity should === (3)
-    s.productElement(0) should === ('l)
-    s.productElement(1) should === (Atom[String])
-    s.productElement(2) should === (Model.CNil)
-    s.canEqual("") should === (false)
   }
 
   "cats.Eq" in {
