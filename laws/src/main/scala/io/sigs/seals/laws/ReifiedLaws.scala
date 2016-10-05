@@ -72,6 +72,7 @@ object ReifiedLaws {
       }
       case Sum(_, _) => this
       case Atom(_) => this
+      case Vect(els) => Vect(els.map(_.simplify))
     }
 
     protected final def ++ (that: Tree): Tree = this match {
@@ -81,7 +82,7 @@ object ReifiedLaws {
         case tth: Prod => PCons(Tree.emptySym, h.simplify, tth)
         case tth: Tree => PCons(Tree.emptySym, h.simplify, PCons(Tree.emptySym, tth, PNil))
       }
-      case Sum(_, _) | Atom(_) => that.simplify match {
+      case Sum(_, _) | Atom(_) | Vect(_) => that.simplify match {
         case that: Prod => PCons(Tree.emptySym, this, that)
         case that: Tree => PCons(Tree.emptySym, this, PCons(Tree.emptySym, that, PNil))
       }
@@ -98,6 +99,7 @@ object ReifiedLaws {
 
   final case class Atom(s: String) extends Tree
   final case class Sum(sym: Symbol, t: Tree) extends Tree
+  final case class Vect(els: Vector[Tree]) extends Tree
 
   sealed trait Prod extends Tree
   final case object PNil extends Prod
@@ -111,7 +113,8 @@ object ReifiedLaws {
         case t: Prod => PCons(s, h, t)
         case _ => core.impossible("tail is not a prod")
       },
-      sum = Sum.apply
+      sum = Sum.apply,
+      vector = Vect.apply
     )
   }
 }
@@ -128,6 +131,7 @@ trait ReifiedLaws[A] extends Laws {
     name = "reified",
     "fold-unfold" -> forAll { (a: A) =>
       val tree = foldToTree(Rei, a)
+
       val x: Xor[String, A] = Rei.unfold[Tree, String](
         atom = {
           case Atom(s) => Xor.right(s)
@@ -146,7 +150,11 @@ trait ReifiedLaws[A] extends Laws {
         cCons = (t, sym) => t match {
           case Sum(`sym`, t2) => Xor.right(Left(t2))
           case Sum(_, _) => Xor.right(Right(t))
-          case x: Any => Xor.left(s"not CCons: $x")
+          case _ => Xor.left(s"not CCons: $t")
+        },
+        vector = t => t match {
+          case Vect(els) => Xor.right(els)
+          case _ => Xor.left(s"not Vect: $t")
         }
       )(tree)
 

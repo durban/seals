@@ -33,7 +33,9 @@ object Codec {
         atom = a => JsonObject.singleton("value", Json.fromString(a)),
         hNil = () => JsonObject.empty,
         hCons = (l, h, t) => (l.name, Json.fromJsonObject(h)) +: t,
-        sum = (l, v) => JsonObject.singleton(l.name, Json.fromJsonObject(v))
+        sum = (l, v) => JsonObject.singleton(l.name, Json.fromJsonObject(v)),
+        // TODO: try to avoid extra singleton object
+        vector = v => JsonObject.singleton("Vector", Json.arr(v.map(Json.fromJsonObject): _*))
       )
       Json.fromJsonObject(obj)
     }
@@ -69,6 +71,14 @@ object Codec {
             fc => Xor.right(Right(cur)),
             sc => Xor.right(Left(sc))
           )
+        },
+        vector = { cur =>
+          for {
+            c <- cur.downField("Vector").either.leftMap { fc =>
+              DecodingFailure("missing key: 'Vector'", fc.history)
+            }
+            vect <- c.as[Vector[HCursor]]
+          } yield vect
         }
       )(c)
     }

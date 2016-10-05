@@ -19,9 +19,11 @@ package core
 
 import cats.InvariantMonoidal
 import cats.data.Xor
+import cats.instances.vector.catsStdInstancesForVector
 import shapeless._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
+import cats.Traverse
 
 sealed trait Reified[A] extends Serializable { self =>
 
@@ -49,7 +51,8 @@ sealed trait Reified[A] extends Serializable { self =>
     atom: String => B,
     hNil: () => B,
     hCons: (Symbol, B, B) => B,
-    sum: (Symbol, B) => B
+    sum: (Symbol, B) => B,
+    vector: Vector[B] => B
   ): B
 
   def unfold[B, E](
@@ -58,7 +61,8 @@ sealed trait Reified[A] extends Serializable { self =>
     hNil: B => Xor[E, Unit],
     hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
     cNil: B => E,
-    cCons: (B, Symbol) => Xor[E, Either[B, B]]
+    cCons: (B, Symbol) => Xor[E, Either[B, B]],
+    vector: B => Xor[E, Vector[B]]
   )(b: B): Xor[E, A]
 
   def imap[B](f: A => B)(g: B => A): Reified.Aux[B, self.Mod] = new Reified[B] {
@@ -72,8 +76,9 @@ sealed trait Reified[A] extends Serializable { self =>
       atom: String => C,
       hNil: () => C,
       hCons: (Symbol, C, C) => C,
-      sum: (Symbol, C) => C
-    ): C = self.fold[C](g(b))(atom, hNil, hCons, sum)
+      sum: (Symbol, C) => C,
+      vector: Vector[C] => C
+    ): C = self.fold[C](g(b))(atom, hNil, hCons, sum, vector)
 
     def unfold[C, E](
       atom: C => Xor[E, String],
@@ -81,8 +86,9 @@ sealed trait Reified[A] extends Serializable { self =>
       hNil: C => Xor[E, Unit],
       hCons: (C, Symbol) => Xor[E, Xor[E, (C, C)]],
       cNil: C => E,
-      cCons: (C, Symbol) => Xor[E, Either[C, C]]
-    )(c: C): Xor[E, B] = self.unfold[C, E](atom, atomErr, hNil, hCons, cNil, cCons)(c).map(f)
+      cCons: (C, Symbol) => Xor[E, Either[C, C]],
+      vector: C => Xor[E, Vector[C]]
+    )(c: C): Xor[E, B] = self.unfold[C, E](atom, atomErr, hNil, hCons, cNil, cCons, vector)(c).map(f)
   }
 
   private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod] =
@@ -131,7 +137,8 @@ object Reified extends LowPrioReified {
       atom: String => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
     ): B = atom(this.modelComponent.stringRepr(a))
     override def unfold[B, E](
       atom: B => Xor[E, String],
@@ -139,13 +146,45 @@ object Reified extends LowPrioReified {
       hNil: B => Xor[E, Unit],
       hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
       cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
     )(b: B): Xor[E, A] = {
       atom(b).flatMap { str =>
         Xor.fromOption(
           A.fromString(str),
           atomErr(b)
         )
+      }
+    }
+  }
+
+  // TODO: tests
+  implicit def reifiedFromKleene[F[_], A](
+    implicit
+    F: Kleene[F],
+    R: Reified[A]
+  ): Reified.Aux[F[A], Model.Vector] = new Reified[F[A]] {
+    override type Mod = Model.Vector
+    private[core] override val modelComponent = Model.Vector(R.modelComponent)
+    override def fold[B](a: F[A])(
+      atom: String => B,
+      hNil: () => B,
+      hCons: (Symbol, B, B) => B,
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
+    ): B = vector(F.toVector(a).map(x => R.fold(x)(atom, hNil, hCons, sum, vector)))
+    override def unfold[B, E](
+      atom: B => Xor[E, String],
+      atomErr: B => E,
+      hNil: B => Xor[E, Unit],
+      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
+      cNil: B => E,
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
+    )(b: B): Xor[E, F[A]] = {
+      vector(b).flatMap { v =>
+        val g = v.map(x => R.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(x))
+        Traverse[Vector].sequence(g).map(F.fromVector)
       }
     }
   }
@@ -188,10 +227,11 @@ private[core] sealed trait LowPrioReified {
       atom: String => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
     ): B = {
-      val h = head.fold(a.head)(atom, hNil, hCons, sum)
-      val t = tail.fold(a.tail)(atom, hNil, hCons, sum)
+      val h = head.fold(a.head)(atom, hNil, hCons, sum, vector)
+      val t = tail.fold(a.tail)(atom, hNil, hCons, sum, vector)
       hCons(label.value, h, t)
     }
 
@@ -201,7 +241,8 @@ private[core] sealed trait LowPrioReified {
       hNil: B => Xor[E, Unit],
       hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
       cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
     )(b: B): Xor[E, FieldType[HK, HV] :: T] = {
       for {
         ht <- hCons(b, label.value).fold[Xor[E, (HV, B)]](
@@ -209,11 +250,11 @@ private[core] sealed trait LowPrioReified {
             Xor.fromOption[E, HV](headDefault, missingField).map(h => (h, b))
           },
           ok => ok.flatMap { case (hb, tb) =>
-            head.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(hb).map(h => (h, tb))
+            head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(hb).map(h => (h, tb))
           }
         )
         (h, tb) = ht
-        t <- tail.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(tb)
+        t <- tail.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(tb)
       } yield field[HK](h) :: t
     }
   }
@@ -226,7 +267,8 @@ private[core] sealed trait LowPrioReified {
         atom: String => B,
         hNil: () => B,
         hCons: (Symbol, B, B) => B,
-        sum: (Symbol, B) => B
+        sum: (Symbol, B) => B,
+        vector: Vector[B] => B
       ): B = hNil()
       override def unfold[B, E](
         atom: B => Xor[E, String],
@@ -234,7 +276,8 @@ private[core] sealed trait LowPrioReified {
         hNil: B => Xor[E, Unit],
         hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
         cNil: B => E,
-        cCons: (B, Symbol) => Xor[E, Either[B, B]]
+        cCons: (B, Symbol) => Xor[E, Either[B, B]],
+        vector: B => Xor[E, Vector[B]]
       )(b: B): Xor[E, HNil] = {
         hNil(b).map(_ => HNil)
       }
@@ -256,13 +299,14 @@ private[core] sealed trait LowPrioReified {
       atom: String => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
     ): B = a match {
       case Inl(left) =>
-        val l = head.fold(left)(atom, hNil, hCons, sum)
+        val l = head.fold(left)(atom, hNil, hCons, sum, vector)
         sum(label.value, l)
       case Inr(right) =>
-        tail.fold(right)(atom, hNil, hCons, sum)
+        tail.fold(right)(atom, hNil, hCons, sum, vector)
     }
     override def unfold[B, E](
       atom: B => Xor[E, String],
@@ -270,17 +314,18 @@ private[core] sealed trait LowPrioReified {
       hNil: B => Xor[E, Unit],
       hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
       cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
     )(b: B): Xor[E, FieldType[HK, HV] :+: T] = {
       for {
         e <- cCons(b, label.value)
         x <- e match {
           case Left(h) =>
-            head.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(h).map { h =>
+            head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(h).map { h =>
               Inl[FieldType[HK, HV], T](field[HK](h))
             }
           case Right(t) =>
-            tail.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(t).map { t =>
+            tail.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(t).map { t =>
               Inr[FieldType[HK, HV], T](t)
             }
         }
@@ -295,7 +340,8 @@ private[core] sealed trait LowPrioReified {
       atom: String => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
     ): B = a.impossible
     override def unfold[B, E](
       atom: B => Xor[E, String],
@@ -303,7 +349,8 @@ private[core] sealed trait LowPrioReified {
       hNil: B => Xor[E, Unit],
       hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
       cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
     )(b: B): Xor[E, CNil] = Xor.left(cNil(b))
   }
 
@@ -326,9 +373,10 @@ private[core] sealed trait LowPrioReified {
       atom: String => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
     ): B = {
-      head.fold(A.to(a))(atom, hNil, hCons, sum)
+      head.fold(A.to(a))(atom, hNil, hCons, sum, vector)
     }
     override def unfold[B, E](
       atom: B => Xor[E, String],
@@ -336,9 +384,10 @@ private[core] sealed trait LowPrioReified {
       hNil: B => Xor[E, Unit],
       hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
       cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
     )(b: B): Xor[E, A] = {
-      head.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(b).map(A.from)
+      head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(b).map(A.from)
     }
   }
 
@@ -356,9 +405,10 @@ private[core] sealed trait LowPrioReified {
       atom: String => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
-      sum: (Symbol, B) => B
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
     ): B = {
-      head.fold(A.to(a))(atom, hNil, hCons, sum)
+      head.fold(A.to(a))(atom, hNil, hCons, sum, vector)
     }
     override def unfold[B, E](
       atom: B => Xor[E, String],
@@ -366,9 +416,10 @@ private[core] sealed trait LowPrioReified {
       hNil: B => Xor[E, Unit],
       hCons: (B, Symbol) => Xor[E, Xor[E, (B, B)]],
       cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]]
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vector: B => Xor[E, Vector[B]]
     )(b: B): Xor[E, A] = {
-      head.unfold(atom, atomErr, hNil, hCons, cNil, cCons)(b).map(A.from)
+      head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(b).map(A.from)
     }
   }
 }

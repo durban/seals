@@ -14,30 +14,31 @@
  * limitations under the License.
  */
 
-package io.sigs
+package io.sigs.seals
+package core
 
-package object seals {
+// TODO: laws
 
-  type Reified[A] = core.Reified[A]
-  val Reified = core.Reified
+trait Kleene[F[_]] extends Serializable {
 
-  type Model = core.Model
-  val Model = core.Model
+  def toVector[A](fa: F[A]): Vector[A]
 
-  type Kleene[F[_]] = core.Kleene[F]
-  val Kleene = core.Kleene
+  def fromVector[A](l: Vector[A]): F[A]
+}
 
-  type Atom[A] = core.Atom[A]
-  val Atom = core.Atom
+object Kleene {
 
-  type Atomic[A] = core.Atomic[A]
+  implicit val kleeneForVector: Kleene[Vector] = new Kleene[Vector] {
+    override def toVector[A](fa: Vector[A]): Vector[A] =
+      fa
+    override def fromVector[A](v: Vector[A]): Vector[A] =
+      v
+  }
 
-  type Envelope[A] = core.Envelope[A]
-  val Envelope = core.Envelope
-
-  type Compat[A, B] = core.Compat[A, B]
-  val Compat = core.Compat
-
-  type AtomRegistry = core.AtomRegistry
-  val AtomRegistry = core.AtomRegistry
+  implicit val kleeneForList: Kleene[List] = new Kleene[List] {
+    override def toVector[A](fa: List[A]): Vector[A] =
+      fa.toVector
+    override def fromVector[A](v: Vector[A]): List[A] =
+      v.toList
+  }
 }

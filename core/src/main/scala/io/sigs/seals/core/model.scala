@@ -36,7 +36,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       hCons = (l, o, h, t) => Desc.Branch("::", l, h, t, headPostfix = if (o) "?" else ""),
       cNil = () => Desc.Leaf("CNil"),
       cCons = (l, h, t) => Desc.Branch(":+:", l, h, t),
-      kleene = e => e.withPostfix("*"),
+      vector = e => e.withPostfix("*"),
       atom = a => Desc.Leaf(a.atomDesc),
       cycle = () => Desc.Leaf("<...>")
     ).toString
@@ -49,7 +49,7 @@ sealed trait Model extends Serializable with AtomRegistry {
     hCons: (Symbol, Boolean, R, R) => R,
     cNil: () => R,
     cCons: (Symbol, R, R) => R,
-    kleene: R => R,
+    vector: R => R,
     atom: Atom[_] => R,
     cycle: () => R
   ): R = {
@@ -58,7 +58,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       (_, l, o, h: R, t: R) => hCons(l, o, h, t),
       _ => cNil(),
       (_, l, h: R, t: R) => cCons(l, h, t),
-      (_, e: R) => kleene(e),
+      (_, e: R) => vector(e),
       (_, a) => atom(a),
       _ => cycle(),
       Memo.valMemo,
@@ -71,17 +71,17 @@ sealed trait Model extends Serializable with AtomRegistry {
     hCons: (Ctx, Symbol, Boolean, R, R) => R,
     cNil: Ctx => R,
     cCons: (Ctx, Symbol, R, R) => R,
-    kleene: (Ctx, R) => R,
+    vector: (Ctx, R) => R,
     atom: (Ctx, Atom[_]) => R,
     cycle: Ctx => R
-  ): R = foldImpl(hNil, hCons, cNil, cCons, kleene, atom, cycle, Memo.valMemo, Path.empty)
+  ): R = foldImpl(hNil, hCons, cNil, cCons, vector, atom, cycle, Memo.valMemo, Path.empty)
 
   protected[core] def foldImpl[R](
     hNil: Ctx => R,
     hCons: (Ctx, Symbol, Boolean, R, R) => R,
     cNil: Ctx => R,
     cCons: (Ctx, Symbol, R, R) => R,
-    kleene: (Ctx, R) => R,
+    vector: (Ctx, R) => R,
     atom: (Ctx, Atom[_]) => R,
     cycle: Ctx => R,
     memo: Memo,
@@ -105,7 +105,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       hCons = (_, l, o, h, t) => hash.mix(o).flatMap(_ => hash.mixLht(l, h, t, hash.hCons)),
       cNil = _ => hash.mix(hash.cNil),
       cCons = (_, l, h, t) => hash.mixLht(l, h, t, hash.cCons),
-      kleene = (_, e) => hash.mix(hash.kleene).flatMap(_ => e),
+      vector = (_, e) => hash.mix(hash.vector).flatMap(_ => e),
       atom = (_, a) => hash.mix(a.atomHash),
       cycle = _ => State.pure(()),
       memo = Memo.valMemo,
@@ -125,7 +125,7 @@ sealed trait Model extends Serializable with AtomRegistry {
     case CNil => "CNil"
     case _: CCons => CCons.pathComp
     case _: Atom[_] => Atom.pathComp
-    case _: Kleene => "Kleene"
+    case _: Vector => "Vector"
   }
 
   final override def getAtom(id: UUID): Xor[String, Atom[_]] =
@@ -137,7 +137,7 @@ sealed trait Model extends Serializable with AtomRegistry {
       hCons = (_, _, h, t) => h ++ t,
       cNil = () => Map.empty,
       cCons = (_, h, t) => h ++ t,
-      kleene = e => e,
+      vector = e => e,
       atom = a => Map(a.uuid -> a),
       cycle = () => Map.empty
     )
@@ -148,8 +148,8 @@ object Model {
 
   final case class Ctx(m: Model, p: Path)
 
-  type Path = Vector[String]
-  val Path = Vector
+  type Path = scala.Vector[String]
+  val Path = scala.Vector
 
   private[core] type Memo = Memo.Memo[Model]
 
@@ -166,7 +166,7 @@ object Model {
     final val hCons = 0x47d21c6c
     final val cNil = 0x23ae37b5
     final val cCons = 0xae125fa4
-    final val kleene = 0x6e9f217b
+    final val vector = 0x6e9f217b
 
     final val `true` = 0x2460f70d
     final val `false` = 0x1312ff7f
@@ -358,7 +358,7 @@ object Model {
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
-      kleene: (Ctx, R) => R,
+      vector: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -399,7 +399,7 @@ object Model {
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
-      kleene: (Ctx, R) => R,
+      vector: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -418,7 +418,7 @@ object Model {
             hCons,
             cNil,
             cCons,
-            kleene,
+            vector,
             atom,
             cycle,
             newMemo,
@@ -429,7 +429,7 @@ object Model {
             hCons,
             cNil,
             cCons,
-            kleene,
+            vector,
             atom,
             cycle,
             newMemo,
@@ -468,7 +468,7 @@ object Model {
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
-      kleene: (Ctx, R) => R,
+      vector: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -492,7 +492,7 @@ object Model {
       hCons: (Ctx, Symbol, Boolean, R, R) => R,
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
-      kleene: (Ctx, R) => R,
+      vector: (Ctx, R) => R,
       atom: (Ctx, Atom[_]) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -510,7 +510,7 @@ object Model {
             hCons,
             cNil,
             cCons,
-            kleene,
+            vector,
             atom,
             cycle,
             newMemo,
@@ -521,7 +521,7 @@ object Model {
             hCons,
             cNil,
             cCons,
-            kleene,
+            vector,
             atom,
             cycle,
             newMemo,
@@ -536,6 +536,45 @@ object Model {
     private[core] val pathComp = "CCons"
     private[seals] def apply(label: Symbol, h: => Model, t: => Coproduct): CCons =
       new CCons(label, h _, t _)
+  }
+
+  final class Vector private (val elem: Model) extends Model {
+
+    def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
+      case that: Vector =>
+        this.elem.compEq(that.elem, compat, memo)
+      case _ =>
+        false
+    }
+
+    def foldImpl[R](
+      hNil: Model.Ctx => R,
+      hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
+      cNil: Model.Ctx => R,
+      cCons: (Model.Ctx, Symbol, R, R) => R,
+      vector: (Model.Ctx, R) => R,
+      atom: (Model.Ctx, Atom[_]) => R,
+      cycle: Model.Ctx => R,
+      memo: Model.Memo,
+      path: Model.Path): R = vector(
+      Model.Ctx(this, path :+ this.pathComp),
+      elem.foldImpl(
+        hNil,
+        hCons,
+        cNil,
+        cCons,
+        vector,
+        atom,
+        cycle,
+        memo,
+        path :+ this.pathComp :+ "elem"
+      )
+    )
+  }
+
+  object Vector {
+    def apply(elem: Model): Vector =
+      new Vector(elem)
   }
 }
 
@@ -582,7 +621,7 @@ private sealed abstract class AbstractAtom[A] extends Atom[A] {
     hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
     cNil: Model.Ctx => R,
     cCons: (Model.Ctx, Symbol, R, R) => R,
-    kleene: (Model.Ctx, R) => R,
+    vector: (Model.Ctx, R) => R,
     atom: (Model.Ctx, Atom[_]) => R,
     cycle: Model.Ctx => R,
     memo: Model.Memo,
@@ -627,50 +666,4 @@ private final class AtomicAtom[A](private val atomic: Atomic[A])
   }
   override def fromString(s: String): Option[A] = atomic.fromString(s).toOption
   override def stringRepr(a: A): String = atomic.stringRepr(a)
-}
-
-// TODO: figure out how to derive this
-// (both built-in and user-extensible).
-// Maybe this should be inside Model,
-// and there should be something public
-// like Atomic? Also, does it need a
-// type parameter? (The public one certainly
-// does, since it'll be a type class).
-final class Kleene private (val elem: Model) extends Model {
-
-  def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
-    case that: Kleene =>
-      this.elem.compEq(that.elem, compat, memo)
-    case _ =>
-      false
-  }
-
-  def foldImpl[R](
-    hNil: Model.Ctx => R,
-    hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
-    cNil: Model.Ctx => R,
-    cCons: (Model.Ctx, Symbol, R, R) => R,
-    kleene: (Model.Ctx, R) => R,
-    atom: (Model.Ctx, Atom[_]) => R,
-    cycle: Model.Ctx => R,
-    memo: Model.Memo,
-    path: Model.Path): R = kleene(
-    Model.Ctx(this, path :+ this.pathComp),
-    elem.foldImpl(
-      hNil,
-      hCons,
-      cNil,
-      cCons,
-      kleene,
-      atom,
-      cycle,
-      memo,
-      path :+ this.pathComp :+ "elem"
-    )
-  )
-}
-
-object Kleene {
-  def apply(elem: Model): Kleene =
-    new Kleene(elem)
 }

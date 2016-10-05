@@ -56,12 +56,12 @@ class ModelSpec extends BaseSpec {
   val pc2a = p -> c1a :: Model.HNil
   val pc2b = p -> c1b :: Model.HNil
 
-  val k1a = Kleene(a1a)
-  val k1b = Kleene(a1b)
-  val k2a = Kleene(pc1a)
-  val k2b = Kleene(pc1b)
-  val k3a = 'x -> Kleene(p3o) :: Model.HNil
-  val k3aMinus = 'x -> Kleene(p3oMinus) :: Model.HNil
+  val k1a = Model.Vector(a1a)
+  val k1b = Model.Vector(a1b)
+  val k2a = Model.Vector(pc1a)
+  val k2b = Model.Vector(pc1b)
+  val k3a = 'x -> Model.Vector(p3o) :: Model.HNil
+  val k3aMinus = 'x -> Model.Vector(p3oMinus) :: Model.HNil
 
   lazy val cy1a: Model.CCons = Model.CCons(
     l,
@@ -186,7 +186,7 @@ class ModelSpec extends BaseSpec {
       checkNotEqHashCompat(pc2b, pc1b)
     }
 
-    "kleene" in {
+    "vector" in {
       checkEqHashCompat(k1a, k1a)
       checkEqHashCompat(k1a, k1b)
       checkEqHashCompat(k2a, k2a)
@@ -318,7 +318,7 @@ class ModelSpec extends BaseSpec {
         hCons = (_, _, h, t) => Branch("HCons", h, t),
         cNil = () => Leaf("CNil"),
         cCons = (_, h, t) => Branch("CCons", h, t),
-        kleene = (e) => Branch("Kleene", e, Leaf("⊥")),
+        vector = (e) => Branch("Vector", e, Leaf("⊥")),
         atom = (a) => Leaf(s"$a"),
         cycle = () => Leaf("CYCLE")
       )
@@ -367,7 +367,7 @@ class ModelSpec extends BaseSpec {
           _ <- t
           _ <- mix(4)
         } yield (),
-        kleene = (e) => e,
+        vector = (e) => e,
         atom = (a) => mix(a.uuid.##),
         cycle = () => State.pure(())
       )

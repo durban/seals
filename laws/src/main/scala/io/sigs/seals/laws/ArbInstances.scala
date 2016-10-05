@@ -74,8 +74,8 @@ trait ArbInstances {
     } yield Model.CCons(Symbol(sym), h, t)
   }
 
-  implicit def arbModelKleene(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Kleene] = Arbitrary {
-    Gen.lzy(arbM.value.arbitrary).map(e => Kleene(e))
+  implicit def arbModelVector(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.Vector] = Arbitrary {
+    Gen.lzy(arbM.value.arbitrary).map(e => Model.Vector(e))
   }
 
   implicit def arbModelAtom: Arbitrary[Atom[_]] = Arbitrary {
@@ -88,7 +88,7 @@ trait ArbInstances {
   private[this] lazy val _arbModel: Arbitrary[Model] = {
 
     type ModelReprH = Model.HNil.type
-    type ModelReprT = Model.HCons :+: Model.CNil.type :+: Model.CCons :+: Atom[_] :+: Kleene :+: CNil
+    type ModelReprT = Model.HCons :+: Model.CNil.type :+: Model.CCons :+: Atom[_] :+: Model.Vector :+: CNil
     type ModelRepr = ModelReprH :+: ModelReprT
 
     implicit val modGen: Generic.Aux[Model, ModelRepr] = new Generic[Model] {
@@ -101,7 +101,7 @@ trait ArbInstances {
         case Model.CNil => Inr(Inr(Inl(Model.CNil)))
         case cc: core.Model.CCons => Inr(Inr(Inr(Inl(cc))))
         case a: Atom[_] => Inr(Inr(Inr(Inr(Inl(a)))))
-        case v: Kleene => Inr(Inr(Inr(Inr(Inr(Inl(v))))))
+        case v: core.Model.Vector => Inr(Inr(Inr(Inr(Inr(Inl(v))))))
       }
     }
 

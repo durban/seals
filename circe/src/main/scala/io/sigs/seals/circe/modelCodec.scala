@@ -38,7 +38,7 @@ trait ModelEncoder {
         hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
         cNil = _ => State.pure(()),
         cCons = (c, l, h, t) => compositePre("CCons", c, l, h, t),
-        kleene = (c, e) => State.pure(()),
+        vector = (c, e) => State.pure(()),
         atom = (_, a) => State.pure(()),
         cycle = _ => State.pure(())
       )
@@ -48,8 +48,8 @@ trait ModelEncoder {
         hCons = (c, l, o, h, t) => composite("HCons", l, Some(o), h, t),
         cNil = _ => JsonObject.singleton("CNil", Json.obj()),
         cCons = (c, l, h, t) => composite("CCons", l, None, h, t),
-        kleene = (c, e) => JsonObject.singleton(
-          "Kleene",
+        vector = (c, e) => JsonObject.singleton(
+          "Vector",
           Json.obj("elem" -> Json.fromJsonObject(e))
         ),
         atom = (_, a) => JsonObject.singleton(
@@ -145,7 +145,7 @@ trait ModelDecoder {
         else if (obj.contains("Atom")) decodeAtom.prepare(_.downField("Atom")).map(_.map[Model](identity))
         else if (obj.contains("HCons")) decodeHCons.prepare(_.downField("HCons")).map(_.map[Model](identity))
         else if (obj.contains("CCons")) decodeCCons.prepare(_.downField("CCons")).map(_.map[Model](identity))
-        else if (obj.contains("Kleene")) decodeKleene.prepare(_.downField("Kleene")).map(_.map[Model](identity))
+        else if (obj.contains("Vector")) decodeVector.prepare(_.downField("Vector")).map(_.map[Model](identity))
         else if (obj.contains(JsonRef.key)) decodeRef
         else Decoder.failed[DecSt[Model]](DecodingFailure("not a Model", Nil))
       }
@@ -277,11 +277,11 @@ trait ModelDecoder {
     )
   }
 
-  private def decodeKleene(implicit r: AtomRegistry): Decoder[DecSt[Kleene]] = {
+  private def decodeVector(implicit r: AtomRegistry): Decoder[DecSt[Model.Vector]] = {
     Decoder.instance { cur =>
       for {
         e <- cur.get[DecSt[Model]]("elem")(decodeModel)
-      } yield e.map(e => Kleene(e))
+      } yield e.map(e => Model.Vector(e))
     }
   }
 
