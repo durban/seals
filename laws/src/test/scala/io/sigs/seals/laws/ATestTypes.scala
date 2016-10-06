@@ -214,4 +214,33 @@ object TestTypes {
       val empty: NonSer = new NonSer("")
     }
   }
+
+  object collections {
+
+    sealed trait Adt
+
+    object Adt {
+      lazy val expModel: Model = {
+        Model.CCons(
+          'WithList,
+          WithList.expModel,
+          Model.CCons(
+            'WithVector,
+            WithVector.expModel,
+            Model.CNil
+          )
+        )
+      }
+    }
+
+    final case class WithList(i: Int, l: List[Float]) extends Adt
+    object WithList {
+      val expModel = 'i -> Atom[Int] :: 'l -> Model.Vector(Atom[Float]) :: Model.HNil
+    }
+
+    final case class WithVector(els: Vector[Adt]) extends Adt
+    object WithVector {
+      lazy val expModel = Model.HCons('els, Model.Vector(Adt.expModel), Model.HNil)
+    }
+  }
 }

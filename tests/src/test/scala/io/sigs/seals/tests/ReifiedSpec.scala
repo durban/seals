@@ -149,6 +149,25 @@ class ReifiedSpec extends BaseSpec {
         }
       }
     }
+
+    "derived for collections" - {
+
+      import TestTypes.collections._
+
+      "List" in {
+        Reified[List[Boolean]].model should === (Model.Vector(Atom[Boolean]))
+        Reified[WithList].model should === (WithList.expModel)
+      }
+
+      "Vector" in {
+        Reified[Vector[Boolean]].model should === (Model.Vector(Atom[Boolean]))
+        Reified[WithVector].model should === (WithVector.expModel)
+      }
+
+      "Inside ADTs" in {
+        Reified[Adt].model should === (Adt.expModel)
+      }
+    }
   }
 
   "Reified.toString" - {
