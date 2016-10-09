@@ -158,7 +158,6 @@ object Reified extends LowPrioReified {
     }
   }
 
-  // TODO: tests
   implicit def reifiedFromKleene[F[_], A](
     implicit
     F: Kleene[F],

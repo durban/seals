@@ -22,6 +22,7 @@ import java.util.UUID
 import cats.kernel.laws._
 import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
+import cats.instances.all._
 
 import org.scalacheck.Arbitrary
 
@@ -47,6 +48,17 @@ class LawsSpec extends BaseLawsSpec {
     import TestInstances.atomic._
     checkAtomicLaws[MyUUID]("MyUUID")
     checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
+  }
+
+  checkKleeneLaws[Vector, Int]("Vector, Int")
+  checkKleeneLaws[Vector, TestTypes.adts.recursive.IntList]("Vector, IntList")
+  checkKleeneLaws[List, Int]("List, Int")
+  checkKleeneLaws[List, TestTypes.adts.recursive.IntList]("List, IntList")
+
+  {
+    import TestInstances.kleene._
+    checkKleeneLaws[Stream, Int]("Stream, Int")
+    checkKleeneLaws[Stream, TestTypes.adts.recursive.IntList]("Stream, IntList")
   }
 
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
@@ -106,5 +118,17 @@ class LawsSpec extends BaseLawsSpec {
     checkAll(s"Atomic[$name].AnyLaws.referenceEquality", AnyLaws[Atomic[A]].referenceEquality)
     checkAll(s"Atomic[$name].OrderLaws.eqv", OrderLaws[Atomic[A]].eqv)
     checkAll(s"Atomic[$name].AtomicLaws.roundtrip", AtomicLaws[A].roundtrip)
+  }
+
+  def checkKleeneLaws[F[_], A](name: String)(
+    implicit
+    arbA: Arbitrary[A],
+    arbFA: Arbitrary[F[A]],
+    kle: Kleene[F],
+    equA: Eq[A],
+    equFA: Eq[F[A]]
+  ): Unit = {
+    checkAll(s"Kleene[$name].AnyLaws.any", AnyLaws[Kleene[F]].serializability)
+    checkAll(s"Kleene[$name].KleeneLaws.roundtrip", KleeneLaws[F, A].roundtrip)
   }
 }

@@ -17,8 +17,8 @@
 package io.sigs.seals
 package core
 
-// TODO: laws
-
+// TODO: this is just an F ~> Vector,
+// TODO: and a Vector ~> F
 trait Kleene[F[_]] extends Serializable {
 
   def toVector[A](fa: F[A]): Vector[A]

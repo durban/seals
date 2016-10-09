@@ -90,6 +90,16 @@ object TestInstances {
     }
   }
 
+  object kleene {
+
+    implicit val kleeneForScalaStream = new Kleene[Stream] {
+      override def toVector[A](s: Stream[A]) =
+        s.toVector
+      override def fromVector[A](v: Vector[A]) =
+        v.toStream
+    }
+  }
+
   object reified {
 
     implicit val imapReifiedForUuid: Reified[UUID] = {

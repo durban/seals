@@ -41,6 +41,10 @@ trait ArbInstances {
     Gen.const(a)
   }
 
+  implicit def arbKleene[F[_]](implicit k: Kleene[F]): Arbitrary[Kleene[F]] = Arbitrary {
+    Gen.const(k)
+  }
+
   implicit def arbModelHlist(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HList] = Arbitrary {
     Gen.oneOf(arbModelHnil.arbitrary, Gen.lzy(arbModelHcons(arbM).arbitrary))
   }
