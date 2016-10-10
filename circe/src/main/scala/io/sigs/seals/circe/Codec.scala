@@ -29,15 +29,15 @@ object Codec {
 
   implicit def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
     override def apply(a: A): Json = {
-      val obj = A.fold[JsonObject](a)(
-        atom = a => JsonObject.singleton("value", Json.fromString(a)),
+      val obj = A.genFold[Json, JsonObject](a)(
+        atom = a => Json.obj("value" -> Json.fromString(a)),
         hNil = () => JsonObject.empty,
-        hCons = (l, h, t) => (l.name, Json.fromJsonObject(h)) +: t,
-        sum = (l, v) => JsonObject.singleton(l.name, Json.fromJsonObject(v)),
-        // TODO: try to avoid extra singleton object
-        vector = v => JsonObject.singleton("Vector", Json.arr(v.map(Json.fromJsonObject): _*))
+        hCons = (l, h, t) => (l.name, h) +: t,
+        prod = Json.fromJsonObject,
+        sum = (l, v) => Json.obj(l.name -> v),
+        vector = v => Json.arr(v: _*)
       )
-      Json.fromJsonObject(obj)
+      A.close(obj, Json.fromJsonObject)
     }
   }
 
@@ -73,12 +73,7 @@ object Codec {
           )
         },
         vector = { cur =>
-          for {
-            c <- cur.downField("Vector").either.leftMap { fc =>
-              DecodingFailure("missing key: 'Vector'", fc.history)
-            }
-            vect <- c.as[Vector[HCursor]]
-          } yield vect
+          cur.as[Vector[HCursor]]
         }
       )(c)
     }

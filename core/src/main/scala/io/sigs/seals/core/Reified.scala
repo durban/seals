@@ -29,6 +29,8 @@ sealed trait Reified[A] extends Serializable { self =>
 
   type Mod <: Model
 
+  type Fold[B, T]
+
   final def model: Model =
     modelComponent
 
@@ -47,13 +49,24 @@ sealed trait Reified[A] extends Serializable { self =>
   final override def hashCode: Int =
     System.identityHashCode(this)
 
+  def genFold[B, T](a: A)(
+    atom: String => B,
+    hNil: () => T,
+    hCons: (Symbol, B, T) => T,
+    prod: T => B,
+    sum: (Symbol, B) => B,
+    vector: Vector[B] => B
+  ): Fold[B, T]
+
   def fold[B](a: A)(
     atom: String => B,
     hNil: () => B,
     hCons: (Symbol, B, B) => B,
     sum: (Symbol, B) => B,
     vector: Vector[B] => B
-  ): B
+  ): B = close[B, B](genFold[B, B](a)(atom, hNil, hCons, identity, sum, vector), identity)
+
+  def close[B, T](x: Fold[B, T], f: T => B): B
 
   def unfold[B, E](
     atom: B => Xor[E, String],
@@ -65,22 +78,27 @@ sealed trait Reified[A] extends Serializable { self =>
     vector: B => Xor[E, Vector[B]]
   )(b: B): Xor[E, A]
 
-  def imap[B](f: A => B)(g: B => A): Reified.Aux[B, self.Mod] = new Reified[B] {
+  def imap[B](f: A => B)(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
 
     override type Mod = self.Mod
+    override type Fold[C, T] = self.Fold[C, T]
 
     override private[core] def modelComponent: Mod =
       self.modelComponent
 
-    def fold[C](b: B)(
+    override def genFold[C, T](b: B)(
       atom: String => C,
-      hNil: () => C,
-      hCons: (Symbol, C, C) => C,
+      hNil: () => T,
+      hCons: (Symbol, C, T) => T,
+      prod: T => C,
       sum: (Symbol, C) => C,
       vector: Vector[C] => C
-    ): C = self.fold[C](g(b))(atom, hNil, hCons, sum, vector)
+    ): Fold[C, T] = self.genFold[C, T](g(b))(atom, hNil, hCons, prod, sum, vector)
 
-    def unfold[C, E](
+    override def close[C, T](x: Fold[C, T], f: T => C): C =
+      self.close(x, f)
+
+    override def unfold[C, E](
       atom: C => Xor[E, String],
       atomErr: C => E,
       hNil: C => Xor[E, Unit],
@@ -91,7 +109,7 @@ sealed trait Reified[A] extends Serializable { self =>
     )(c: C): Xor[E, B] = self.unfold[C, E](atom, atomErr, hNil, hCons, cNil, cCons, vector)(c).map(f)
   }
 
-  private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod] =
+  private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod, this.Fold] =
     this
 }
 
@@ -99,11 +117,19 @@ object Reified extends LowPrioReified {
 
   final val hashSeed = 0xf2fe2bb5
 
-  type Aux[A, M <: Model] = Reified[A] {
+  type Aux[A, M <: Model, F[_, _]] = Reified[A] {
+    type Mod = M
+    type Fold[B, T] = F[B, T]
+  }
+
+  type Aux2[A, M <: Model] = Reified[A] {
     type Mod = M
   }
 
-  def apply[A](implicit d: Reified[A]): Aux[A, d.Mod] =
+  type FFirst[B, T] = B
+  type FSecond[B, T] = T
+
+  def apply[A](implicit d: Reified[A]): Aux[A, d.Mod, d.Fold] =
     d
 
   implicit val reifiedInvariantMonoidalFunctor: InvariantMonoidal[Reified] = new InvariantMonoidal[Reified] {
@@ -130,16 +156,20 @@ object Reified extends LowPrioReified {
 
   implicit def reifiedFromAtom[A](
     implicit A: Atom[A]
-  ): Reified.Aux[A, Atom[A]] = new Reified[A] {
+  ): Reified.Aux[A, Atom[A], FFirst] = new Reified[A] {
     override type Mod = Atom[A]
+    override type Fold[B, T] = B
     private[core] override val modelComponent = A
-    override def fold[B](a: A)(
+    override def genFold[B, T](a: A)(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => T,
+      hCons: (Symbol, B, T) => T,
+      prod: T => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
     ): B = atom(this.modelComponent.stringRepr(a))
+    override def close[B, T](x: Fold[B, T], f: T => B): B =
+      x
     override def unfold[B, E](
       atom: B => Xor[E, String],
       atomErr: B => E,
@@ -162,16 +192,22 @@ object Reified extends LowPrioReified {
     implicit
     F: Kleene[F],
     R: Reified[A]
-  ): Reified.Aux[F[A], Model.Vector] = new Reified[F[A]] {
+  ): Reified.Aux[F[A], Model.Vector, FFirst] = new Reified[F[A]] {
     override type Mod = Model.Vector
+    override type Fold[B, T] = B
     private[core] override val modelComponent = Model.Vector(R.modelComponent)
-    override def fold[B](a: F[A])(
+    override def genFold[B, T](a: F[A])(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => T,
+      hCons: (Symbol, B, T) => T,
+      prod: T => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
-    ): B = vector(F.toVector(a).map(x => R.fold(x)(atom, hNil, hCons, sum, vector)))
+    ): Fold[B, T] = {
+      vector(F.toVector(a).map(x => R.close(R.genFold[B, T](x)(atom, hNil, hCons, prod, sum, vector), prod)))
+    }
+    override def close[B, T](x: Fold[B, T], f: T => B): B =
+      x
     override def unfold[B, E](
       atom: B => Xor[E, String],
       atomErr: B => E,
@@ -191,12 +227,14 @@ object Reified extends LowPrioReified {
 
 private[core] sealed trait LowPrioReified {
 
+  import Reified.{ FFirst, FSecond }
+
   implicit def reifiedFromHcons[HK <: Symbol, HV, T <: HList, MT <: Model.HList](
     implicit
     label: Witness.Aux[HK],
     rh0: Lazy[Reified[HV]],
-    rt0: Lazy[Reified.Aux[T, MT]]
-  ): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons] = {
+    rt0: Lazy[Reified.Aux[T, MT, FSecond]]
+  ): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons, FSecond] = {
     new HConsReified[HK, HV, T, MT](label, None, () => rh0, () => rt0)
   }
 
@@ -204,16 +242,17 @@ private[core] sealed trait LowPrioReified {
     private[this] val label: Witness.Aux[HK],
     private[this] val headDefault: Option[HV],
     rh0: () => Lazy[Reified[HV]],
-    rt0: () => Lazy[Reified.Aux[T, MT]]
-  )   extends WithLazy[Reified[HV], Reified.Aux[T, MT]](rh0, rt0)
+    rt0: () => Lazy[Reified.Aux[T, MT, FSecond]]
+  )   extends WithLazy[Reified[HV], Reified.Aux[T, MT, FSecond]](rh0, rt0)
       with Reified[FieldType[HK, HV] :: T] {
 
     override type Mod = Model.HCons
+    override type Fold[X, Y] = Y
 
     lazy private[core] override val modelComponent: Mod =
       Model.HCons(label.value, head.modelComponent, tail.modelComponent)
 
-    private[core] override def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons] = {
+    private[core] override def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons, FSecond] = {
       new HConsReified[HK, HV, T, MT](
         label,
         defs.head.map(_.asInstanceOf[HV]),
@@ -222,17 +261,21 @@ private[core] sealed trait LowPrioReified {
       )
     }
 
-    override def fold[B](a: FieldType[HK, HV] :: T)(
+    override def genFold[B, U](a: FieldType[HK, HV] :: T)(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => U,
+      hCons: (Symbol, B, U) => U,
+      prod: U => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
-    ): B = {
-      val h = head.fold(a.head)(atom, hNil, hCons, sum, vector)
-      val t = tail.fold(a.tail)(atom, hNil, hCons, sum, vector)
+    ): Fold[B, U] = {
+      val h = head.close(head.genFold(a.head)(atom, hNil, hCons, prod, sum, vector), prod)
+      val t = tail.genFold(a.tail)(atom, hNil, hCons, prod, sum, vector)
       hCons(label.value, h, t)
     }
+
+    override def close[B, U](x: Fold[B, U], f: U => B): B =
+      f(x)
 
     override def unfold[B, E](
       atom: B => Xor[E, String],
@@ -258,17 +301,21 @@ private[core] sealed trait LowPrioReified {
     }
   }
 
-  implicit val reifiedFromHnil: Reified.Aux[HNil, Model.HNil.type] = {
+  implicit val reifiedFromHnil: Reified.Aux[HNil, Model.HNil.type, FSecond] = {
     new Reified[HNil] {
       override type Mod = Model.HNil.type
+      override type Fold[X, Y] = Y
       private[core] override val modelComponent: Mod = Model.HNil
-      override def fold[B](a: HNil)(
+      override def genFold[B, U](a: HNil)(
         atom: String => B,
-        hNil: () => B,
-        hCons: (Symbol, B, B) => B,
+        hNil: () => U,
+        hCons: (Symbol, B, U) => U,
+        prod: U => B,
         sum: (Symbol, B) => B,
         vector: Vector[B] => B
-      ): B = hNil()
+      ): Fold[B, U] = hNil()
+      override def close[B, U](x: Fold[B, U], f: U => B): B =
+        f(x)
       override def unfold[B, E](
         atom: B => Xor[E, String],
         atomErr: B => E,
@@ -287,26 +334,30 @@ private[core] sealed trait LowPrioReified {
     implicit
     label: Witness.Aux[HK],
     rh0: Lazy[Reified[HV]],
-    rt0: Lazy[Reified.Aux[T, MT]]
-  ): Reified.Aux[FieldType[HK, HV] :+: T, Model.CCons] = new WithLazy[Reified[HV], Reified.Aux[T, MT]](
+    rt0: Lazy[Reified.Aux2[T, MT]]
+  ): Reified.Aux[FieldType[HK, HV] :+: T, Model.CCons, FFirst] = new WithLazy[Reified[HV], Reified.Aux2[T, MT]](
       () => rh0,
       () => rt0
   ) with Reified[FieldType[HK, HV] :+: T] {
     override type Mod = Model.CCons
+    override type Fold[B, X] = B
     lazy private[core] override val modelComponent: Mod = Model.CCons(label.value, head.modelComponent, tail.modelComponent)
-    override def fold[B](a: FieldType[HK, HV] :+: T)(
+    override def genFold[B, U](a: FieldType[HK, HV] :+: T)(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => U,
+      hCons: (Symbol, B, U) => U,
+      prod: U => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
-    ): B = a match {
+    ): Fold[B, U] = a match {
       case Inl(left) =>
-        val l = head.fold(left)(atom, hNil, hCons, sum, vector)
-        sum(label.value, l)
+        val l = head.genFold[B, U](left)(atom, hNil, hCons, prod, sum, vector)
+        sum(label.value, head.close(l, prod))
       case Inr(right) =>
-        tail.fold(right)(atom, hNil, hCons, sum, vector)
+        tail.close(tail.genFold[B, U](right)(atom, hNil, hCons, prod, sum, vector), prod)
     }
+    override def close[B, U](x: Fold[B, U], f: U => B): B =
+      x
     override def unfold[B, E](
       atom: B => Xor[E, String],
       atomErr: B => E,
@@ -332,16 +383,20 @@ private[core] sealed trait LowPrioReified {
     }
   }
 
-  implicit val reifiedFromCnil: Reified.Aux[CNil, Model.CNil.type] = new Reified[CNil] {
+  implicit val reifiedFromCnil: Reified.Aux[CNil, Model.CNil.type, FFirst] = new Reified[CNil] {
     override type Mod = Model.CNil.type
+    override type Fold[B, U] = B
     private[core] override val modelComponent: Mod = Model.CNil
-    override def fold[B](a: CNil)(
+    override def genFold[B, U](a: CNil)(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => U,
+      hCons: (Symbol, B, U) => U,
+      prod: U => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
-    ): B = a.impossible
+    ): Fold[B, U] = a.impossible
+    override def close[B, U](x: Fold[B, U], f: U => B): B =
+      x
     override def unfold[B, E](
       atom: B => Xor[E, String],
       atomErr: B => E,
@@ -353,30 +408,34 @@ private[core] sealed trait LowPrioReified {
     )(b: B): Xor[E, CNil] = Xor.left(cNil(b))
   }
 
-  implicit def reifiedFromGenericProductWithDefaults[A, GA <: HList, DA <: HList, MA <: Model.HList](
+  implicit def reifiedFromGenericProductWithDefaults[A, GA <: HList, DA <: HList, MA <: Model.HList, FA[_, _]](
     implicit
     A: LabelledGeneric.Aux[A, GA],
     D: Default.Aux[A, DA],
     DL: ToTraversable.Aux[DA, List, Option[Any]],
     WD: Model.WithDefaults[DA],
-    RA: Lazy[Reified.Aux[GA, MA]]
-  ): Reified.Aux[A, Model.HList] = new WithLazy[Reified[GA] { type Mod = MA }, None.type](
+    RA: Lazy[Reified.Aux[GA, MA, FA]]
+  ): Reified.Aux[A, Model.HList, FA] = new WithLazy[Reified[GA] { type Mod = MA; type Fold[X, Y] = FA[X, Y] }, None.type](
       () => RA.map(_.unsafeWithDefaults(D.apply().toList)),
       () => None
   ) with Reified[A] {
     override type Mod = Model.HList
+    override type Fold[B, U] = FA[B, U]
     lazy private[core] override val modelComponent: Mod = {
       WD.unsafeWithDefaults(head.modelComponent)(D())
     }
-    override def fold[B](a: A)(
+    override def genFold[B, U](a: A)(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => U,
+      hCons: (Symbol, B, U) => U,
+      prod: U => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
-    ): B = {
-      head.fold(A.to(a))(atom, hNil, hCons, sum, vector)
+    ): Fold[B, U] = {
+      head.genFold(A.to(a))(atom, hNil, hCons, prod, sum, vector)
     }
+    override def close[B, U](x: Fold[B, U], f: U => B): B =
+      RA.value.close(x, f)
     override def unfold[B, E](
       atom: B => Xor[E, String],
       atomErr: B => E,
@@ -390,25 +449,29 @@ private[core] sealed trait LowPrioReified {
     }
   }
 
-  implicit def reifiedFromGenericCoproduct[A, GA <: Coproduct, MA <: Model](
+  implicit def reifiedFromGenericCoproduct[A, GA <: Coproduct, MA <: Model, FA[_, _]](
     implicit
     A: LabelledGeneric.Aux[A, GA],
-    RA: Lazy[Reified.Aux[GA, MA]]
-  ): Reified.Aux[A, MA] = new WithLazy[Reified[GA] { type Mod = MA }, None.type](
+    RA: Lazy[Reified.Aux[GA, MA, FA]]
+  ): Reified.Aux[A, MA, FA] = new WithLazy[Reified[GA] { type Mod = MA; type Fold[X, Y] = FA[X, Y] }, None.type](
       () => RA,
       () => None
   ) with Reified[A] {
     override type Mod = MA
+    override type Fold[B, U] = FA[B, U]
     lazy private[core] override val modelComponent: Mod = head.modelComponent
-    override def fold[B](a: A)(
+    override def genFold[B, U](a: A)(
       atom: String => B,
-      hNil: () => B,
-      hCons: (Symbol, B, B) => B,
+      hNil: () => U,
+      hCons: (Symbol, B, U) => U,
+      prod: U => B,
       sum: (Symbol, B) => B,
       vector: Vector[B] => B
-    ): B = {
-      head.fold(A.to(a))(atom, hNil, hCons, sum, vector)
+    ): Fold[B, U] = {
+      head.genFold(A.to(a))(atom, hNil, hCons, prod, sum, vector)
     }
+    override def close[B, U](x: Fold[B, U], f: U => B): B =
+      RA.value.close(x, f)
     override def unfold[B, E](
       atom: B => Xor[E, String],
       atomErr: B => E,

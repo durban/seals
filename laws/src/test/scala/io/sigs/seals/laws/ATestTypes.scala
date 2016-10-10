@@ -220,6 +220,7 @@ object TestTypes {
     sealed trait Adt
 
     object Adt {
+
       lazy val expModel: Model = {
         Model.CCons(
           'WithList,
@@ -231,6 +232,28 @@ object TestTypes {
           )
         )
       }
+
+      implicit val arb: Arbitrary[Adt] = Arbitrary {
+        lazy val self: Gen[Adt] = for {
+          b <- Arbitrary.arbitrary[Boolean]
+          a <- if (b) {
+            for {
+              i <- Arbitrary.arbitrary[Int]
+              fs <- Gen.listOf(Arbitrary.arbitrary[Float])
+            } yield WithList(i, fs) : Adt
+          } else {
+            for {
+              l <- Gen.choose(0, 2)
+              as <- Gen.lzy(Gen.listOfN(l, arb.arbitrary))
+            } yield WithVector(as.toVector)
+          }
+        } yield a
+
+        Gen.lzy(self)
+      }
+
+      implicit val equ: Eq[Adt] =
+        Eq.fromUniversalEquals
     }
 
     final case class WithList(i: Int, l: List[Float]) extends Adt

@@ -38,7 +38,7 @@ trait ModelEncoder {
         hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
         cNil = _ => State.pure(()),
         cCons = (c, l, h, t) => compositePre("CCons", c, l, h, t),
-        vector = (c, e) => State.pure(()),
+        vector = (c, e) => e,
         atom = (_, a) => State.pure(()),
         cycle = _ => State.pure(())
       )
