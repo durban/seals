@@ -128,7 +128,7 @@ class LawsSpec extends BaseLawsSpec {
     equA: Eq[A],
     equFA: Eq[F[A]]
   ): Unit = {
-    checkAll(s"Kleene[$name].AnyLaws.any", AnyLaws[Kleene[F]].serializability)
+    checkAll(s"Kleene[$name].AnyLaws.serializability", AnyLaws[Kleene[F]].serializability)
     checkAll(s"Kleene[$name].KleeneLaws.roundtrip", KleeneLaws[F, A].roundtrip)
   }
 }

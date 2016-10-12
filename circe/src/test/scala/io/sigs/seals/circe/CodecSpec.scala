@@ -36,14 +36,16 @@ object CodecSpec {
   final case class Foo(a: Int, b: String = "ert") extends FooBar
   final case object Bar extends FooBar
 
+  final case class FooBarHolder(fbs: Vector[FooBar])
+
+  def atomJson(repr: String): Json = Json.obj(
+    "value" -> Json.fromString(repr)
+  )
+
   def fooJson(a: Int, b: String = "ert"): Json = {
     Json.obj(
-      "a" -> Json.obj(
-        "value" -> Json.fromString(a.toString)
-      ),
-      "b" -> Json.obj(
-        "value" -> Json.fromString(b)
-      )
+      "a" -> atomJson(a.toString),
+      "b" -> atomJson(b)
     )
   }
 
@@ -81,6 +83,21 @@ class CodecSpec extends BaseJsonSpec {
           "Bar" -> Json.obj()
         )
       )
+    }
+
+    "Collections" in {
+      List(1, 2, 3).asJson should === (Json.arr(
+        atomJson("1"),
+        atomJson("2"),
+        atomJson("3")
+      ))
+      FooBarHolder(Vector(Foo(1), Bar, Bar)).asJson should === (Json.obj(
+        "fbs" -> Json.arr(
+          fooBarJson(Some((1, "ert"))),
+          fooBarJson(None),
+          fooBarJson(None)
+        )
+      ))
     }
   }
 
@@ -135,6 +152,24 @@ class CodecSpec extends BaseJsonSpec {
         )
       )
       json.as[FooBar] should === (Xor.right(Foo(99, "pqrst") : FooBar))
+    }
+
+    "Collections" in {
+      val json1 = Json.arr(
+        atomJson("1"),
+        atomJson("2"),
+        atomJson("3")
+      )
+      json1.as[Vector[Int]] should === (Xor.right(Vector(1, 2, 3)))
+
+      val json2 = Json.obj(
+        "fbs" -> Json.arr(
+          fooBarJson(Some((1, "ert"))),
+          fooBarJson(None),
+          fooBarJson(None)
+        )
+      )
+      json2.as[FooBarHolder] should === (Xor.right(FooBarHolder(Vector(Foo(1), Bar, Bar))))
     }
   }
 
