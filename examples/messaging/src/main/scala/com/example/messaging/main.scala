@@ -29,9 +29,9 @@ import io.sigs.seals._
 import io.sigs.seals.circe.EnvelopeCodec._
 
 object Protocol {
-  final case class Ping(seqNr: Long)
-  final case class Pong(orig: Ping)
-  final case class PingIncompatible(seqNr: Long, flags: Int)
+  final case class Ping(seqNr: Long, payload: Vector[Int])
+  final case class Pong(seqNr: Long)
+  final case class PingIncompatible(seqNr: Long, payload: Vector[Int], flags: Int)
 }
 
 object MyClient extends App {
@@ -42,14 +42,14 @@ object MyClient extends App {
   val client = PooledHttp1Client()
 
   val pongGood = jsonEncoderOf[Envelope[Ping]].toEntity(
-    Envelope(Ping(42L))
+    Envelope(Ping(42L, Vector(1, 2, 3, 4)))
   ).flatMap(ping).run
-  assert(pongGood == Pong(Ping(42L)))
+  assert(pongGood == Pong(42L))
   println(pongGood)
 
   try {
     jsonEncoderOf[Envelope[PingIncompatible]].toEntity(
-      Envelope(PingIncompatible(99L, 0))
+      Envelope(PingIncompatible(99L, Vector(4, 5), 0))
     ).flatMap(ping).run
   } finally {
     client.shutdownNow()
@@ -76,7 +76,7 @@ object MyServer extends ServerApp {
     case p @ POST -> Root / "test" =>
       for {
         env <- p.as(jsonOf[Envelope[Ping]])
-        resp <- Ok(Envelope(Pong(env.value)))(jsonEncoderOf)
+        resp <- Ok(Envelope(Pong(env.value.seqNr)))(jsonEncoderOf)
       } yield resp
   }
 
