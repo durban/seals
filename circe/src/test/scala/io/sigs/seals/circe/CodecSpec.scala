@@ -38,9 +38,8 @@ object CodecSpec {
 
   final case class FooBarHolder(fbs: Vector[FooBar])
 
-  def atomJson(repr: String): Json = Json.obj(
-    "value" -> Json.fromString(repr)
-  )
+  def atomJson(repr: String): Json =
+    Json.fromString(repr)
 
   def fooJson(a: Int, b: String = "ert"): Json = {
     Json.obj(
@@ -111,9 +110,7 @@ class CodecSpec extends BaseJsonSpec {
 
     "Optional fields" in {
       val json = Json.obj(
-        "a" -> Json.obj(
-          "value" -> Json.fromString(89.toString)
-        )
+        "a" -> Json.fromString(89.toString)
       )
       json.as[Foo] should === (
         Xor.right(Foo(a = 89))
@@ -143,12 +140,8 @@ class CodecSpec extends BaseJsonSpec {
     "Field order shouldn't matter" in {
       val json = Json.obj(
         "Foo" -> Json.obj(
-          "b" -> Json.obj(
-            "value" -> Json.fromString("pqrst")
-          ),
-          "a" -> Json.obj(
-            "value" -> Json.fromString(99.toString)
-          )
+          "b" -> Json.fromString("pqrst"),
+          "a" -> Json.fromString(99.toString)
         )
       )
       json.as[FooBar] should === (Xor.right(Foo(99, "pqrst") : FooBar))

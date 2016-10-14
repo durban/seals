@@ -30,7 +30,7 @@ object Codec {
   implicit def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
     override def apply(a: A): Json = {
       val obj = A.genFold[Json, JsonObject](a)(
-        atom = a => Json.obj("value" -> Json.fromString(a)),
+        atom = a => Json.fromString(a),
         hNil = () => JsonObject.empty,
         hCons = (l, h, t) => (l.name, h) +: t,
         prod = Json.fromJsonObject,
@@ -44,14 +44,7 @@ object Codec {
   implicit def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def apply(c: HCursor): Decoder.Result[A] = {
       A.unfold[HCursor, DecodingFailure](
-        atom = { cur =>
-          for {
-            vc <- cur.downField("value").either.leftMap { fc =>
-              DecodingFailure("missing key: 'value'", fc.history)
-            }
-            vs <- vc.as[String](Decoder.decodeString)
-          } yield vs
-        },
+        atom = _.as[String](Decoder.decodeString),
         atomErr = { cur =>
           DecodingFailure(s"cannot decode atom", cur.history)
         },
