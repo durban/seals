@@ -17,16 +17,38 @@
 package io.sigs.seals
 package core
 
-// TODO: this is just an F ~> Vector,
-// TODO: and a Vector ~> F
+import cats.~>
+import shapeless.poly
+
 trait Kleene[F[_]] extends Serializable {
 
   def toVector[A](fa: F[A]): Vector[A]
 
-  def fromVector[A](l: Vector[A]): F[A]
+  def fromVector[A](v: Vector[A]): F[A]
 }
 
 object Kleene {
+
+  def apply[F[_]](implicit inst: Kleene[F]): Kleene[F] =
+    inst
+
+  def instance[F[_]](toVect: F ~> Vector, fromVect: Vector ~> F): Kleene[F] = {
+    new Kleene[F] {
+      override def toVector[A](fa: F[A]): Vector[A] =
+        toVect(fa)
+      override def fromVector[A](v: Vector[A]): F[A] =
+        fromVect(v)
+    }
+  }
+
+  def instance[F[_]](toVect: poly.~>[F, Vector], fromVect: poly.~>[Vector, F]): Kleene[F] = {
+    new Kleene[F] {
+      override def toVector[A](fa: F[A]): Vector[A] =
+        toVect(fa)
+      override def fromVector[A](v: Vector[A]): F[A] =
+        fromVect(v)
+    }
+  }
 
   implicit val kleeneForVector: Kleene[Vector] = new Kleene[Vector] {
     override def toVector[A](fa: Vector[A]): Vector[A] =

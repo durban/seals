@@ -19,6 +19,7 @@ package laws
 
 import java.util.UUID
 
+import cats.~>
 import cats.data.Xor
 
 import TestTypes.Whatever
@@ -92,12 +93,10 @@ object TestInstances {
 
   object kleene {
 
-    implicit val kleeneForScalaStream = new Kleene[Stream] {
-      override def toVector[A](s: Stream[A]) =
-        s.toVector
-      override def fromVector[A](v: Vector[A]) =
-        v.toStream
-    }
+    implicit val kleeneForScalaStream: Kleene[Stream] = Kleene.instance(
+      λ[Stream ~> Vector](_.toVector),
+      λ[Vector ~> Stream](_.toStream)
+    )
   }
 
   object reified {

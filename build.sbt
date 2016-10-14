@@ -59,6 +59,7 @@ lazy val commonSettings = Seq[Setting[_]](
     "-Ypartial-unification",
     "-Ywarn-unused-import"
   ),
+  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.0" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     Seq(
       dependencies.cats,
