@@ -50,17 +50,13 @@ object Kleene {
     }
   }
 
-  implicit val kleeneForVector: Kleene[Vector] = new Kleene[Vector] {
-    override def toVector[A](fa: Vector[A]): Vector[A] =
-      fa
-    override def fromVector[A](v: Vector[A]): Vector[A] =
-      v
-  }
+  implicit val kleeneForVector: Kleene[Vector] = Kleene.instance(
+    λ[Vector ~> Vector](x => x),
+    λ[Vector ~> Vector](x => x)
+  )
 
-  implicit val kleeneForList: Kleene[List] = new Kleene[List] {
-    override def toVector[A](fa: List[A]): Vector[A] =
-      fa.toVector
-    override def fromVector[A](v: Vector[A]): List[A] =
-      v.toList
-  }
+  implicit val kleeneForList: Kleene[List] = Kleene.instance(
+    λ[List ~> Vector](_.toVector),
+    λ[Vector ~> List](_.toList)
+  )
 }
