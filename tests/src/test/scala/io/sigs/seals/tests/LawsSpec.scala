@@ -44,21 +44,25 @@ class LawsSpec extends BaseLawsSpec {
     checkReifiedLaws[UUID, Int, Int]("UUID")
   }
 
+
   {
     import TestInstances.atomic._
     checkAtomicLaws[MyUUID]("MyUUID")
     checkAtomicLaws[TestTypes.Whatever.type]("TestTypes.Whatever")
   }
 
-  checkKleeneLaws[Vector, Int]("Vector, Int")
-  checkKleeneLaws[Vector, TestTypes.adts.recursive.IntList]("Vector, IntList")
-  checkKleeneLaws[List, Int]("List, Int")
-  checkKleeneLaws[List, TestTypes.adts.recursive.IntList]("List, IntList")
-
   {
-    import TestInstances.kleene._
-    checkKleeneLaws[Stream, Int]("Stream, Int")
-    checkKleeneLaws[Stream, TestTypes.adts.recursive.IntList]("Stream, IntList")
+    import LimitedContainers._
+    checkKleeneLaws[Vector, Int]("Vector, Int")
+    checkKleeneLaws[Vector, TestTypes.adts.recursive.IntList]("Vector, IntList")
+    checkKleeneLaws[List, Int]("List, Int")
+    checkKleeneLaws[List, TestTypes.adts.recursive.IntList]("List, IntList")
+
+    {
+      import TestInstances.kleene._
+      checkKleeneLaws[Stream, Int]("Stream, Int")
+      checkKleeneLaws[Stream, TestTypes.adts.recursive.IntList]("Stream, IntList")
+    }
   }
 
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)

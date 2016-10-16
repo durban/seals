@@ -22,6 +22,8 @@ import java.util.UUID
 import cats.Eq
 
 import org.scalatest.FunSuite
+import org.scalacheck.{ Arbitrary, Gen }
+import org.scalacheck.util.Buildable
 import org.typelevel.discipline.scalatest.Discipline
 
 trait BaseLawsSpec
@@ -31,4 +33,32 @@ trait BaseLawsSpec
 
   implicit val eqForUuid: Eq[UUID] =
     Eq.fromUniversalEquals
+
+  /**
+   * Some generators fail to produce
+   * instances quite frequently. When
+   * generating big containers of these,
+   * Scalacheck tends to give up after
+   * a while. For these cases we provide
+   * `Arbitrary` instances for small
+   * containers. This is the max size of
+   * these.
+   *
+   * @see `LimitedContainers`
+   */
+  protected val maxContainerSize = 3
+
+  object LimitedContainers {
+    implicit def arbCont[F[_], A](
+      implicit
+      A: Arbitrary[A],
+      B: Buildable[A, F[A]],
+      T: F[A] => Traversable[A]
+    ): Arbitrary[F[A]] = Arbitrary {
+      for {
+        n <- Gen.choose(0, maxContainerSize)
+        v <- Gen.containerOfN[F, A](n, A.arbitrary)
+      } yield v
+    }
+  }
 }

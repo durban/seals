@@ -30,12 +30,14 @@ object KleeneLaws {
     implicit
     arbA: Arbitrary[A],
     arbFA: Arbitrary[F[A]],
+    arbVect: Arbitrary[Vector[A]],
     kle: Kleene[F],
     equA: Eq[A],
     equFA: Eq[F[A]]
   ): KleeneLaws[F, A] = new KleeneLaws[F, A] {
     def ArbA = arbA
     def ArbFA = arbFA
+    def ArbVect = arbVect
     def Kle = kle
     def EquA = equA
     def EquFA = equFA
@@ -47,6 +49,7 @@ trait KleeneLaws[F[_], A] extends Laws {
   implicit def Kle: Kleene[F]
   implicit def ArbA: Arbitrary[A]
   implicit def ArbFA: Arbitrary[F[A]]
+  implicit def ArbVect: Arbitrary[Vector[A]]
   implicit def EquA: Eq[A]
   implicit def EquFA: Eq[F[A]]
 
