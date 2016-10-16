@@ -59,8 +59,10 @@ object TestInstances {
       def description: String =
         "whatever"
 
-      def fromString(s: String): Xor[String, Whatever.type] =
-        Xor.right(Whatever)
+      def fromString(s: String): Xor[String, Whatever.type] = {
+        if (Whatever.toString.equals(s)) Xor.right(Whatever)
+        else Xor.left("not Whatever")
+      }
 
       def stringRepr(a: Whatever.type): String =
         Whatever.toString

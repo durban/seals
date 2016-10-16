@@ -44,8 +44,15 @@ trait AtomicLaws[A] extends Laws {
     name = "roundtrip",
     "stringRepr-fromString" -> forAll { (a: A) =>
       Atc.fromString(Atc.stringRepr(a)) ?== Xor.right(a)
+    },
+    "fromString-stringRepr" -> forAll { (s: String) =>
+      Atc.fromString(s).fold(
+        err => Prop.proved,
+        a => {
+          Atc.stringRepr(a) ?== s
+        }
+      )
     }
-    // TODO: "fromString-stringRepr"
   )
 
   final class AtomicRuleSet(
