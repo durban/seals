@@ -148,6 +148,9 @@ class CodecSpec extends BaseJsonSpec {
     }
 
     "Collections" in {
+      val json0 = Json.arr()
+      json0.as[Vector[Int]] should === (Xor.right(Vector()))
+
       val json1 = Json.arr(
         atomJson("1"),
         atomJson("2"),

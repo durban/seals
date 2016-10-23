@@ -1,0 +1,103 @@
+/*
+ * Copyright 2016 Daniel Urban
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package io.sigs.seals
+package scodec
+
+import cats.data.Xor
+import cats.implicits._
+import cats.Traverse
+
+import _root_.scodec.{ Codec, Encoder, Decoder, Attempt, SizeBound, DecodeResult, Err }
+import _root_.scodec.codecs.{ int32, utf8_32, constant }
+import _root_.scodec.bits._
+import _root_.scodec.interop.cats._
+
+import core.symbolEq
+
+object Codecs {
+
+  // TODO: make them implicit
+
+  final val hnilConst = hex"A1".bits
+
+  def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
+
+    override def encode(value: A): Attempt[BitVector] = {
+      A.fold[Attempt[BitVector]](value)(
+        atom = utf8_32.encode,
+        hNil = () => hnilCodec.encode(()),
+        hCons = (_, h, t) => for {
+          hv <- h
+          tv <- t
+        } yield hv ++ tv,
+        sum = (l, v) => for {
+          lv <- symbolCodec.encode(l)
+          vv <- v
+        } yield lv ++ vv,
+        vector = els => for {
+          vec <- Traverse[Vector].sequence(els)
+          len <- int32.encode(vec.length)
+        } yield len ++ BitVector.concat(vec)
+      )
+    }
+
+    override def sizeBound: SizeBound =
+      SizeBound.unknown
+  }
+
+  def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
+    override def decode(bits: BitVector): Attempt[DecodeResult[A]] = {
+      val x = A.unfold[BitVector, Err, Int](
+        atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toXor },
+        atomErr = { _ => Err("cannot decode atom") },
+        hNil = { b => hnilCodec.decode(b).map(_.remainder).toXor },
+        hCons = { (b, _) =>
+          Xor.right(Xor.right((b, Xor.right)))
+        },
+        cNil = { _ => Err("no variant matched (CNil reached)") },
+        cCons = { (b, l) =>
+          symbolCodec.decode(b).map { dr =>
+            if (dr.value === l) {
+              Left(dr.remainder)
+            } else {
+              Right(b)
+            }
+          }.toXor
+        },
+        vector = { b =>
+          int32.decode(b).map { len =>
+            (len.remainder, len.value, { (b: BitVector, len: Int) =>
+              if (len > 0) Xor.right(Some((b, len - 1)))
+              else Xor.right(None)
+            })
+          }.toXor
+        }
+      )(bits)
+
+      x.map { case (value, remainder) => DecodeResult(value, remainder) }.toAttempt
+    }
+  }
+
+  def codecFromReified[A](implicit A: Reified[A]): Codec[A] =
+    Codec(encoderFromReified[A], decoderFromReified[A])
+
+  private[this] val symbolCodec: Codec[Symbol] =
+    utf8_32.xmap(Symbol.apply, _.name)
+
+  private[this] val hnilCodec: Codec[Unit] =
+    constant(hnilConst)
+}

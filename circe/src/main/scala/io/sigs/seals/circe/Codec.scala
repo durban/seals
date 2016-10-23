@@ -43,17 +43,17 @@ object Codec {
 
   implicit def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def apply(c: HCursor): Decoder.Result[A] = {
-      A.unfold[HCursor, DecodingFailure](
-        atom = _.as[String](Decoder.decodeString),
+      val x = A.unfold[HCursor, DecodingFailure, (Boolean, HCursor)](
+        atom = { cur => cur.as[String](Decoder.decodeString).map(s => (s, cur)) },
         atomErr = { cur =>
           DecodingFailure(s"cannot decode atom", cur.history)
         },
-        hNil = _.as[JsonObject](Decoder.decodeJsonObject).map(_ => ()),
+        hNil = { cur => cur.as[JsonObject](Decoder.decodeJsonObject).map(_ => cur) },
         hCons = { (cur, sym) =>
           cur.downField(sym.name).either.leftMap { fc =>
             DecodingFailure(s"missing key: '${sym.name}'", fc.history)
           }.map { hc =>
-            Xor.right[DecodingFailure, (HCursor, HCursor)]((hc, cur))
+            Xor.right((hc, (_: HCursor) => Xor.right(cur)))
           }
         },
         cNil = { cur =>
@@ -66,9 +66,33 @@ object Codec {
           )
         },
         vector = { cur =>
-          cur.as[Vector[HCursor]]
+          for {
+            // just to make sure it's an array:
+            _ <- cur.as[Vector[HCursor]].leftMap { cur =>
+              DecodingFailure("not an array", cur.history)
+            }
+          } yield {
+            // TODO: this is a workaround - we preserve
+            // the cursor in the state, because the one
+            // passed on by `unfold` won't always be correct
+            // (the `unfold` signature is not general enough,
+            // for JSON we'd need something to move up the
+            // cursor after decoding, e.g., a CCons).
+            val f: (HCursor, (Boolean, HCursor)) => Xor[DecodingFailure, Option[(HCursor, (Boolean, HCursor))]] = {
+              case (_, (first, cur)) =>
+                val cur2 = if (first) cur.downArray else cur.right
+                cur2.either.map(x => Some((x, (false, x)))).recover {
+                  case _ => None
+                }.leftMap { cur =>
+                  DecodingFailure("not an array", cur.history)
+                }
+            }
+            (cur, (true, cur), f)
+          }
         }
       )(c)
+
+      x.map { case (a, _) => a }
     }
   }
 }

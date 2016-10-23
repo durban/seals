@@ -132,18 +132,18 @@ trait ReifiedLaws[A] extends Laws {
     "fold-unfold" -> forAll { (a: A) =>
       val tree = foldToTree(Rei, a)
 
-      val x: Xor[String, A] = Rei.unfold[Tree, String](
+      val x: Xor[String, (A, Tree)] = Rei.unfold[Tree, String, Vector[Tree]](
         atom = {
-          case Atom(s) => Xor.right(s)
+          case t @ Atom(s) => Xor.right((s, t))
           case _ => Xor.left("not atom")
         },
         atomErr = t => s"cannot parse $t",
         hNil = {
-          case PNil => Xor.right(())
+          case PNil => Xor.right(PNil)
           case x: Any => Xor.left(s"not HNil: $x")
         },
         hCons = (t, sym) => t match {
-          case PCons(`sym`, h, t) => Xor.right(Xor.right((h, t)))
+          case PCons(`sym`, h, t) => Xor.right(Xor.right((h, _ => Xor.right(t))))
           case _ => Xor.left("boo")
         },
         cNil = _ => "CNil",
@@ -153,14 +153,18 @@ trait ReifiedLaws[A] extends Laws {
           case _ => Xor.left(s"not CCons: $t")
         },
         vector = t => t match {
-          case Vect(els) => Xor.right(els)
+          case Vect(els) => Xor.right((t, els, (t, v) => if (v.isEmpty) {
+            Xor.right(None)
+          } else {
+            Xor.right(Some((v.head, v.tail)))
+          }))
           case _ => Xor.left(s"not Vect: $t")
         }
       )(tree)
 
       x.fold(
         err => Prop.falsified,
-        a2 => (a2 ?== a)
+        { case (a2, _) => (a2 ?== a) }
       )
     }
   )

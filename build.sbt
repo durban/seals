@@ -36,10 +36,16 @@ lazy val circe = project
   .settings(circeSettings)
   .dependsOn(core, laws % "test->test", tests % "test->test")
 
+lazy val scodec = project
+  .settings(name := s"seals-scodec")
+  .settings(commonSettings)
+  .settings(scodecSettings)
+  .dependsOn(core, laws % "test->test", tests % "test->test")
+
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .aggregate(core, laws, tests, circe)
+  .aggregate(core, laws, tests, circe, scodec)
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
@@ -88,6 +94,10 @@ lazy val circeSettings = Seq[Setting[_]](
   libraryDependencies ++= dependencies.circe
 )
 
+lazy val scodecSettings = Seq[Setting[_]](
+  libraryDependencies ++= dependencies.scodec
+)
+
 lazy val dependencies = new {
 
   val catsVersion = "0.7.2"
@@ -100,6 +110,13 @@ lazy val dependencies = new {
     "io.circe" %% "circe-core" % circeVersion,
     "io.circe" %% "circe-generic" % circeVersion,
     "io.circe" %% "circe-parser" % circeVersion
+  )
+
+  val scodec = Seq(
+    "org.scodec" %% "scodec-bits" % "1.1.2",
+    "org.scodec" %% "scodec-core" % "1.10.2",
+    "org.scodec" %% "scodec-stream" % "1.0.0",
+    "org.scodec" %% "scodec-cats" % "0.1.0"
   )
 
   val laws = Seq(
