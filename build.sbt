@@ -59,6 +59,8 @@ lazy val commonSettings = Seq[Setting[_]](
     "-Ypartial-unification",
     "-Ywarn-unused-import"
   ),
+  scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
+  scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.0" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     Seq(
