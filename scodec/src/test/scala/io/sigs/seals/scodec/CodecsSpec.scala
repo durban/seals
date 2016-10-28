@@ -21,7 +21,7 @@ import shapeless.record._
 import shapeless.union._
 
 import _root_.scodec.bits._
-import _root_.scodec.{ Attempt, DecodeResult }
+import _root_.scodec.{ Attempt, DecodeResult, Codec }
 
 import Codecs._
 import laws.TestTypes.{ CaseClass, Whatever }
@@ -30,6 +30,8 @@ import laws.TestTypes.collections.WithList
 import laws.TestInstances.atomic._
 
 class CodecsSpec extends tests.BaseSpec {
+
+  type U = Union.`'a -> Int, 'b -> Int`.T
 
   "Encoder from Reified" - {
 
@@ -52,7 +54,6 @@ class CodecsSpec extends tests.BaseSpec {
     }
 
     "Sums" in {
-      type U = Union.`'a -> Int, 'b -> Int`.T
       encoderFromReified[U].encode(Union[U](b = 42)) should === (
         Attempt.successful(hex"0000 0001 62  0000 0002 3432".bits)
       )
@@ -92,7 +93,6 @@ class CodecsSpec extends tests.BaseSpec {
     }
 
     "Sums" in {
-      type U = Union.`'a -> Int, 'b -> Int`.T
       decoderFromReified[U].decode(hex"0000 0001 62  0000 0002 3432   babe".bits) should === (
         Attempt.successful(DecodeResult(Union[U](b = 42), hex"babe".bits))
       )
@@ -109,5 +109,16 @@ class CodecsSpec extends tests.BaseSpec {
         Attempt.successful(DecodeResult(WithList(42, List(42.0f)), hex"ff".bits))
       )
     }
+  }
+
+  "Implicit Codec from Reified" in {
+    Codec.decode[Int](Codec.encode[Int](42).getOrElse(fail)).getOrElse(fail).value should === (42)
+    Codec.decode[Whatever.type](Codec.encode[Whatever.type](Whatever).getOrElse(fail)).getOrElse(fail).value should === (Whatever)
+    Codec.decode[Record.`'a -> Int`.T](Codec.encode[Record.`'a -> Int`.T](Record(a = 42)).getOrElse(fail)).getOrElse(fail).value should === (Record(a = 42))
+    Codec.decode[CaseClass](Codec.encode[CaseClass](CaseClass(42L)).getOrElse(fail)).getOrElse(fail).value should === (CaseClass(42L))
+    Codec.decode[U](Codec.encode[U](Union[U](b = 42)).getOrElse(fail)).getOrElse(fail).value should === (Union[U](b = 42))
+    Codec.decode[Adt1](Codec.encode[Adt1](Adt1.C(42)).getOrElse(fail)).getOrElse(fail).value should === (Adt1.C(42))
+    Codec.decode[Vector[Int]](Codec.encode[Vector[Int]](Vector(42, 43)).getOrElse(fail)).getOrElse(fail).value should === (Vector(42, 43))
+    Codec.decode[WithList](Codec.encode[WithList](WithList(42, List(42.0f))).getOrElse(fail)).getOrElse(fail).value should === (WithList(42, List(42.0f)))
   }
 }

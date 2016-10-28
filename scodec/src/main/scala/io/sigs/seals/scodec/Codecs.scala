@@ -30,9 +30,16 @@ import core.symbolEq
 
 object Codecs {
 
-  // TODO: make them implicit
+  private[this] final val hnilConst = hex"A1".bits
 
-  final val hnilConst = hex"A1".bits
+  private[this] val symbolCodec: Codec[Symbol] =
+    utf8_32.xmap(Symbol.apply, _.name)
+
+  private[this] val hnilCodec: Codec[Unit] =
+    constant(hnilConst)
+
+  implicit def codecFromReified[A](implicit A: Reified[A]): Codec[A] =
+    Codec(encoderFromReified[A], decoderFromReified[A])
 
   def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
 
@@ -91,13 +98,4 @@ object Codecs {
       x.map { case (value, remainder) => DecodeResult(value, remainder) }.toAttempt
     }
   }
-
-  def codecFromReified[A](implicit A: Reified[A]): Codec[A] =
-    Codec(encoderFromReified[A], decoderFromReified[A])
-
-  private[this] val symbolCodec: Codec[Symbol] =
-    utf8_32.xmap(Symbol.apply, _.name)
-
-  private[this] val hnilCodec: Codec[Unit] =
-    constant(hnilConst)
 }
