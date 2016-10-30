@@ -21,6 +21,7 @@ import cats.data.Xor
 
 import io.circe._
 
+// TODO: rename to Codecs
 object Codec {
 
   // TODO: these also provide codecs for String, Int, ...
@@ -88,7 +89,8 @@ object Codec {
           }.leftMap { cur =>
             DecodingFailure("not an array", cur.history)
           }
-        }
+        },
+        unknownError = { msg => DecodingFailure(msg, Nil) }
       ))(c)
 
       x.map { case (a, _) => a }

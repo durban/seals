@@ -26,7 +26,7 @@ import scalaz.concurrent.Task
 import io.circe._
 
 import io.sigs.seals._
-import io.sigs.seals.circe.EnvelopeCodec._
+import io.sigs.seals.circe.Codec._
 
 object Protocol {
   final case class Ping(seqNr: Long, payload: Vector[Int])
@@ -48,9 +48,10 @@ object MyClient extends App {
   println(pongGood)
 
   try {
-    jsonEncoderOf[Envelope[PingIncompatible]].toEntity(
+    val pongBad = jsonEncoderOf[Envelope[PingIncompatible]].toEntity(
       Envelope(PingIncompatible(99L, Vector(4, 5), 0))
     ).flatMap(ping).run
+    println(pongBad)
   } finally {
     client.shutdownNow()
   }

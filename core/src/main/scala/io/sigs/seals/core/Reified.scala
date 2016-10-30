@@ -76,6 +76,27 @@ sealed trait Reified[A] extends Serializable { self =>
       self.unfold[C, E, S](u)(c).map { case (a, c) => (f(a), c) }
   }
 
+  final def pimap[B](f: A => Xor[String, B])(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
+
+    override type Mod = self.Mod
+    override type Fold[C, T] = self.Fold[C, T]
+
+    override private[core] def modelComponent: Mod =
+      self.modelComponent
+
+    override def fold[C, T](b: B)(f: Folder[C, T]): Fold[C, T] =
+      self.fold[C, T](g(b))(f)
+
+    override def close[C, T](x: Fold[C, T], f: T => C): C =
+      self.close(x, f)
+
+    override def unfold[C, E, S](u: Unfolder[C, E, S])(c: C): Xor[E, (B, C)] = {
+      self.unfold[C, E, S](u)(c).flatMap { case (a, c) =>
+        f(a).map(a => (a, c)).leftMap(u.unknownError)
+      }
+    }
+  }
+
   private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod, this.Fold] =
     this
 }
@@ -150,6 +171,7 @@ object Reified extends LowPrioReified {
     def cCons(b: B, l: Symbol): Xor[E, Either[B, B]]
     def vectorInit(b: B): Xor[E, (B, S)]
     def vectorFold(b: B, s: S): Xor[E, Option[(B, S)]]
+    def unknownError(msg: String): E
   }
 
   object Unfolder {
@@ -162,7 +184,8 @@ object Reified extends LowPrioReified {
       cNil: B => E,
       cCons: (B, Symbol) => Xor[E, Either[B, B]],
       vectorInit: B => Xor[E, (B, S)],
-      vectorFold: (B, S) => Xor[E, Option[(B, S)]]
+      vectorFold: (B, S) => Xor[E, Option[(B, S)]],
+      unknownError: String => E
     ): Unfolder[B, E, S] = new UnfolderImpl[B, E, S](
       atom,
       atomErr,
@@ -171,7 +194,8 @@ object Reified extends LowPrioReified {
       cNil,
       cCons,
       vectorInit,
-      vectorFold
+      vectorFold,
+      unknownError
     )
 
     private final class UnfolderImpl[B, E, S](
@@ -182,7 +206,8 @@ object Reified extends LowPrioReified {
       cn: B => E,
       cc: (B, Symbol) => Xor[E, Either[B, B]],
       vi: B => Xor[E, (B, S)],
-      vf: (B, S) => Xor[E, Option[(B, S)]]
+      vf: (B, S) => Xor[E, Option[(B, S)]],
+      ue: String => E
     ) extends Unfolder[B, E, S] {
       override def atom(b: B): Xor[E, (String, B)] = a(b)
       override def atomErr(b: B): E = ae(b)
@@ -192,6 +217,7 @@ object Reified extends LowPrioReified {
       override def cCons(b: B, l: Symbol): Xor[E, Either[B, B]] = cc(b, l)
       override def vectorInit(b: B): Xor[E, (B, S)] = vi(b)
       override def vectorFold(b: B, s: S): Xor[E, Option[(B, S)]] = vf(b, s)
+      override def unknownError(msg: String): E = ue(msg)
     }
   }
 

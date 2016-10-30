@@ -93,7 +93,8 @@ object Codecs {
         vectorFold = { (b: BitVector, len: Int) =>
           if (len > 0) Xor.right(Some((b, len - 1)))
           else Xor.right(None)
-        }
+        },
+        unknownError = Err(_)
       ))(bits)
 
       x.map { case (value, remainder) => DecodeResult(value, remainder) }.toAttempt

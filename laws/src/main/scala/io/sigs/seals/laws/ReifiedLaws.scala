@@ -161,7 +161,8 @@ trait ReifiedLaws[A] extends Laws {
             Xor.right(None)
           } else {
             Xor.right(Some((v.head, v.tail)))
-          }
+          },
+          unknownError = identity
         )
       )(tree)
 

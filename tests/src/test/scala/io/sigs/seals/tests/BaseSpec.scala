@@ -19,11 +19,13 @@ package tests
 
 import org.scalatest.Matchers
 import org.scalatest.FreeSpecLike
+import org.scalatest.Inside
 import org.scalactic.TypeCheckedTripleEquals
 
 trait BaseSpec
   extends FreeSpecLike
   with Matchers
+  with Inside
   with TypeCheckedTripleEquals
   with laws.Serialization {
 

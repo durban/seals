@@ -12,7 +12,7 @@ import io.sigs.seals.laws.TestTypes
 
 class CirceLawsSpec extends tests.BaseLawsSpec {
 
-  import EnvelopeCodec._
+  import Codec._
   import ArbInstances.arbEnvelope
   import TestArbInstances.forTestData._
 

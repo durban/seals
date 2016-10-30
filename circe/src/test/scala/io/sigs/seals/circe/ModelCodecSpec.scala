@@ -28,7 +28,7 @@ import laws.MyUUID
 import laws.TestInstances
 import laws.TestTypes
 
-import ModelCodec._
+import Codec._
 
 object ModelCodecSpec {
 
@@ -79,12 +79,16 @@ class ModelCodecSpec extends BaseJsonSpec {
     )
   }
 
-  def ref(uri: String): Json = {
-    JsonRef(uri).map(_.asJson).fold(
-      msg => fail(s"invalid ref: $uri ($msg)"),
-      identity
+  def ref(id: Int): Json = {
+    Json.obj(
+      "Ref" -> Json.obj(
+        "id" -> Json.fromString(id.toString)
+      )
     )
   }
+
+  val jfalse = Json.fromString(false.toString)
+  val jtrue = Json.fromString(true.toString)
 
   val a1 = Reified[Int].model
   val a2 = Reified[String].model
@@ -99,13 +103,15 @@ class ModelCodecSpec extends BaseJsonSpec {
   // 'i -> Int :: 's -> String :: HNil
   val m1json = Json.obj(
     "HCons" -> Json.obj(
+      "id" -> Json.fromString("1"),
       "label" -> Json.fromString("i"),
-      "optional" -> Json.False,
+      "optional" -> jfalse,
       "head" -> atom(Atom.builtinAtom[Int].uuid),
       "tail" -> Json.obj(
         "HCons" -> Json.obj(
+          "id" -> Json.fromString("0"),
           "label" -> Json.fromString("s"),
-          "optional" -> Json.False,
+          "optional" -> jfalse,
           "head" -> atom(Atom.builtinAtom[String].uuid),
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
@@ -123,23 +129,27 @@ class ModelCodecSpec extends BaseJsonSpec {
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
           ),
-          "optional" -> Json.False,
-          "label" -> Json.fromString("s")
+          "optional" -> jfalse,
+          "label" -> Json.fromString("s"),
+          "id" -> Json.fromString("0")
         )
       ),
       "head" -> atom(Atom.builtinAtom[Int].uuid),
       "label" -> Json.fromString("i"),
-      "optional" -> Json.False
+      "id" -> Json.fromString("1"),
+      "optional" -> jfalse
     )
   )
 
   // 'C -> ('i -> Int :: 's -> String :: HNil) :+: 'D -> HNil :+: CNil
   val m2json = Json.obj(
     "CCons" -> Json.obj(
+      "id" -> Json.fromString("3"),
       "label" -> Json.fromString("C"),
       "head" -> m1json,
       "tail" -> Json.obj(
         "CCons" -> Json.obj(
+          "id" -> Json.fromString("2"),
           "label" -> Json.fromString("D"),
           "head" -> Json.obj(
             "HNil" -> Json.obj()
@@ -152,27 +162,16 @@ class ModelCodecSpec extends BaseJsonSpec {
     )
   )
 
-  val cy1json = cy1(ref("#"))
-
-  val cy2json = Json.obj(
-    "HCons" -> Json.obj(
-      "label" -> Json.fromString("c"),
-      "optional" -> Json.False,
-      "head" -> cy1(ref("#/HCons/head")),
-      "tail" -> Json.obj(
-        "HNil" -> Json.obj()
-      )
-    )
-  )
-
-  def cy1(ref: Json): Json = Json.obj(
+  val cy1json = Json.obj(
     "CCons" -> Json.obj(
+      "id" -> Json.fromString("2"),
       "label" -> Json.fromString("X"),
       "head" -> Json.obj(
         "HCons" -> Json.obj(
+          "id" -> Json.fromString("0"),
           "label" -> Json.fromString("m"),
-          "optional" -> Json.False,
-          "head" -> ref,
+          "optional" -> jfalse,
+          "head" -> ref(2),
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
           )
@@ -180,6 +179,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       ),
       "tail" -> Json.obj(
         "CCons" -> Json.obj(
+          "id" -> Json.fromString("1"),
           "label" -> Json.fromString("Y"),
           "head" -> Json.obj(
             "HNil" -> Json.obj()
@@ -188,6 +188,18 @@ class ModelCodecSpec extends BaseJsonSpec {
             "CNil" -> Json.obj()
           )
         )
+      )
+    )
+  )
+
+  val cy2json = Json.obj(
+    "HCons" -> Json.obj(
+      "id" -> Json.fromString("3"),
+      "label" -> Json.fromString("c"),
+      "optional" -> jfalse,
+      "head" -> cy1json,
+      "tail" -> Json.obj(
+        "HNil" -> Json.obj()
       )
     )
   )
@@ -208,8 +220,9 @@ class ModelCodecSpec extends BaseJsonSpec {
 
   val optJson = Json.obj(
     "HCons" -> Json.obj(
+      "id" -> Json.fromString("0"),
       "label" -> Json.fromString("x"),
-      "optional" -> Json.True,
+      "optional" -> jtrue,
       "head" -> atom(Atom.builtinAtom[Int].uuid),
       "tail" -> Json.obj(
         "HNil" -> Json.obj()
@@ -219,6 +232,7 @@ class ModelCodecSpec extends BaseJsonSpec {
 
   val optJsonOmitted = Json.obj(
     "HCons" -> Json.obj(
+      "id" -> Json.fromString("0"),
       "label" -> Json.fromString("x"),
       // no "optional" field
       "head" -> atom(Atom.builtinAtom[Int].uuid),
@@ -288,13 +302,15 @@ class ModelCodecSpec extends BaseJsonSpec {
 
         val good = Json.obj(
           "HCons" -> Json.obj(
+            "id" -> Json.fromString("1"),
             "label" -> Json.fromString("i"),
-            "optional" -> Json.False,
+            "optional" -> jfalse,
             "head" -> atom(Atom.builtinAtom[Int].uuid),
             "tail" -> Json.obj(
               "HCons" -> Json.obj(
+                "id" -> Json.fromString("0"),
                 "label" -> Json.fromString("s"),
-                "optional" -> Json.False,
+                "optional" -> jfalse,
                 "head" -> atom(Atom.builtinAtom[String].uuid),
                 "tail" -> Json.obj(
                   "HNil" -> Json.obj()
@@ -304,40 +320,47 @@ class ModelCodecSpec extends BaseJsonSpec {
           )
         )
 
+        "control" in {
+          good.as[Model] shouldBe a [Xor.Right[_]]
+        }
+
         "missing key" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("1"),
               "label" -> Json.fromString("i"),
-              "optional" -> Json.False,
+              "optional" -> jfalse,
               "head" -> atom(Atom.builtinAtom[Int].uuid)
               // no "tail"
             )
           )
-          bad.as[Model] should failWith(".*failed cursor.*")
+          bad.as[Model] should failWith(".*missing key: 'tail'.*")
         }
 
         "bad type of value" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("1"),
               "label" -> Json.fromString("i"),
-              "optional" -> Json.False,
+              "optional" -> jfalse,
               "head" -> atom(Atom.builtinAtom[Int].uuid),
               "tail" -> Json.arr() // not an object
             )
           )
-          bad.as[Model] should failWith("JsonObject")
+          bad.as[Model] should failWith(".*no variant matched.*")
 
           val bad2 = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("0"),
               "label" -> Json.fromString("i"),
-              "optional" -> Json.Null, // not a bool
+              "optional" -> Json.Null, // not a string
               "head" -> atom(Atom.builtinAtom[Int].uuid),
               "tail" -> Json.obj(
                 "HNil" -> Json.obj()
               )
             )
           )
-          bad2.as[Model] should failWith("Boolean")
+          bad2.as[Model] should failWith("String")
         }
       }
 
@@ -345,10 +368,13 @@ class ModelCodecSpec extends BaseJsonSpec {
 
         val good = Json.obj(
           "HCons" -> Json.obj(
+            "id" -> Json.fromString("0"),
             "label" -> Json.fromString("c"),
-            "optional" -> Json.False,
+            "optional" -> jfalse,
             "head" -> Json.obj(
-              JsonRef.key -> Json.fromString("#")
+              "Ref" -> Json.obj(
+                "id" -> Json.fromString("0")
+              )
             ),
             "tail" -> Json.obj(
               "HNil" -> Json.obj()
@@ -356,165 +382,124 @@ class ModelCodecSpec extends BaseJsonSpec {
           )
         )
 
+        "control" in {
+          good.as[Model] shouldBe a [Xor.Right[_]]
+        }
+
         "not a string" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
+              "optional" -> jfalse,
               "head" -> Json.obj(
-                JsonRef.key -> Json.fromInt(56) // not string
+                "Ref" -> Json.obj(
+                  "id" -> Json.fromInt(56) // not string
+                )
               ),
               "tail" -> Json.obj(
                 "HNil" -> Json.obj()
               )
             )
           )
+
           bad.as[Model] should failWith("String")
         }
 
-        "not an URI" in {
+        "not an Int.toString" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
+              "optional" -> jfalse,
               "head" -> Json.obj(
-                JsonRef.key -> Json.fromString("a_b_c://boo") // not URI
-              ),
-              "tail" -> Json.obj(
-                "HNil" -> Json.obj()
-              )
-            )
-          )
-          bad.as[Model] should failWith(".*Illegal character.*")
-        }
-
-        "points to nowhere" in {
-          val bad = Json.obj(
-            "HCons" -> Json.obj(
-              "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
-              "head" -> Json.obj(
-                JsonRef.key -> Json.fromString("#/HCons/foo/bar") // no target
-              ),
-              "tail" -> Json.obj(
-                "HNil" -> Json.obj()
-              )
-            )
-          )
-          bad.as[Model] should failWith(".*invalid backreference.*")
-        }
-
-        "points to outside the JSON" in {
-          val bad = Json.obj(
-            "HCons" -> Json.obj(
-              "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
-              "head" -> Json.obj(
-                JsonRef.key -> Json.fromString("http://www.example.com#/HCons/head") // external
-              ),
-              "tail" -> Json.obj(
-                "HNil" -> Json.obj()
-              )
-            )
-          )
-          bad.as[Model] should failWith(".*nonempty host.*")
-        }
-
-        "points into an array" in {
-          val bad = Json.obj(
-            "HCons" -> Json.obj(
-              "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
-              "head" -> Json.obj(
-                JsonRef.key -> Json.fromString("#/HCons/foobar/0") // into array
-              ),
-              "tail" -> Json.obj(
-                "HNil" -> Json.obj()
-              ),
-              "foobar" -> Json.arr(
-                Json.obj(
-                  "HNil" -> Json.obj()
+                "Ref" -> Json.obj(
+                  "id" -> Json.fromString("abc") // not an Int.toString
                 )
+              ),
+              "tail" -> Json.obj(
+                "HNil" -> Json.obj()
               )
             )
           )
-          bad.as[Model] should failWith(".*invalid backreference.*")
+
+          bad.as[Model] should failWith(".*cannot decode atom.*")
         }
 
-        "points to an Atom" in {
+        "points to nonexistent ID" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
-              "head" -> atom(Atom.builtinAtom[String].uuid),
-              "tail" -> Json.obj(
-                "HCons" -> Json.obj(
-                  "label" -> Json.fromString("x"),
-                  "optional" -> Json.False,
-                  "head" -> Json.obj(
-                    JsonRef.key -> Json.fromString("#/HCons/head") // to atom
-                  ),
-                  "tail" -> Json.obj(
-                    "HNil" -> Json.obj()
-                  )
+              "optional" -> jfalse,
+              "head" -> Json.obj(
+                "Ref" -> Json.obj(
+                  "id" -> Json.fromString("999") // no target
                 )
+              ),
+              "tail" -> Json.obj(
+                "HNil" -> Json.obj()
               )
             )
           )
-          bad.as[Model] should failWith(".*invalid backreference.*")
+
+          bad.as[Model] should failWith(".*invalid ID.*")
+        }
+
+        "points to negative ID" in {
+          val bad = Json.obj(
+            "HCons" -> Json.obj(
+              "id" -> Json.fromString("0"),
+              "label" -> Json.fromString("c"),
+              "optional" -> jfalse,
+              "head" -> Json.obj(
+                "Ref" -> Json.obj(
+                  "id" -> Json.fromString("-1") // no target
+                )
+              ),
+              "tail" -> Json.obj(
+                "HNil" -> Json.obj()
+              )
+            )
+          )
+
+          bad.as[Model] should failWith(".*invalid ID.*")
         }
 
         "pointer from a tail" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
+              "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
-              "optional" -> Json.False,
+              "optional" -> jfalse,
               "head" -> atom(Atom.builtinAtom[String].uuid),
               "tail" -> Json.obj(
-                JsonRef.key -> Json.fromString("#") // from tail
-              )
-            )
-          )
-          bad.as[Model] should failWith(".*not a HList.*")
-        }
-
-        "points to a ref" in {
-          val bad = Json.obj(
-            "HCons" -> Json.obj(
-              "label" -> Json.fromString("i"),
-              "optional" -> Json.False,
-              "head" -> Json.obj(
-                JsonRef.key -> Json.fromString("#")
-              ),
-              "tail" -> Json.obj(
-                "HCons" -> Json.obj(
-                  "label" -> Json.fromString("s"),
-                  "optional" -> Json.False,
-                  "head" -> Json.obj(
-                    JsonRef.key -> Json.fromString("#/HCons/head") // to another ref
-                  ),
-                  "tail" -> Json.obj(
-                    "HNil" -> Json.obj()
-                  )
+                "Ref" -> Json.obj(
+                  "id" -> Json.fromString("0") // from tail
                 )
               )
             )
           )
-          bad.as[Model] should failWith(".*invalid backreference.*")
+
+          bad.as[Model] should failWith(".*no variant matched.*")
         }
 
         "forward reference" in {
           val bad = Json.obj(
             "HCons" -> Json.obj(
-              "label" -> Json.fromString("i"),
-              "optional" -> Json.False,
+              "id" -> Json.fromString("1"),
+              "label" -> Json.fromString("c"),
+              "optional" -> jfalse,
               "head" -> Json.obj(
-                JsonRef.key -> Json.fromString("#/HCons/tail") // forward
+                "Ref" -> Json.obj(
+                  "id" -> Json.fromString("0") // forward ref
+                )
               ),
               "tail" -> Json.obj(
                 "HCons" -> Json.obj(
-                  "label" -> Json.fromString("s"),
-                  "optional" -> Json.False,
+                  "id" -> Json.fromString("0"),
+                  "label" -> Json.fromString("d"),
+                  "optional" -> jfalse,
                   "head" -> atom(Atom.builtinAtom[String].uuid),
                   "tail" -> Json.obj(
                     "HNil" -> Json.obj()
@@ -523,7 +508,8 @@ class ModelCodecSpec extends BaseJsonSpec {
               )
             )
           )
-          bad.as[Model] should failWith(".*invalid backreference.*")
+
+          bad.as[Model] should failWith(".*invalid ID.*")
         }
       }
     }

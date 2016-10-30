@@ -134,21 +134,35 @@ sealed trait Model extends Serializable with AtomRegistry {
   final def paths: Map[Model, Path] =
     cachedPaths
 
-  private[this] lazy val cachedPaths = {
+  private[this] lazy val cachedPaths =
+    cachedPathsAndIds.mapValues(_._1)
+
+  final def localIds: Map[Model, Int] =
+    cachedIds
+
+  private[this] lazy val cachedIds =
+    cachedPathsAndIds.mapValues(_._2)
+
+  private[this] type MapP = (Map[Model, (Model.Path, Int)], Int)
+  private[this] type StMapP = State[MapP, Unit]
+
+  private[this] lazy val cachedPathsAndIds = {
     def compositePre(
       label: String,
       c: Model.Ctx,
       l: Symbol,
-      h: State[Map[Model, Model.Path], Unit],
-      t: State[Map[Model, Model.Path], Unit]
-    ): State[Map[Model, Model.Path], Unit] = {
+      h: StMapP,
+      t: StMapP
+    ): StMapP = {
       for {
         _ <- h
         _ <- t
-        _ <- State.modify[Map[Model, Model.Path]](_ + (c.m -> c.p))
+        _ <- State.modify[MapP] { case (map, ctr) =>
+          (map + (c.m -> ((c.p, ctr))), ctr + 1)
+        }
       } yield ()
     }
-    val st = this.foldC[State[Map[Model, Model.Path], Unit]](
+    val st = this.foldC[StMapP](
         hNil = _ => State.pure(()),
         hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
         cNil = _ => State.pure(()),
@@ -157,7 +171,7 @@ sealed trait Model extends Serializable with AtomRegistry {
         atom = (_, a) => State.pure(()),
         cycle = _ => State.pure(())
     )
-    st.runS(Map.empty).value
+    st.runS((Map.empty, 0)).value._1
   }
 
   private[this] lazy val allAtoms: Map[UUID, Atom[_]] = {
@@ -186,6 +200,15 @@ object Model {
 
   implicit val modelEquality: Eq[Model] =
     Eq.fromUniversalEquals[Model]
+
+  // TODO: test laws
+  /**
+   * Reified instance for Model
+   *
+   * Requires an implicit AtomRegistry.
+   */
+  implicit def reifiedForModel(implicit reg: AtomRegistry): Reified.Aux[Model, Model.CCons, Reified.FFirst] =
+    ModelRepr.reifiedForModelRepr.pimap[Model](_.toModel(reg))(ModelRepr.fromModel)
 
   private object hash {
 

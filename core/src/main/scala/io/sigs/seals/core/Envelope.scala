@@ -18,7 +18,9 @@ package io.sigs.seals
 package core
 
 import scala.util.hashing.MurmurHash3
+
 import cats.Eq
+import cats.data.Xor
 
 sealed trait Envelope[A] extends Serializable {
 
@@ -47,6 +49,8 @@ sealed trait Envelope[A] extends Serializable {
 
 object Envelope {
 
+  private final case class EnvelopeRepr[A](model: Model, value: A)
+
   private final val envelopeSeed = 0x37dd86e4
 
   def apply[A](a: A)(implicit r: Reified[A]): Envelope[A] = new Envelope[A] {
@@ -57,5 +61,16 @@ object Envelope {
   implicit def envelopeEquality[A](implicit EqA: Eq[A]): Eq[Envelope[A]] = new Eq[Envelope[A]] {
     override def eqv(x: Envelope[A], y: Envelope[A]): Boolean =
       EqA.eqv(x.value, y.value)
+  }
+
+  // TODO: test laws
+  implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
+    implicit val rm = Model.reifiedForModel(r.model)
+    Reified[EnvelopeRepr[A]].pimap[Envelope[A]] { repr =>
+      if (repr.model compatible r.model) Xor.right(Envelope[A](repr.value)(r))
+      else Xor.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
+    } { env =>
+      EnvelopeRepr[A](env.model, env.value)
+    }
   }
 }
