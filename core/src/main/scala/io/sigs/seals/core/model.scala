@@ -131,6 +131,35 @@ sealed trait Model extends Serializable with AtomRegistry {
   final override def getAtom(id: UUID): Xor[String, Atom[_]] =
     Xor.fromOption(allAtoms.get(id), s"not found Atom with id ${id}")
 
+  final def paths: Map[Model, Path] =
+    cachedPaths
+
+  private[this] lazy val cachedPaths = {
+    def compositePre(
+      label: String,
+      c: Model.Ctx,
+      l: Symbol,
+      h: State[Map[Model, Model.Path], Unit],
+      t: State[Map[Model, Model.Path], Unit]
+    ): State[Map[Model, Model.Path], Unit] = {
+      for {
+        _ <- h
+        _ <- t
+        _ <- State.modify[Map[Model, Model.Path]](_ + (c.m -> c.p))
+      } yield ()
+    }
+    val st = this.foldC[State[Map[Model, Model.Path], Unit]](
+        hNil = _ => State.pure(()),
+        hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
+        cNil = _ => State.pure(()),
+        cCons = (c, l, h, t) => compositePre("CCons", c, l, h, t),
+        vector = (c, e) => e,
+        atom = (_, a) => State.pure(()),
+        cycle = _ => State.pure(())
+    )
+    st.runS(Map.empty).value
+  }
+
   private[this] lazy val allAtoms: Map[UUID, Atom[_]] = {
     this.fold[Map[UUID, Atom[_]]](
       hNil = () => Map.empty,

@@ -33,16 +33,7 @@ trait ModelEncoder {
   // TODO: inject version number
   implicit val modelEncoder: ObjectEncoder[Model] = new ObjectEncoder[Model] {
     override def encodeObject(a: Model): JsonObject = {
-      val pre = a.foldC[PreSt](
-        hNil = _ => State.pure(()),
-        hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
-        cNil = _ => State.pure(()),
-        cCons = (c, l, h, t) => compositePre("CCons", c, l, h, t),
-        vector = (c, e) => e,
-        atom = (_, a) => State.pure(()),
-        cycle = _ => State.pure(())
-      )
-      val map = pre.runS(Map.empty).value
+      val map: Map[Model, Model.Path] = a.paths
       a.foldC[JsonObject](
         hNil = _ => JsonObject.singleton("HNil", Json.obj()),
         hCons = (c, l, o, h, t) => composite("HCons", l, Some(o), h, t),
@@ -90,20 +81,6 @@ trait ModelEncoder {
       label,
       Json.obj(fields: _*)
     )
-  }
-
-  private def compositePre(
-    label: String,
-    c: Model.Ctx,
-    l: Symbol,
-    h: PreSt,
-    t: PreSt
-  ): PreSt = {
-    for {
-      _ <- h
-      _ <- t
-      _ <- State.modify[Map[Model, Model.Path]](_ + (c.m -> c.p))
-    } yield ()
   }
 
   private def mkRef(path: Model.Path): JsonObject = {
