@@ -23,6 +23,8 @@ import shapeless._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
 
+import Reified.{ Folder, Unfolder }
+
 sealed trait Reified[A] extends Serializable { self =>
 
   type Mod <: Model
@@ -47,37 +49,16 @@ sealed trait Reified[A] extends Serializable { self =>
   final override def hashCode: Int =
     System.identityHashCode(this)
 
-  def genFold[B, T](a: A)(
-    atom: String => B,
-    hNil: () => T,
-    hCons: (Symbol, B, T) => T,
-    prod: T => B,
-    sum: (Symbol, B) => B,
-    vector: Vector[B] => B
-  ): Fold[B, T]
-
-  def fold[B](a: A)(
-    atom: String => B,
-    hNil: () => B,
-    hCons: (Symbol, B, B) => B,
-    sum: (Symbol, B) => B,
-    vector: Vector[B] => B
-  ): B = close[B, B](genFold[B, B](a)(atom, hNil, hCons, identity, sum, vector), identity)
+  def fold[B, T](a: A)(f: Folder[B, T]): Fold[B, T]
 
   def close[B, T](x: Fold[B, T], f: T => B): B
 
-  // TODO: try to remove one layer of Xor (hCons)
-  def unfold[B, E, S](
-    atom: B => Xor[E, (String, B)],
-    atomErr: B => E,
-    hNil: B => Xor[E, B],
-    hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-    cNil: B => E,
-    cCons: (B, Symbol) => Xor[E, Either[B, B]],
-    vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-  )(b: B): Xor[E, (A, B)]
+  final def foldClose[B](a: A)(f: Folder[B, B]): B =
+    close[B, B](fold(a)(f), identity)
 
-  def imap[B](f: A => B)(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
+  def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (A, B)]
+
+  final def imap[B](f: A => B)(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
 
     override type Mod = self.Mod
     override type Fold[C, T] = self.Fold[C, T]
@@ -85,29 +66,14 @@ sealed trait Reified[A] extends Serializable { self =>
     override private[core] def modelComponent: Mod =
       self.modelComponent
 
-    override def genFold[C, T](b: B)(
-      atom: String => C,
-      hNil: () => T,
-      hCons: (Symbol, C, T) => T,
-      prod: T => C,
-      sum: (Symbol, C) => C,
-      vector: Vector[C] => C
-    ): Fold[C, T] = self.genFold[C, T](g(b))(atom, hNil, hCons, prod, sum, vector)
+    override def fold[C, T](b: B)(f: Folder[C, T]): Fold[C, T] =
+      self.fold[C, T](g(b))(f)
 
     override def close[C, T](x: Fold[C, T], f: T => C): C =
       self.close(x, f)
 
-    override def unfold[C, E, S](
-      atom: C => Xor[E, (String, C)],
-      atomErr: C => E,
-      hNil: C => Xor[E, C],
-      hCons: (C, Symbol) => Xor[E, Xor[E, (C, C => Xor[E, C])]],
-      cNil: C => E,
-      cCons: (C, Symbol) => Xor[E, Either[C, C]],
-      vector: C => Xor[E, (C, S, (C, S) => Xor[E, Option[(C, S)]])]
-    )(c: C): Xor[E, (B, C)] = self.unfold[C, E, S](atom, atomErr, hNil, hCons, cNil, cCons, vector)(c).map {
-      case (a, c) => (f(a), c)
-    }
+    override def unfold[C, E, S](u: Unfolder[C, E, S])(c: C): Xor[E, (B, C)] =
+      self.unfold[C, E, S](u)(c).map { case (a, c) => (f(a), c) }
   }
 
   private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod, this.Fold] =
@@ -129,6 +95,105 @@ object Reified extends LowPrioReified {
 
   type FFirst[B, T] = B
   type FSecond[B, T] = T
+
+  trait Folder[B, T] {
+    def atom(repr: String): B
+    def hNil: T
+    def hCons(l: Symbol, b: B, t: T): T
+    def prod(t: T): B
+    def sum(l: Symbol, b: B): B
+    def vector(v: Vector[B]): B
+  }
+
+  object Folder {
+
+    def instance[B, T](
+      atom: String => B,
+      hNil: () => T,
+      hCons: (Symbol, B, T) => T,
+      prod: T => B,
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
+    ): Folder[B, T] = new FolderImpl[B, T](atom, hNil, hCons, prod, sum, vector)
+
+    def simple[B](
+      atom: String => B,
+      hNil: () => B,
+      hCons: (Symbol, B, B) => B,
+      sum: (Symbol, B) => B,
+      vector: Vector[B] => B
+    ): Folder[B, B] = instance[B, B](atom, hNil, hCons, identity, sum, vector)
+
+    private final class FolderImpl[B, T](
+        a: String => B,
+        hn: () => T,
+        hc: (Symbol, B, T) => T,
+        p: T => B,
+        s: (Symbol, B) => B,
+        vec: Vector[B] => B
+    ) extends Folder[B, T] {
+      override def atom(repr: String): B = a(repr)
+      override def hNil: T = hn()
+      override def hCons(l: Symbol, b: B, t: T): T = hc(l, b, t)
+      override def prod(t: T): B = p(t)
+      override def sum(l: Symbol, b: B): B = s(l, b)
+      override def vector(v: Vector[B]): B = vec(v)
+    }
+  }
+
+  trait Unfolder[B, E, S] {
+    def atom(b: B): Xor[E, (String, B)]
+    def atomErr(b: B): E
+    def hNil(b: B): Xor[E, B]
+    def hCons(b: B, l: Symbol): Xor[E, Xor[E, (B, B => Xor[E, B])]]
+    def cNil(b: B): E
+    def cCons(b: B, l: Symbol): Xor[E, Either[B, B]]
+    def vectorInit(b: B): Xor[E, (B, S)]
+    def vectorFold(b: B, s: S): Xor[E, Option[(B, S)]]
+  }
+
+  object Unfolder {
+
+    def instance[B, E, S](
+      atom: B => Xor[E, (String, B)],
+      atomErr: B => E,
+      hNil: B => Xor[E, B],
+      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
+      cNil: B => E,
+      cCons: (B, Symbol) => Xor[E, Either[B, B]],
+      vectorInit: B => Xor[E, (B, S)],
+      vectorFold: (B, S) => Xor[E, Option[(B, S)]]
+    ): Unfolder[B, E, S] = new UnfolderImpl[B, E, S](
+      atom,
+      atomErr,
+      hNil,
+      hCons,
+      cNil,
+      cCons,
+      vectorInit,
+      vectorFold
+    )
+
+    private final class UnfolderImpl[B, E, S](
+      a: B => Xor[E, (String, B)],
+      ae: B => E,
+      hn: B => Xor[E, B],
+      hc: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
+      cn: B => E,
+      cc: (B, Symbol) => Xor[E, Either[B, B]],
+      vi: B => Xor[E, (B, S)],
+      vf: (B, S) => Xor[E, Option[(B, S)]]
+    ) extends Unfolder[B, E, S] {
+      override def atom(b: B): Xor[E, (String, B)] = a(b)
+      override def atomErr(b: B): E = ae(b)
+      override def hNil(b: B): Xor[E, B] = hn(b)
+      override def hCons(b: B, l: Symbol): Xor[E, Xor[E, (B, B => Xor[E, B])]] = hc(b, l)
+      override def cNil(b: B): E = cn(b)
+      override def cCons(b: B, l: Symbol): Xor[E, Either[B, B]] = cc(b, l)
+      override def vectorInit(b: B): Xor[E, (B, S)] = vi(b)
+      override def vectorFold(b: B, s: S): Xor[E, Option[(B, S)]] = vf(b, s)
+    }
+  }
 
   def apply[A](implicit d: Reified[A]): Aux[A, d.Mod, d.Fold] =
     d
@@ -161,29 +226,15 @@ object Reified extends LowPrioReified {
     override type Mod = Atom[A]
     override type Fold[B, T] = B
     private[core] override val modelComponent = A
-    override def genFold[B, T](a: A)(
-      atom: String => B,
-      hNil: () => T,
-      hCons: (Symbol, B, T) => T,
-      prod: T => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): B = atom(this.modelComponent.stringRepr(a))
+    override def fold[B, T](a: A)(f: Folder[B, T]): B =
+      f.atom(this.modelComponent.stringRepr(a))
     override def close[B, T](x: Fold[B, T], f: T => B): B =
       x
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (A, B)] = {
-      atom(b).flatMap { case (str, b) =>
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (A, B)] = {
+      u.atom(b).flatMap { case (str, b) =>
         Xor.fromOption(
           A.fromString(str).map(a => (a, b)),
-          atomErr(b)
+          u.atomErr(b)
         )
       }
     }
@@ -197,32 +248,17 @@ object Reified extends LowPrioReified {
     override type Mod = Model.Vector
     override type Fold[B, T] = B
     private[core] override val modelComponent = Model.Vector(R.modelComponent)
-    override def genFold[B, T](a: F[A])(
-      atom: String => B,
-      hNil: () => T,
-      hCons: (Symbol, B, T) => T,
-      prod: T => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Fold[B, T] = {
-      vector(F.toVector(a).map(x => R.close(R.genFold[B, T](x)(atom, hNil, hCons, prod, sum, vector), prod)))
+    override def fold[B, T](a: F[A])(f: Folder[B, T]): Fold[B, T] = {
+      f.vector(F.toVector(a).map(x => R.close(R.fold[B, T](x)(f), f.prod)))
     }
     override def close[B, T](x: Fold[B, T], f: T => B): B =
       x
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (F[A], B)] = {
-      vector(b).flatMap { case (b, s, f) =>
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (F[A], B)] = {
+      u.vectorInit(b).flatMap { case (b, s) =>
         val rec = Monad[Xor[E, ?]].tailRecM((b, s, Vector.empty[A])) { case (b, s, v) =>
-          f(b, s).flatMap {
+          u.vectorFold(b, s).flatMap {
             case Some((b, s)) =>
-              val b2 = R.unfold[B, E, S](atom, atomErr, hNil, hCons, cNil, cCons, vector)(b)
+              val b2 = R.unfold[B, E, S](u)(b)
               b2.map { case (a, b) =>
                 Left((b, s, v :+ a))
               }
@@ -275,44 +311,29 @@ private[core] sealed trait LowPrioReified {
       )
     }
 
-    override def genFold[B, U](a: FieldType[HK, HV] :: T)(
-      atom: String => B,
-      hNil: () => U,
-      hCons: (Symbol, B, U) => U,
-      prod: U => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Fold[B, U] = {
-      val h = head.close(head.genFold(a.head)(atom, hNil, hCons, prod, sum, vector), prod)
-      val t = tail.genFold(a.tail)(atom, hNil, hCons, prod, sum, vector)
-      hCons(label.value, h, t)
+    override def fold[B, U](a: FieldType[HK, HV] :: T)(f: Folder[B, U]): Fold[B, U] = {
+      val h = head.close(head.fold(a.head)(f), f.prod)
+      val t = tail.fold(a.tail)(f)
+      f.hCons(label.value, h, t)
     }
 
     override def close[B, U](x: Fold[B, U], f: U => B): B =
       f(x)
 
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (FieldType[HK, HV] :: T, B)] = {
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (FieldType[HK, HV] :: T, B)] = {
       for {
-        ht <- hCons(b, label.value).fold[Xor[E, (HV, B)]](
+        ht <- u.hCons(b, label.value).fold[Xor[E, (HV, B)]](
           missingField => {
             Xor.fromOption[E, HV](headDefault, missingField).map(h => (h, b))
           },
           ok => ok.flatMap { case (hb, f) =>
-            head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(hb).flatMap {
+            head.unfold(u)(hb).flatMap {
               case (h, b) => f(b).map(b => (h, b))
             }
           }
         )
         (h, tb) = ht
-        tb <- tail.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(tb)
+        tb <- tail.unfold(u)(tb)
       } yield {
         val (t, b) = tb
         (field[HK](h) :: t, b)
@@ -325,27 +346,12 @@ private[core] sealed trait LowPrioReified {
       override type Mod = Model.HNil.type
       override type Fold[X, Y] = Y
       private[core] override val modelComponent: Mod = Model.HNil
-      override def genFold[B, U](a: HNil)(
-        atom: String => B,
-        hNil: () => U,
-        hCons: (Symbol, B, U) => U,
-        prod: U => B,
-        sum: (Symbol, B) => B,
-        vector: Vector[B] => B
-      ): Fold[B, U] = hNil()
+      override def fold[B, U](a: HNil)(f: Folder[B, U]): Fold[B, U] =
+        f.hNil
       override def close[B, U](x: Fold[B, U], f: U => B): B =
         f(x)
-      override def unfold[B, E, S](
-        atom: B => Xor[E, (String, B)],
-        atomErr: B => E,
-        hNil: B => Xor[E, B],
-        hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-        cNil: B => E,
-        cCons: (B, Symbol) => Xor[E, Either[B, B]],
-        vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-      )(b: B): Xor[E, (HNil, B)] = {
-        hNil(b).map(b => (HNil, b))
-      }
+      override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (HNil, B)] =
+        u.hNil(b).map(b => (HNil, b))
     }
   }
 
@@ -361,40 +367,25 @@ private[core] sealed trait LowPrioReified {
     override type Mod = Model.CCons
     override type Fold[B, X] = B
     lazy private[core] override val modelComponent: Mod = Model.CCons(label.value, head.modelComponent, tail.modelComponent)
-    override def genFold[B, U](a: FieldType[HK, HV] :+: T)(
-      atom: String => B,
-      hNil: () => U,
-      hCons: (Symbol, B, U) => U,
-      prod: U => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Fold[B, U] = a match {
+    override def fold[B, U](a: FieldType[HK, HV] :+: T)(f: Folder[B, U]): Fold[B, U] = a match {
       case Inl(left) =>
-        val l = head.genFold[B, U](left)(atom, hNil, hCons, prod, sum, vector)
-        sum(label.value, head.close(l, prod))
+        val l = head.fold[B, U](left)(f)
+        f.sum(label.value, head.close(l, f.prod))
       case Inr(right) =>
-        tail.close(tail.genFold[B, U](right)(atom, hNil, hCons, prod, sum, vector), prod)
+        tail.close(tail.fold[B, U](right)(f), f.prod)
     }
     override def close[B, U](x: Fold[B, U], f: U => B): B =
       x
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (FieldType[HK, HV] :+: T, B)] = {
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (FieldType[HK, HV] :+: T, B)] = {
       for {
-        e <- cCons(b, label.value)
+        e <- u.cCons(b, label.value)
         x <- e match {
           case Left(h) =>
-            head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(h).map {
+            head.unfold(u)(h).map {
               case (h, b) => (Inl[FieldType[HK, HV], T](field[HK](h)), b)
             }
           case Right(t) =>
-            tail.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(t).map {
+            tail.unfold(u)(t).map {
               case (t, b) => (Inr[FieldType[HK, HV], T](t), b)
             }
         }
@@ -406,25 +397,12 @@ private[core] sealed trait LowPrioReified {
     override type Mod = Model.CNil.type
     override type Fold[B, U] = B
     private[core] override val modelComponent: Mod = Model.CNil
-    override def genFold[B, U](a: CNil)(
-      atom: String => B,
-      hNil: () => U,
-      hCons: (Symbol, B, U) => U,
-      prod: U => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Fold[B, U] = a.impossible
+    override def fold[B, U](a: CNil)(f: Folder[B, U]): Fold[B, U] =
+      a.impossible
     override def close[B, U](x: Fold[B, U], f: U => B): B =
       x
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (CNil, B)] = Xor.left(cNil(b))
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (CNil, B)] =
+      Xor.left(u.cNil(b))
   }
 
   // TODO: maybe do this with imap (?)
@@ -444,31 +422,13 @@ private[core] sealed trait LowPrioReified {
     lazy private[core] override val modelComponent: Mod = {
       WD.unsafeWithDefaults(head.modelComponent)(D())
     }
-    override def genFold[B, U](a: A)(
-      atom: String => B,
-      hNil: () => U,
-      hCons: (Symbol, B, U) => U,
-      prod: U => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Fold[B, U] = {
-      head.genFold(A.to(a))(atom, hNil, hCons, prod, sum, vector)
+    override def fold[B, U](a: A)(f: Folder[B, U]): Fold[B, U] = {
+      head.fold(A.to(a))(f)
     }
     override def close[B, U](x: Fold[B, U], f: U => B): B =
       RA.value.close(x, f)
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (A, B)] = {
-      head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(b).map {
-        case (ga, b) => (A.from(ga), b)
-      }
-    }
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (A, B)] =
+      head.unfold(u)(b).map { case (ga, b) => (A.from(ga), b) }
   }
 
   // TODO: maybe do this with imap (?)
@@ -483,31 +443,13 @@ private[core] sealed trait LowPrioReified {
     override type Mod = MA
     override type Fold[B, U] = FA[B, U]
     lazy private[core] override val modelComponent: Mod = head.modelComponent
-    override def genFold[B, U](a: A)(
-      atom: String => B,
-      hNil: () => U,
-      hCons: (Symbol, B, U) => U,
-      prod: U => B,
-      sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Fold[B, U] = {
-      head.genFold(A.to(a))(atom, hNil, hCons, prod, sum, vector)
+    override def fold[B, U](a: A)(f: Folder[B, U]): Fold[B, U] = {
+      head.fold(A.to(a))(f)
     }
     override def close[B, U](x: Fold[B, U], f: U => B): B =
       RA.value.close(x, f)
-    override def unfold[B, E, S](
-      atom: B => Xor[E, (String, B)],
-      atomErr: B => E,
-      hNil: B => Xor[E, B],
-      hCons: (B, Symbol) => Xor[E, Xor[E, (B, B => Xor[E, B])]],
-      cNil: B => E,
-      cCons: (B, Symbol) => Xor[E, Either[B, B]],
-      vector: B => Xor[E, (B, S, (B, S) => Xor[E, Option[(B, S)]])]
-    )(b: B): Xor[E, (A, B)] = {
-      head.unfold(atom, atomErr, hNil, hCons, cNil, cCons, vector)(b).map {
-        case (ga, b) => (A.from(ga), b)
-      }
-    }
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Xor[E, (A, B)] =
+      head.unfold(u)(b).map { case (ga, b) => (A.from(ga), b) }
   }
 }
 

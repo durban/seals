@@ -29,21 +29,21 @@ object Codec {
 
   implicit def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
     override def apply(a: A): Json = {
-      val obj = A.genFold[Json, JsonObject](a)(
+      val obj = A.fold(a)(Reified.Folder.instance[Json, JsonObject](
         atom = a => Json.fromString(a),
         hNil = () => JsonObject.empty,
         hCons = (l, h, t) => (l.name, h) +: t,
         prod = Json.fromJsonObject,
         sum = (l, v) => Json.obj(l.name -> v),
         vector = v => Json.arr(v: _*)
-      )
+      ))
       A.close(obj, Json.fromJsonObject)
     }
   }
 
   implicit def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def apply(c: HCursor): Decoder.Result[A] = {
-      val x = A.unfold[HCursor, DecodingFailure, (Boolean, HCursor)](
+      val x = A.unfold(Reified.Unfolder.instance[HCursor, DecodingFailure, (Boolean, HCursor)](
         atom = { cur => cur.as[String](Decoder.decodeString).map(s => (s, cur)) },
         atomErr = { cur =>
           DecodingFailure(s"cannot decode atom", cur.history)
@@ -65,7 +65,7 @@ object Codec {
             sc => Xor.right(Left(sc))
           )
         },
-        vector = { cur =>
+        vectorInit = { cur =>
           for {
             // just to make sure it's an array:
             _ <- cur.as[Vector[HCursor]].leftMap { cur =>
@@ -78,19 +78,18 @@ object Codec {
             // (the `unfold` signature is not general enough,
             // for JSON we'd need something to move up the
             // cursor after decoding, e.g., a CCons).
-            val f: (HCursor, (Boolean, HCursor)) => Xor[DecodingFailure, Option[(HCursor, (Boolean, HCursor))]] = {
-              case (_, (first, cur)) =>
-                val cur2 = if (first) cur.downArray else cur.right
-                cur2.either.map(x => Some((x, (false, x)))).recover {
-                  case _ => None
-                }.leftMap { cur =>
-                  DecodingFailure("not an array", cur.history)
-                }
-            }
-            (cur, (true, cur), f)
+            (cur, (true, cur))
+          }
+        },
+        vectorFold = { case (_, (first, cur)) =>
+          val cur2 = if (first) cur.downArray else cur.right
+          cur2.either.map(x => Some((x, (false, x)))).recover {
+            case _ => None
+          }.leftMap { cur =>
+            DecodingFailure("not an array", cur.history)
           }
         }
-      )(c)
+      ))(c)
 
       x.map { case (a, _) => a }
     }

@@ -44,7 +44,7 @@ object Codecs {
   def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
 
     override def encode(value: A): Attempt[BitVector] = {
-      A.fold[Attempt[BitVector]](value)(
+      A.foldClose(value)(Reified.Folder.simple[Attempt[BitVector]](
         atom = utf8_32.encode,
         hNil = () => hnilCodec.encode(()),
         hCons = (_, h, t) => for {
@@ -59,7 +59,7 @@ object Codecs {
           vec <- Traverse[Vector].sequence(els)
           len <- int32.encode(vec.length)
         } yield len ++ BitVector.concat(vec)
-      )
+      ))
     }
 
     override def sizeBound: SizeBound =
@@ -68,7 +68,7 @@ object Codecs {
 
   def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def decode(bits: BitVector): Attempt[DecodeResult[A]] = {
-      val x = A.unfold[BitVector, Err, Int](
+      val x = A.unfold(Reified.Unfolder.instance[BitVector, Err, Int](
         atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toXor },
         atomErr = { _ => Err("cannot decode atom") },
         hNil = { b => hnilCodec.decode(b).map(_.remainder).toXor },
@@ -85,15 +85,16 @@ object Codecs {
             }
           }.toXor
         },
-        vector = { b =>
+        vectorInit = { b =>
           int32.decode(b).map { len =>
-            (len.remainder, len.value, { (b: BitVector, len: Int) =>
-              if (len > 0) Xor.right(Some((b, len - 1)))
-              else Xor.right(None)
-            })
+            (len.remainder, len.value)
           }.toXor
+        },
+        vectorFold = { (b: BitVector, len: Int) =>
+          if (len > 0) Xor.right(Some((b, len - 1)))
+          else Xor.right(None)
         }
-      )(bits)
+      ))(bits)
 
       x.map { case (value, remainder) => DecodeResult(value, remainder) }.toAttempt
     }

@@ -106,7 +106,7 @@ object ReifiedLaws {
   final case class PCons(sym: Symbol, h: Tree, t: Prod) extends Prod
 
   def foldToTree[A](r: Reified[A], a: A): Tree = {
-    r.fold[Tree](a)(
+    r.foldClose(a)(Reified.Folder.simple[Tree](
       atom = Atom.apply,
       hNil = () => PNil,
       hCons = (s, h, t) => t match {
@@ -115,7 +115,7 @@ object ReifiedLaws {
       },
       sum = Sum.apply,
       vector = Vect.apply
-    )
+    ))
   }
 }
 
@@ -132,34 +132,37 @@ trait ReifiedLaws[A] extends Laws {
     "fold-unfold" -> forAll { (a: A) =>
       val tree = foldToTree(Rei, a)
 
-      val x: Xor[String, (A, Tree)] = Rei.unfold[Tree, String, Vector[Tree]](
-        atom = {
-          case t @ Atom(s) => Xor.right((s, t))
-          case _ => Xor.left("not atom")
-        },
-        atomErr = t => s"cannot parse $t",
-        hNil = {
-          case PNil => Xor.right(PNil)
-          case x: Any => Xor.left(s"not HNil: $x")
-        },
-        hCons = (t, sym) => t match {
-          case PCons(`sym`, h, t) => Xor.right(Xor.right((h, _ => Xor.right(t))))
-          case _ => Xor.left("boo")
-        },
-        cNil = _ => "CNil",
-        cCons = (t, sym) => t match {
-          case Sum(`sym`, t2) => Xor.right(Left(t2))
-          case Sum(_, _) => Xor.right(Right(t))
-          case _ => Xor.left(s"not CCons: $t")
-        },
-        vector = t => t match {
-          case Vect(els) => Xor.right((t, els, (t, v) => if (v.isEmpty) {
+      val x: Xor[String, (A, Tree)] = Rei.unfold(
+        Reified.Unfolder.instance[Tree, String, Vector[Tree]](
+          atom = {
+            case t @ Atom(s) => Xor.right((s, t))
+            case _ => Xor.left("not atom")
+          },
+          atomErr = t => s"cannot parse $t",
+          hNil = {
+            case PNil => Xor.right(PNil)
+            case x: Any => Xor.left(s"not HNil: $x")
+          },
+          hCons = (t, sym) => t match {
+            case PCons(`sym`, h, t) => Xor.right(Xor.right((h, _ => Xor.right(t))))
+            case _ => Xor.left("boo")
+          },
+          cNil = _ => "CNil",
+          cCons = (t, sym) => t match {
+            case Sum(`sym`, t2) => Xor.right(Left(t2))
+            case Sum(_, _) => Xor.right(Right(t))
+            case _ => Xor.left(s"not CCons: $t")
+          },
+          vectorInit = t => t match {
+            case Vect(els) => Xor.right((t, els))
+            case _ => Xor.left(s"not Vect: $t")
+          },
+          vectorFold = (t, v) => if (v.isEmpty) {
             Xor.right(None)
           } else {
             Xor.right(Some((v.head, v.tail)))
-          }))
-          case _ => Xor.left(s"not Vect: $t")
-        }
+          }
+        )
       )(tree)
 
       x.fold(
