@@ -111,14 +111,27 @@ class CodecsSpec extends tests.BaseSpec {
     }
   }
 
-  "Implicit Codec from Reified" in {
-    Codec.decode[Int](Codec.encode[Int](42).getOrElse(fail)).getOrElse(fail).value should === (42)
-    Codec.decode[Whatever.type](Codec.encode[Whatever.type](Whatever).getOrElse(fail)).getOrElse(fail).value should === (Whatever)
-    Codec.decode[Record.`'a -> Int`.T](Codec.encode[Record.`'a -> Int`.T](Record(a = 42)).getOrElse(fail)).getOrElse(fail).value should === (Record(a = 42))
-    Codec.decode[CaseClass](Codec.encode[CaseClass](CaseClass(42L)).getOrElse(fail)).getOrElse(fail).value should === (CaseClass(42L))
-    Codec.decode[U](Codec.encode[U](Union[U](b = 42)).getOrElse(fail)).getOrElse(fail).value should === (Union[U](b = 42))
-    Codec.decode[Adt1](Codec.encode[Adt1](Adt1.C(42)).getOrElse(fail)).getOrElse(fail).value should === (Adt1.C(42))
-    Codec.decode[Vector[Int]](Codec.encode[Vector[Int]](Vector(42, 43)).getOrElse(fail)).getOrElse(fail).value should === (Vector(42, 43))
-    Codec.decode[WithList](Codec.encode[WithList](WithList(42, List(42.0f))).getOrElse(fail)).getOrElse(fail).value should === (WithList(42, List(42.0f)))
+  "Roundtrip" - {
+
+    "Implicit Codec from Reified" in {
+      Codec.decode[Int](Codec.encode[Int](42).getOrElse(fail)).getOrElse(fail).value should === (42)
+      Codec.decode[Whatever.type](Codec.encode[Whatever.type](Whatever).getOrElse(fail)).getOrElse(fail).value should === (Whatever)
+      Codec.decode[Record.`'a -> Int`.T](Codec.encode[Record.`'a -> Int`.T](Record(a = 42)).getOrElse(fail)).getOrElse(fail).value should === (Record(a = 42))
+      Codec.decode[CaseClass](Codec.encode[CaseClass](CaseClass(42L)).getOrElse(fail)).getOrElse(fail).value should === (CaseClass(42L))
+      Codec.decode[U](Codec.encode[U](Union[U](b = 42)).getOrElse(fail)).getOrElse(fail).value should === (Union[U](b = 42))
+      Codec.decode[Adt1](Codec.encode[Adt1](Adt1.C(42)).getOrElse(fail)).getOrElse(fail).value should === (Adt1.C(42))
+      Codec.decode[Vector[Int]](Codec.encode[Vector[Int]](Vector(42, 43)).getOrElse(fail)).getOrElse(fail).value should === (Vector(42, 43))
+      Codec.decode[WithList](Codec.encode[WithList](WithList(42, List(42.0f))).getOrElse(fail)).getOrElse(fail).value should === (WithList(42, List(42.0f)))
+    }
+
+    "Models" in {
+      val mod: Model = Reified[U].model
+      Codec.decode[Model](Codec.encode(mod).getOrElse(fail)).getOrElse(fail).value should === (mod)
+    }
+
+    "Envelopes" in {
+      val env: Envelope[U] = Envelope(Union[U](b = 42))
+      Codec.decode[Envelope[U]](Codec.encode(env).getOrElse(fail)).getOrElse(fail).value should === (env)
+    }
   }
 }
