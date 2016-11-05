@@ -129,4 +129,46 @@ lazy val dependencies = new {
   )
 }
 
-addCommandAlias("validate", ";test;scalastyle;tut")
+addCommandAlias("validate", ";test;examples/test;scalastyle;tut")
+
+
+//////////////////////
+///    Examples    ///
+//////////////////////
+
+lazy val examples = project.in(file("examples"))
+  .settings(name := "seals-examples")
+  .settings(exampleSettings)
+  .aggregate(exInvariant, exMessaging)
+
+lazy val exInvariant = project.in(file("examples/invariant"))
+  .settings(name := "seals-examples-invariant")
+  .settings(exampleSettings)
+  .settings(libraryDependencies += exampleDependencies.spire)
+  .dependsOn(core, circe)
+
+lazy val exMessaging = project.in(file("examples/messaging"))
+  .settings(name := "seals-examples-messaging")
+  .settings(exampleSettings)
+  .settings(libraryDependencies ++= exampleDependencies.http4s)
+  .dependsOn(core, circe)
+
+lazy val exampleSettings = Seq(
+  scalaVersion := "2.11.8",
+  publishArtifact := false
+)
+
+lazy val exampleDependencies = new {
+
+  val http4sVersion = "0.14.6"
+
+  val http4s = Seq(
+    "org.http4s" %% "http4s-dsl" % http4sVersion,
+    "org.http4s" %% "http4s-circe" % http4sVersion,
+    "org.http4s" %% "http4s-blaze-server" % http4sVersion,
+    "org.http4s" %% "http4s-blaze-client" % http4sVersion,
+    "org.slf4j" % "slf4j-simple" % "1.7.21"
+  )
+
+  val spire = "org.spire-math" %% "spire" % "0.12.0"
+}
