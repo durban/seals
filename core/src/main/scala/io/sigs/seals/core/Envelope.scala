@@ -65,7 +65,7 @@ object Envelope {
 
   // TODO: test laws
   implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
-    implicit val rm = Model.reifiedForModel(r.model)
+    implicit val rm = Model.reifiedForModel(r.model.atomRegistry)
     Reified[EnvelopeRepr[A]].pimap[Envelope[A]] { repr =>
       if (repr.model compatible r.model) Xor.right(Envelope[A](repr.value)(r))
       else Xor.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")

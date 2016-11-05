@@ -18,12 +18,16 @@ package io.sigs.seals
 package core
 
 import java.util.UUID
+
 import cats.data.Xor
 import cats.implicits._
 
 trait AtomRegistry extends Serializable {
 
-  def getAtom(id: UUID): Xor[String, Atom[_]]
+  protected def map: Map[UUID, Atom[_]]
+
+  final def getAtom(id: UUID): Xor[String, Atom[_]] =
+    Xor.fromOption(map.get(id), s"not found Atom with id ${id}")
 
   final def getAtom(s: String): Xor[String, Atom[_]] = {
     for {
@@ -32,30 +36,32 @@ trait AtomRegistry extends Serializable {
     } yield atom
   }
 
-  final def + (a: Atom[_]): AtomRegistry = AtomRegistry.fromFunc { uuid =>
-    if (uuid === a.uuid) Xor.right(a)
-    else this.getAtom(uuid)
+  final def + (a: Atom[_]): AtomRegistry =
+    new AtomRegistry.Impl(map.updated(a.uuid, a))
+
+  final def ++ (that: AtomRegistry): AtomRegistry =
+    new AtomRegistry.Impl(this.map ++ that.map)
+
+  final override def equals(that: Any): Boolean = that match {
+    case that: AtomRegistry =>
+      this.map === that.map
+    case _ =>
+      false
   }
 
-  final def ++ (that: AtomRegistry): AtomRegistry = AtomRegistry.fromFunc { uuid =>
-    this.getAtom(uuid).orElse(that.getAtom(uuid))
-  }
+  final override def hashCode: Int =
+    this.map.## ^ AtomRegistry.hashConst
 }
 
 object AtomRegistry {
 
+  private final class Impl(protected override val map: Map[UUID, Atom[_]])
+    extends AtomRegistry
+
+  private final val hashConst = 0x48d400c7
+
   def fromMap(m: Map[UUID, Atom[_]]): AtomRegistry =
-    fromFunction(m.get _)
-
-  def fromFunc(f: UUID => Xor[String, Atom[_]]): AtomRegistry = new AtomRegistry {
-    override def getAtom(id: UUID): Xor[String, Atom[_]] =
-      f(id)
-  }
-
-  def fromFunction(f: UUID => Option[Atom[_]]): AtomRegistry = new AtomRegistry {
-    override def getAtom(id: UUID): Xor[String, Atom[_]] =
-      Xor.fromOption(f(id), s"not found Atom with id ${id}")
-  }
+    new AtomRegistry.Impl(m)
 
   implicit val builtinAtomRegistry: AtomRegistry =
     fromMap(BuiltinAtom.registry)

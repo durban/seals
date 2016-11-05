@@ -21,12 +21,12 @@ import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3
 import java.util.UUID
 import cats.Eq
-import cats.data.{ State, Xor }
+import cats.data.State
 import cats.implicits._
 
 // TODO: maybe rename HNil -> PNil and CNil -> SNil
 
-sealed trait Model extends Serializable with AtomRegistry {
+sealed trait Model extends Serializable {
 
   import Model._
 
@@ -128,18 +128,17 @@ sealed trait Model extends Serializable with AtomRegistry {
     case _: Vector => "Vector"
   }
 
-  final override def getAtom(id: UUID): Xor[String, Atom[_]] =
-    Xor.fromOption(allAtoms.get(id), s"not found Atom with id ${id}")
-
   final def paths: Map[Model, Path] =
     cachedPaths
 
+  @transient
   private[this] lazy val cachedPaths =
     cachedPathsAndIds.mapValues(_._1)
 
   final def localIds: Map[Model, Int] =
     cachedIds
 
+  @transient
   private[this] lazy val cachedIds =
     cachedPathsAndIds.mapValues(_._2)
 
@@ -173,6 +172,9 @@ sealed trait Model extends Serializable with AtomRegistry {
     )
     st.runS((Map.empty, 0)).value._1
   }
+
+  final def atomRegistry: AtomRegistry =
+    AtomRegistry.fromMap(allAtoms)
 
   private[this] lazy val allAtoms: Map[UUID, Atom[_]] = {
     this.fold[Map[UUID, Atom[_]]](
@@ -654,7 +656,7 @@ sealed trait Atom[A] extends Model {
   }
 }
 
-object Atom {
+object Atom extends LowPrioAtom {
 
   private[core] val pathComp = "Atom"
 
@@ -665,6 +667,15 @@ object Atom {
 
   implicit def atomicAtom[A](implicit atomic: Atomic[A]): Atom[A] =
     new AtomicAtom[A](atomic)
+
+  implicit def eqForAtom[A]: Eq[Atom[A]] =
+    Eq.fromUniversalEquals
+}
+
+private[core] sealed trait LowPrioAtom {
+
+  implicit val eqForExistentialAtom: Eq[Atom[_]] =
+    Eq.fromUniversalEquals
 }
 
 private sealed abstract class AbstractAtom[A] extends Atom[A] {

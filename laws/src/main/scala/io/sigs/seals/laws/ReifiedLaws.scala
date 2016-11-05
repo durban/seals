@@ -167,7 +167,7 @@ trait ReifiedLaws[A] extends Laws {
       )(tree)
 
       x.fold(
-        err => Prop.falsified,
+        err => Prop.falsified :| s"error during unfold: ${err}",
         { case (a2, _) => (a2 ?== a) }
       )
     }

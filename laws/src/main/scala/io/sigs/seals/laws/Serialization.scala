@@ -32,7 +32,23 @@ trait Serialization {
       bs.close()
     }
 
-    val is = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes))
+    val is = new java.io.ObjectInputStream(new java.io.ByteArrayInputStream(bytes)) {
+
+      // This is a workaround, because deserialization
+      // sometimes fails to find some classes. (See also SI-9777.)
+
+      private[this] val cl = Thread.currentThread().getContextClassLoader
+
+      protected override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
+        try {
+          Class.forName(desc.getName, false, cl)
+        } catch {
+          case cnf: ClassNotFoundException =>
+            super.resolveClass(desc)
+        }
+      }
+    }
+
     try {
       is.readObject().asInstanceOf[A]
     } finally {

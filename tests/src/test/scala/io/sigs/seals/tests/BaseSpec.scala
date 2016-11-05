@@ -34,6 +34,7 @@ trait BaseSpec
 
   def checkEqHash[A](a: A, b: A): Unit = {
     a should === (b)
+    b should === (a)
     a.## should === (b.##)
     a.hashCode should === (b.hashCode)
   }
