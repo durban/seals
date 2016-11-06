@@ -114,8 +114,8 @@ lazy val dependencies = new {
 
   val scodec = Seq(
     "org.scodec" %% "scodec-bits" % "1.1.2",
-    "org.scodec" %% "scodec-core" % "1.10.2",
-    "org.scodec" %% "scodec-stream" % "1.0.0",
+    "org.scodec" %% "scodec-core" % "1.10.3",
+    "org.scodec" %% "scodec-stream" % "1.0.1",
     "org.scodec" %% "scodec-cats" % "0.1.0"
   )
 
@@ -129,7 +129,10 @@ lazy val dependencies = new {
   )
 }
 
-addCommandAlias("validate", ";test;examples/test;scalastyle;tut")
+addCommandAlias("testAll", ";test;examples/test")
+// TODO: add ";test:scalastyle", ";examples/test:scalastyle"
+addCommandAlias("scalastyleAll", ";scalastyle;examples/scalastyle")
+addCommandAlias("validate", ";testAll;scalastyleAll;tut")
 
 
 //////////////////////
@@ -139,7 +142,7 @@ addCommandAlias("validate", ";test;examples/test;scalastyle;tut")
 lazy val examples = project.in(file("examples"))
   .settings(name := "seals-examples")
   .settings(exampleSettings)
-  .aggregate(exInvariant, exMessaging)
+  .aggregate(exInvariant, exMessaging, exStreaming)
 
 lazy val exInvariant = project.in(file("examples/invariant"))
   .settings(name := "seals-examples-invariant")
@@ -153,8 +156,16 @@ lazy val exMessaging = project.in(file("examples/messaging"))
   .settings(libraryDependencies ++= exampleDependencies.http4s)
   .dependsOn(core, circe)
 
+lazy val exStreaming = project.in(file("examples/streaming"))
+  .settings(name := "seals-examples-streaming")
+  .settings(exampleSettings)
+  .settings(libraryDependencies ++= exampleDependencies.fs2)
+  .dependsOn(core, scodec)
+
 lazy val exampleSettings = Seq(
   scalaVersion := "2.11.8",
+  libraryDependencies ++= dependencies.test.map(_ % "test-internal"),
+  (scalastyleConfig in Compile) := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
   publishArtifact := false
 )
 
@@ -171,4 +182,9 @@ lazy val exampleDependencies = new {
   )
 
   val spire = "org.spire-math" %% "spire" % "0.12.0"
+
+  val fs2 = Seq(
+    "co.fs2" %% "fs2-core" % "0.9.2",
+    "co.fs2" %% "fs2-io" % "0.9.2"
+  )
 }
