@@ -67,7 +67,7 @@ lazy val commonSettings = Seq[Setting[_]](
   ),
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
-  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.0" cross CrossVersion.binary),
+  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary),
   libraryDependencies ++= Seq(
     Seq(
       dependencies.cats,
@@ -101,9 +101,9 @@ lazy val scodecSettings = Seq[Setting[_]](
 lazy val dependencies = new {
 
   val catsVersion = "0.7.2"
-  val circeVersion = "0.5.1"
+  val circeVersion = "0.5.4"
 
-  val shapeless = "com.chuusai" %% "shapeless" % "2.3.1"
+  val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
 
   val circe = Seq(
@@ -171,7 +171,7 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.14.6"
+  val http4sVersion = "0.14.11a"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
