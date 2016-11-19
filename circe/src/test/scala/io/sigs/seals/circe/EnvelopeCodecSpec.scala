@@ -17,7 +17,7 @@
 package io.sigs.seals
 package circe
 
-import cats.data.Xor
+import cats.implicits._
 
 import io.circe._
 import io.circe.syntax._
@@ -37,14 +37,14 @@ class EnvelopeCodecSpec extends BaseJsonSpec {
 
   "Roundtrip" in {
     val json: Json = Envelope[Foo](Foo(42)).asJson
-    json.as[Envelope[Foo]] should === (Xor.right(Envelope[Foo](Foo(42))))
+    json.as[Envelope[Foo]] should === (Either.right(Envelope[Foo](Foo(42))))
   }
 
   "Incompatible models" in {
     val json: Json = Envelope[Foo2](Foo2(42, "ert")).asJson
     val errPat = ".*incompatible models.*".r
     inside (json.as[Envelope[Foo]]) {
-      case Xor.Left(DecodingFailure(msg, errPat)) => // OK
+      case Left(DecodingFailure(msg, errPat)) => // OK
       case x: Any => fail(s"unexpected: ${x}")
     }
   }

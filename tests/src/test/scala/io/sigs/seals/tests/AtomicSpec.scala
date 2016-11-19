@@ -22,7 +22,8 @@ import java.util.UUID
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.Inside
 
-import cats.data.Xor
+import cats.implicits._
+
 import shapeless.test.illTyped
 
 import laws.MyUUID
@@ -76,11 +77,11 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
 
         def description: String = "CaseClass"
 
-        def fromString(s: String): Xor[String, CaseClass] = {
+        def fromString(s: String): Either[String, CaseClass] = {
           try {
-            Xor.right(CaseClass(s.toLong))
+            Either.right(CaseClass(s.toLong))
           } catch {
-            case ex: IllegalArgumentException => Xor.left(ex.getMessage)
+            case ex: IllegalArgumentException => Either.left(ex.getMessage)
           }
         }
 

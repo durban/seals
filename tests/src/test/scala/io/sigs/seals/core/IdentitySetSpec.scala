@@ -175,8 +175,9 @@ class IdentitySetSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks 
     }
 
     def genSetAndMissingItem(implicit arbCls: Arbitrary[Cls]): Gen[(IdentitySet[Cls], Cls)] = for {
-      lst <- Gen.listOf(arbCls.arbitrary)
-      idx <- Gen.choose(0, lst.length - 1)
+      len <- Gen.choose(1, 10)
+      lst <- Gen.listOfN(len, arbCls.arbitrary)
+      idx <- Gen.choose(0, len - 1)
     } yield {
       val item = lst(idx)
       val rls = lst.filterNot(cls => cls eq item)
@@ -184,8 +185,9 @@ class IdentitySetSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks 
     }
 
     def genSetAndIncludedItem(implicit arbCls: Arbitrary[Cls]): Gen[(IdentitySet[Cls], Cls)] = for {
-      lst <- Gen.listOf(arbCls.arbitrary)
-      idx <- Gen.choose(0, lst.length - 1)
+      len <- Gen.choose(1, 10)
+      lst <- Gen.listOfN(len, arbCls.arbitrary)
+      idx <- Gen.choose(0, len - 1)
     } yield (lst.foldLeft(IdentitySet.empty[Cls])(_ + _), lst(idx))
 
     "insert" - {

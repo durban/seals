@@ -19,19 +19,18 @@ package core
 
 import java.util.UUID
 
-import cats.data.Xor
 import cats.implicits._
 
 trait AtomRegistry extends Serializable {
 
   protected def map: Map[UUID, Atom[_]]
 
-  final def getAtom(id: UUID): Xor[String, Atom[_]] =
-    Xor.fromOption(map.get(id), s"not found Atom with id ${id}")
+  final def getAtom(id: UUID): Either[String, Atom[_]] =
+    Either.fromOption(map.get(id), s"not found Atom with id ${id}")
 
-  final def getAtom(s: String): Xor[String, Atom[_]] = {
+  final def getAtom(s: String): Either[String, Atom[_]] = {
     for {
-      uuid <- Xor.catchNonFatal(UUID.fromString(s)).bimap(_.getMessage, identity)
+      uuid <- Either.catchNonFatal(UUID.fromString(s)).bimap(_.getMessage, identity)
       atom <- getAtom(uuid)
     } yield atom
   }

@@ -24,7 +24,7 @@ import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
 import cats.instances.all._
 
-import org.scalacheck.Arbitrary
+import org.scalacheck.{ Arbitrary, Cogen }
 
 import io.sigs.seals.laws._
 
@@ -76,7 +76,7 @@ class LawsSpec extends BaseLawsSpec {
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)
   checkAll("Model.OrderLaws.eqv", OrderLaws[Model].eqv)
 
-  def checkEnvelopeLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], r: Reified[A]): Unit = {
+  def checkEnvelopeLaws[A](name: String)(implicit a: Arbitrary[A], c: Cogen[A], e: Eq[A], r: Reified[A]): Unit = {
     checkAll(s"Envelope[$name].AnyLaws.any", AnyLaws[Envelope[A]].any)
     checkAll(s"Envelope[$name].AnyLaws.equalitySerializability", AnyLaws[Envelope[A]].equalitySerializability)
     checkAll(s"Envelope[$name].OrderLaws.eqv", OrderLaws[Envelope[A]].eqv)
@@ -87,6 +87,9 @@ class LawsSpec extends BaseLawsSpec {
     aa: Arbitrary[A],
     ab: Arbitrary[B],
     ac: Arbitrary[C],
+    ca: Cogen[A],
+    cb: Cogen[B],
+    cc: Cogen[C],
     e: Eq[A],
     ra: Reified[A],
     rb: Reified[B],
@@ -101,7 +104,7 @@ class LawsSpec extends BaseLawsSpec {
 
     checkAll(
       s"Reified[$name].OrderLaws.eqv",
-      OrderLaws[Reified[A]](testEqForReified, arbReified).eqv
+      OrderLaws[Reified[A]](testEqForReified, arbReified, cogenReified).eqv
     )
 
     // TODO: we pass these explicitly due to an ambiguous implicit
@@ -114,6 +117,9 @@ class LawsSpec extends BaseLawsSpec {
         arbReified,
         arbReified,
         arbReified,
+        ca,
+        cb,
+        cc,
         testEqForReified,
         testEqForReified,
         implicitly,

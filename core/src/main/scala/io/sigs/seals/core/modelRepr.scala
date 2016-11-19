@@ -20,7 +20,8 @@ package core
 import java.util.UUID
 
 import cats.Eval
-import cats.data.{ State, Xor, XorT }
+import cats.data.{ State, EitherT }
+import cats.implicits._
 
 import shapeless._
 
@@ -28,7 +29,7 @@ private sealed trait ModelRepr {
 
   import ModelRepr._
 
-  final def toModel(reg: AtomRegistry): Xor[String, Model] = {
+  final def toModel(reg: AtomRegistry): Either[String, Model] = {
     val res = toModelSt(reg).value.runA(Map.empty).value
     // do a full traverse, to allow
     // dropping thunks and to ensure
@@ -46,7 +47,7 @@ private sealed trait ModelRepr {
 private object ModelRepr extends ModelReprBase {
 
   private type Error = String
-  private type DecSt[A] = XorT[State[DecMap, ?], Error, A]
+  private type DecSt[A] = EitherT[State[DecMap, ?], Error, A]
   private type DecMap = Map[Int, Model]
 
   // TODO: try to simplify
@@ -78,7 +79,7 @@ private object ModelRepr extends ModelReprBase {
         (res, t.value._1, (lh, lt))
       }
 
-      XorT {
+      EitherT {
         x.flatMap {
           case (c, map, (h, t)) =>
             // now check whether decoding
@@ -115,7 +116,7 @@ private object ModelRepr extends ModelReprBase {
   final case object HNil extends ProdRepr {
 
     private[ModelRepr] override def toProdSt(reg: AtomRegistry): DecSt[Model.HList] =
-      XorT.liftT(State.pure(Model.HNil))
+      EitherT.liftT(State.pure(Model.HNil))
   }
 
   final case class HCons(
@@ -149,7 +150,7 @@ private object ModelRepr extends ModelReprBase {
   final case object CNil extends SumRepr {
 
     private[ModelRepr] override def toSumSt(reg: AtomRegistry): DecSt[Model.Coproduct] =
-      XorT.liftT(State.pure(Model.CNil))
+      EitherT.liftT(State.pure(Model.CNil))
   }
 
   final case class CCons(
@@ -178,13 +179,13 @@ private object ModelRepr extends ModelReprBase {
 
   final case class Atom(id: UUID) extends ModelRepr {
     protected override def toModelSt(reg: AtomRegistry): DecSt[Model] =
-      XorT.fromXor(reg.getAtom(id))
+      EitherT.fromEither(reg.getAtom(id))
   }
 
   final case class Ref(id: Int) extends ModelRepr {
     protected override def toModelSt(reg: AtomRegistry): DecSt[Model] = {
-      XorT(State.get[DecMap].map { map =>
-        Xor.fromOption(map.get(id), s"invalid ID: $id")
+      EitherT(State.get[DecMap].map { map =>
+        Either.fromOption(map.get(id), s"invalid ID: $id")
       })
     }
   }

@@ -19,7 +19,7 @@ package laws
 
 import shapeless._
 
-import org.scalacheck.{ Arbitrary, Gen }
+import org.scalacheck.{ Arbitrary, Gen, Cogen }
 
 object ArbInstances extends ArbInstances
 
@@ -33,13 +33,25 @@ trait ArbInstances {
     }
   }
 
+  implicit def cogenEnvelope[A](implicit A: Cogen[A]): Cogen[Envelope[A]] = {
+    Cogen.apply { (seed, env) =>
+      A.perturb(seed, env.value).reseed(Envelope.hashSeed)
+    }
+  }
+
   implicit def arbReified[A](implicit r: Reified[A]): Arbitrary[Reified[A]] = Arbitrary {
     Gen.const(r)
   }
 
+  implicit def cogenReified[A]: Cogen[Reified[A]] =
+    cogenModel.contramap(_.model)
+
   implicit def arbAtomic[A](implicit a: Atomic[A]): Arbitrary[Atomic[A]] = Arbitrary {
     Gen.const(a)
   }
+
+  implicit def cogenAtomic[A]: Cogen[Atomic[A]] =
+    Cogen[Int].contramap(_.##)
 
   implicit def arbKleene[F[_]](implicit k: Kleene[F]): Arbitrary[Kleene[F]] = Arbitrary {
     Gen.const(k)
@@ -49,7 +61,7 @@ trait ArbInstances {
     Gen.oneOf(arbModelHnil.arbitrary, Gen.lzy(arbModelHcons(arbM).arbitrary))
   }
 
-  implicit val arbModelHnil: Arbitrary[Model.HNil.type] = Arbitrary {
+  implicit def arbModelHnil: Arbitrary[Model.HNil.type] = Arbitrary {
     Arbitrary.arbUnit.arbitrary.map(_ => Model.HNil)
   }
 
@@ -66,7 +78,7 @@ trait ArbInstances {
     Gen.oneOf(arbModelCnil.arbitrary, Gen.lzy(arbModelCcons(arbM).arbitrary))
   }
 
-  implicit val arbModelCnil: Arbitrary[Model.CNil.type] = Arbitrary {
+  implicit def arbModelCnil: Arbitrary[Model.CNil.type] = Arbitrary {
     Arbitrary.arbUnit.arbitrary.map(_ => Model.CNil)
   }
 
@@ -110,9 +122,15 @@ trait ArbInstances {
     }
 
     locally {
-      import org.scalacheck.Shapeless.ArbitraryDeriver._
-      val arbModel = genericInstanceArbitrary[Model, ModelRepr]
+      import org.scalacheck.Shapeless._
+      val arbModel = derivedArbitrary[Model](
+        null : LowPriority, // scalastyle:ignore null
+        org.scalacheck.derive.MkArbitrary[Model]
+      )
       arbModel
     }
   }
+
+  implicit def cogenModel: Cogen[Model] =
+    Cogen[String].contramap(_.toString)
 }

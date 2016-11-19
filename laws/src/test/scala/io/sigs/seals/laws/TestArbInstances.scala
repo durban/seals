@@ -19,20 +19,51 @@ package laws
 
 import java.util.UUID
 
-import org.scalacheck.{ Arbitrary, Gen }
+import org.scalacheck.{ Arbitrary, Gen, Cogen }
+import org.scalacheck.rng.Seed
+import org.scalacheck.derive.Recursive
 
 object TestArbInstances extends ArbInstances {
 
   object forTestData {
 
     implicit val arbDefsAdt1: Arbitrary[TestTypes.adts.defs.Adt1] = {
-      import org.scalacheck.Shapeless.ArbitraryDeriver._
-      shapeless.cachedImplicit
+      import org.scalacheck.Shapeless._
+      derivedArbitrary(
+        null : shapeless.LowPriority,
+        org.scalacheck.derive.MkArbitrary[TestTypes.adts.defs.Adt1]
+      )
     }
 
+    implicit val cogenDefsAdt1: Cogen[TestTypes.adts.defs.Adt1] = {
+      import org.scalacheck.Shapeless._
+      derivedCogen(
+        null : shapeless.LowPriority,
+        org.scalacheck.derive.MkCogen[TestTypes.adts.defs.Adt1]
+      )
+    }
+
+    implicit val recDefsIntList: Recursive[TestTypes.adts.recursive.IntList] =
+      Recursive(Gen.const(TestTypes.adts.recursive.IntNil))
+
     implicit val arbDefsIntList: Arbitrary[TestTypes.adts.recursive.IntList] = {
-      import org.scalacheck.Shapeless.ArbitraryDeriver._
-      shapeless.cachedImplicit
+      import org.scalacheck.Shapeless._
+      derivedArbitrary(
+        null : shapeless.LowPriority,
+        org.scalacheck.derive.MkArbitrary[TestTypes.adts.recursive.IntList]
+      )
+    }
+
+    implicit lazy val cogenDefsIntList: Cogen[TestTypes.adts.recursive.IntList] = {
+      def perturb(seed: Seed, l: TestTypes.adts.recursive.IntList): Seed = {
+        l match {
+          case TestTypes.adts.recursive.IntNil =>
+            seed.reseed(0x80a894f4f89b314aL)
+          case TestTypes.adts.recursive.IntCons(h, t) =>
+            perturb(Cogen[Int].perturb(seed, h), t)
+        }
+      }
+      Cogen(perturb _)
     }
   }
 
@@ -60,4 +91,7 @@ object TestArbInstances extends ArbInstances {
 
   implicit def arbUuid(implicit al: Arbitrary[Long]): Arbitrary[UUID] =
     Arbitrary(Gen.uuid)
+
+  implicit val cogenUuid: Cogen[UUID] =
+    Cogen[String].contramap(_.toString)
 }

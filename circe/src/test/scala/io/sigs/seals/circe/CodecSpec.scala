@@ -19,7 +19,7 @@ package circe
 
 import java.util.UUID
 
-import cats.data.Xor
+import cats.implicits._
 
 import io.circe._
 import io.circe.syntax._
@@ -104,7 +104,7 @@ class CodecSpec extends BaseJsonSpec {
 
     "Case classes" in {
       fooJson(a = 5, b = "xyz").as[Foo] should === (
-        Xor.right(Foo(a = 5, b = "xyz"))
+        Either.right(Foo(a = 5, b = "xyz"))
       )
     }
 
@@ -113,27 +113,27 @@ class CodecSpec extends BaseJsonSpec {
         "a" -> Json.fromString(89.toString)
       )
       json.as[Foo] should === (
-        Xor.right(Foo(a = 89))
+        Either.right(Foo(a = 89))
       )
 
       val json2 = Json.obj(
         "Foo" -> json
       )
       json2.as[FooBar] should === (
-        Xor.right(Foo(a = 89) : FooBar)
+        Either.right(Foo(a = 89) : FooBar)
       )
     }
 
     "Case objects" in {
-      Json.obj().as[Bar.type] should === (Xor.right(Bar))
+      Json.obj().as[Bar.type] should === (Either.right(Bar))
     }
 
     "ADTs" in {
       fooBarJson(Some((42, "abc"))).as[FooBar] should === (
-        Xor.right(Foo(42, "abc") : FooBar)
+        Either.right(Foo(42, "abc") : FooBar)
       )
       fooBarJson(None).as[FooBar] should === (
-        Xor.right(Bar : FooBar)
+        Either.right(Bar : FooBar)
       )
     }
 
@@ -144,19 +144,19 @@ class CodecSpec extends BaseJsonSpec {
           "a" -> Json.fromString(99.toString)
         )
       )
-      json.as[FooBar] should === (Xor.right(Foo(99, "pqrst") : FooBar))
+      json.as[FooBar] should === (Either.right(Foo(99, "pqrst") : FooBar))
     }
 
     "Collections" in {
       val json0 = Json.arr()
-      json0.as[Vector[Int]] should === (Xor.right(Vector()))
+      json0.as[Vector[Int]] should === (Either.right(Vector()))
 
       val json1 = Json.arr(
         atomJson("1"),
         atomJson("2"),
         atomJson("3")
       )
-      json1.as[Vector[Int]] should === (Xor.right(Vector(1, 2, 3)))
+      json1.as[Vector[Int]] should === (Either.right(Vector(1, 2, 3)))
 
       val json2 = Json.obj(
         "fbs" -> Json.arr(
@@ -165,7 +165,7 @@ class CodecSpec extends BaseJsonSpec {
           fooBarJson(None)
         )
       )
-      json2.as[FooBarHolder] should === (Xor.right(FooBarHolder(Vector(Foo(1), Bar, Bar))))
+      json2.as[FooBarHolder] should === (Either.right(FooBarHolder(Vector(Foo(1), Bar, Bar))))
     }
   }
 
@@ -173,6 +173,6 @@ class CodecSpec extends BaseJsonSpec {
     val x = FooBarU(Foo(42), MyUUID(UUID.fromString("69fd9ed5-4789-4290-b55c-f5f1a773265a")))
     val j = x.asJson
     val y = j.as[FooBarU]
-    y should === (Xor.right(x))
+    y should === (Either.right(x))
   }
 }

@@ -20,9 +20,8 @@ package laws
 import scala.annotation.tailrec
 
 import cats.Eq
-import cats.syntax.eq._
-import cats.data.Xor
 import cats.kernel.laws._
+import cats.implicits._
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop
@@ -132,35 +131,35 @@ trait ReifiedLaws[A] extends Laws {
     "fold-unfold" -> forAll { (a: A) =>
       val tree = foldToTree(Rei, a)
 
-      val x: Xor[String, (A, Tree)] = Rei.unfold(
+      val x: Either[String, (A, Tree)] = Rei.unfold(
         Reified.Unfolder.instance[Tree, String, Vector[Tree]](
           atom = {
-            case t @ Atom(s) => Xor.right((s, t))
-            case _ => Xor.left("not atom")
+            case t @ Atom(s) => Either.right((s, t))
+            case _ => Either.left("not atom")
           },
           atomErr = t => s"cannot parse $t",
           hNil = {
-            case PNil => Xor.right(PNil)
-            case x: Any => Xor.left(s"not HNil: $x")
+            case PNil => Either.right(PNil)
+            case x: Any => Either.left(s"not HNil: $x")
           },
           hCons = (t, sym) => t match {
-            case PCons(`sym`, h, t) => Xor.right(Xor.right((h, _ => Xor.right(t))))
-            case _ => Xor.left("boo")
+            case PCons(`sym`, h, t) => Either.right(Either.right((h, _ => Either.right(t))))
+            case _ => Either.left("boo")
           },
           cNil = _ => "CNil",
           cCons = (t, sym) => t match {
-            case Sum(`sym`, t2) => Xor.right(Left(t2))
-            case Sum(_, _) => Xor.right(Right(t))
-            case _ => Xor.left(s"not CCons: $t")
+            case Sum(`sym`, t2) => Either.right(Left(t2))
+            case Sum(_, _) => Either.right(Right(t))
+            case _ => Either.left(s"not CCons: $t")
           },
           vectorInit = t => t match {
-            case Vect(els) => Xor.right((t, els))
-            case _ => Xor.left(s"not Vect: $t")
+            case Vect(els) => Either.right((t, els))
+            case _ => Either.left(s"not Vect: $t")
           },
           vectorFold = (t, v) => if (v.isEmpty) {
-            Xor.right(None)
+            Either.right(None)
           } else {
-            Xor.right(Some((v.head, v.tail)))
+            Either.right(Some((v.head, v.tail)))
           },
           unknownError = identity
         )

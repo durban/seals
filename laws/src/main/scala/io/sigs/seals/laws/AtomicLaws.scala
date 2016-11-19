@@ -18,9 +18,8 @@ package io.sigs.seals
 package laws
 
 import cats.Eq
-import cats.data.Xor
 import cats.kernel.laws._
-import cats.instances.all._
+import cats.implicits._
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop
@@ -43,7 +42,7 @@ trait AtomicLaws[A] extends Laws {
   def roundtrip: this.RuleSet = new AtomicRuleSet(
     name = "roundtrip",
     "stringRepr-fromString" -> forAll { (a: A) =>
-      Atc.fromString(Atc.stringRepr(a)) ?== Xor.right(a)
+      Atc.fromString(Atc.stringRepr(a)) ?== Either.right(a)
     },
     "fromString-stringRepr" -> forAll { (s: String) =>
       Atc.fromString(s).fold(

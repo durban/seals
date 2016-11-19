@@ -19,7 +19,7 @@ package circe
 
 import java.util.UUID
 
-import cats.data.Xor
+import cats.implicits._
 
 import io.circe._
 import io.circe.syntax._
@@ -268,30 +268,30 @@ class ModelCodecSpec extends BaseJsonSpec {
 
     "atoms" in {
       atom(Atom.builtinAtom[Int].uuid).as[Model] should === (
-        Xor.right(Atom[Int])
+        Either.right(Atom[Int])
       )
       atom(Atom.builtinAtom[String].uuid).as[Model] should === (
-        Xor.right(Atom[String])
+        Either.right(Atom[String])
       )
     }
 
     "simple models" in {
-      m1json.as[Model] should === (Xor.right(m1))
-      m2json.as[Model] should === (Xor.right(m2))
+      m1json.as[Model] should === (Either.right(m1))
+      m2json.as[Model] should === (Either.right(m2))
     }
 
     "cyclic models" in {
-      cy1json.as[Model] should === (Xor.right(cy1))
-      cy2json.as[Model] should === (Xor.right(cy2))
+      cy1json.as[Model] should === (Either.right(cy1))
+      cy2json.as[Model] should === (Either.right(cy2))
     }
 
     "order of keys shouldn't matter" in {
-      m1jsonShuffledKeys.as[Model] should === (Xor.right(m1))
+      m1jsonShuffledKeys.as[Model] should === (Either.right(m1))
     }
 
     "optional fields" in {
-      optJson.as[Model] should === (Xor.right(optMod))
-      optJsonOmitted.as[Model] should === (Xor.right(optMod2))
+      optJson.as[Model] should === (Either.right(optMod))
+      optJsonOmitted.as[Model] should === (Either.right(optMod2))
     }
 
     "invalid data" - {
@@ -321,7 +321,7 @@ class ModelCodecSpec extends BaseJsonSpec {
         )
 
         "control" in {
-          good.as[Model] shouldBe a [Xor.Right[_]]
+          good.as[Model] shouldBe a [Right[_, _]]
         }
 
         "missing key" in {
@@ -383,7 +383,7 @@ class ModelCodecSpec extends BaseJsonSpec {
         )
 
         "control" in {
-          good.as[Model] shouldBe a [Xor.Right[_]]
+          good.as[Model] shouldBe a [Right[_, _]]
         }
 
         "not a string" in {

@@ -20,13 +20,12 @@ package core
 import java.util.UUID
 
 import cats.Eq
-import cats.data.Xor
 
 trait Atomic[A] extends Serializable { this: Singleton =>
 
   def stringRepr(a: A): String
 
-  def fromString(s: String): Xor[String, A]
+  def fromString(s: String): Either[String, A]
 
   def description: String
 

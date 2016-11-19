@@ -100,8 +100,8 @@ lazy val scodecSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "0.7.2"
-  val circeVersion = "0.5.4"
+  val catsVersion = "0.8.1"
+  val circeVersion = "0.6.0"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -116,16 +116,16 @@ lazy val dependencies = new {
     "org.scodec" %% "scodec-bits" % "1.1.2",
     "org.scodec" %% "scodec-core" % "1.10.3",
     "org.scodec" %% "scodec-stream" % "1.0.1",
-    "org.scodec" %% "scodec-cats" % "0.1.0"
+    "org.scodec" %% "scodec-cats" % "0.2.0"
   )
 
   val laws = Seq(
     "org.typelevel" %% "cats-laws" % catsVersion,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.12" % "0.3.1"
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.4"
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.0.0-M7"
+    "org.scalatest" %% "scalatest" % "3.0.0"
   )
 }
 

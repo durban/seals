@@ -20,7 +20,7 @@ package core
 import scala.util.hashing.MurmurHash3
 
 import cats.Eq
-import cats.data.Xor
+import cats.implicits._
 
 sealed trait Envelope[A] extends Serializable {
 
@@ -39,7 +39,7 @@ sealed trait Envelope[A] extends Serializable {
   }
 
   final override def hashCode: Int = {
-    val s = MurmurHash3.mixLast(Envelope.envelopeSeed, value.##)
+    val s = MurmurHash3.mixLast(Envelope.hashSeed, value.##)
     MurmurHash3.finalizeHash(s, 1)
   }
 
@@ -51,7 +51,7 @@ object Envelope {
 
   private final case class EnvelopeRepr[A](model: Model, value: A)
 
-  private final val envelopeSeed = 0x37dd86e4
+  private[seals] final val hashSeed = 0x37dd86e4
 
   def apply[A](a: A)(implicit r: Reified[A]): Envelope[A] = new Envelope[A] {
     override val value = a
@@ -67,8 +67,8 @@ object Envelope {
   implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
     implicit val rm = Model.reifiedForModel(r.model.atomRegistry)
     Reified[EnvelopeRepr[A]].pimap[Envelope[A]] { repr =>
-      if (repr.model compatible r.model) Xor.right(Envelope[A](repr.value)(r))
-      else Xor.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
+      if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
+      else Either.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
     } { env =>
       EnvelopeRepr[A](env.model, env.value)
     }

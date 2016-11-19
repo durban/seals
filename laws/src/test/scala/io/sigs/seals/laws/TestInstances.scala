@@ -20,7 +20,7 @@ package laws
 import java.util.UUID
 
 import cats.~>
-import cats.data.Xor
+import cats.implicits._
 
 import TestTypes.Whatever
 
@@ -36,11 +36,11 @@ object TestInstances {
       def description: String =
         "MyUUID"
 
-      def fromString(s: String): Xor[String, MyUUID] = {
+      def fromString(s: String): Either[String, MyUUID] = {
         try {
-          Xor.right(MyUUID(UUID.fromString(s)))
+          Either.right(MyUUID(UUID.fromString(s)))
         } catch {
-          case ex: IllegalArgumentException => Xor.left(ex.getMessage)
+          case ex: IllegalArgumentException => Either.left(ex.getMessage)
         }
       }
 
@@ -59,9 +59,9 @@ object TestInstances {
       def description: String =
         "whatever"
 
-      def fromString(s: String): Xor[String, Whatever.type] = {
-        if (Whatever.toString.equals(s)) Xor.right(Whatever)
-        else Xor.left("not Whatever")
+      def fromString(s: String): Either[String, Whatever.type] = {
+        if (Whatever.toString.equals(s)) Either.right(Whatever)
+        else Either.left("not Whatever")
       }
 
       def stringRepr(a: Whatever.type): String =
@@ -87,8 +87,8 @@ object TestInstances {
         def description: String =
           "MyInt"
 
-        def fromString(s: String): Xor[String, Int] =
-          Xor.catchNonFatal(s.toInt).leftMap(_.getMessage)
+        def fromString(s: String): Either[String, Int] =
+          Either.catchNonFatal(s.toInt).leftMap(_.getMessage)
 
         def stringRepr(a: Int): String =
           a.toString

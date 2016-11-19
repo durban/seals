@@ -4,7 +4,6 @@ package claws
 
 import cats.kernel.laws._
 import cats.kernel.Eq
-import cats.data.Xor
 
 import io.circe._
 import io.circe.syntax._
@@ -31,9 +30,9 @@ trait CirceLaws[A] extends Laws {
     parent = None,
     "encode-then-decode" -> forAll { (a: A) =>
       a.asJson.as[A] match {
-        case Xor.Right(r) =>
+        case Right(r) =>
           r ?== a
-        case Xor.Left(err) =>
+        case Left(err) =>
           Prop(Result(status = False)) :| {
             err.toString
           }

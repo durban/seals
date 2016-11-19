@@ -17,7 +17,6 @@
 package io.sigs.seals
 package scodec
 
-import cats.data.Xor
 import cats.implicits._
 import cats.Traverse
 
@@ -69,11 +68,11 @@ object Codecs {
   def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def decode(bits: BitVector): Attempt[DecodeResult[A]] = {
       val x = A.unfold(Reified.Unfolder.instance[BitVector, Err, Int](
-        atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toXor },
+        atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toEither },
         atomErr = { _ => Err("cannot decode atom") },
-        hNil = { b => hnilCodec.decode(b).map(_.remainder).toXor },
+        hNil = { b => hnilCodec.decode(b).map(_.remainder).toEither },
         hCons = { (b, _) =>
-          Xor.right(Xor.right((b, Xor.right)))
+          Either.right(Either.right((b, Either.right)))
         },
         cNil = { _ => Err("no variant matched (CNil reached)") },
         cCons = { (b, l) =>
@@ -83,16 +82,16 @@ object Codecs {
             } else {
               Right(b)
             }
-          }.toXor
+          }.toEither
         },
         vectorInit = { b =>
           int32.decode(b).map { len =>
             (len.remainder, len.value)
-          }.toXor
+          }.toEither
         },
         vectorFold = { (b: BitVector, len: Int) =>
-          if (len > 0) Xor.right(Some((b, len - 1)))
-          else Xor.right(None)
+          if (len > 0) Either.right(Some((b, len - 1)))
+          else Either.right(None)
         },
         unknownError = Err(_)
       ))(bits)

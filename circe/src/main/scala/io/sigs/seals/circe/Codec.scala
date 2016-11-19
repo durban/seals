@@ -17,9 +17,8 @@
 package io.sigs.seals
 package circe
 
-import cats.data.Xor
-
 import io.circe._
+import cats.implicits._
 
 // TODO: rename to Codecs
 object Codec {
@@ -54,7 +53,7 @@ object Codec {
           cur.downField(sym.name).either.leftMap { fc =>
             DecodingFailure(s"missing key: '${sym.name}'", fc.history)
           }.map { hc =>
-            Xor.right((hc, (_: HCursor) => Xor.right(cur)))
+            Either.right((hc, (_: HCursor) => Either.right(cur)))
           }
         },
         cNil = { cur =>
@@ -62,8 +61,8 @@ object Codec {
         },
         cCons = { (cur, sym) =>
           cur.downField(sym.name).either.fold(
-            fc => Xor.right(Right(cur)),
-            sc => Xor.right(Left(sc))
+            fc => Either.right(Right(cur)),
+            sc => Either.right(Left(sc))
           )
         },
         vectorInit = { cur =>
@@ -84,7 +83,7 @@ object Codec {
         },
         vectorFold = { case (_, (first, cur)) =>
           val cur2 = if (first) cur.downArray else cur.right
-          cur2.either.map(x => Some((x, (false, x)))).recover {
+          cur2.either.map(x => Option((x, (false, x)))).recover {
             case _ => None
           }.leftMap { cur =>
             DecodingFailure("not an array", cur.history)
