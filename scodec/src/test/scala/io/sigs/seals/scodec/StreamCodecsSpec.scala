@@ -33,8 +33,7 @@ class StreamCodecsSpec extends tests.BaseSpec {
 
     "roundtrip" in {
       val bits = StreamCodec[Adt1].encodeAllValid(data1)
-      // TODO: make it work with Adt2
-      StreamCodec[Adt1].decodeAllValid(bits) should === (data1)
+      StreamCodec[Adt2].decodeAllValid(bits) should === (data2)
     }
 
     "incompatible models" in {

@@ -21,7 +21,7 @@ import cats.implicits._
 import cats.Traverse
 
 import _root_.scodec.{ Codec, Encoder, Decoder, Attempt, SizeBound, DecodeResult, Err }
-import _root_.scodec.codecs.{ int32, utf8_32, constant }
+import _root_.scodec.codecs.{ int32, uint8, utf8_32, constant, discriminated }
 import _root_.scodec.bits._
 import _root_.scodec.interop.cats._
 
@@ -29,13 +29,26 @@ import core.symbolEq
 
 object Codecs {
 
-  private[this] final val hnilConst = hex"A1".bits
+  private[this] final val hnilConst = 0xA1
+  private[this] final val fieldConst = 0xA2
 
   private[this] val symbolCodec: Codec[Symbol] =
     utf8_32.xmap(Symbol.apply, _.name)
 
   private[this] val hnilCodec: Codec[Unit] =
-    constant(hnilConst)
+    constant(uint8.encode(hnilConst).getOrElse(throw new AssertionError))
+
+  private[this] val fieldSignCodec: Codec[Unit] =
+    constant(uint8.encode(fieldConst).getOrElse(throw new AssertionError))
+
+  private[this] val emptyCodec: Codec[Unit] =
+    constant(BitVector.empty)
+
+  private[this] val fieldDiscriminator = {
+    discriminated[Either[Unit, Unit]].by(uint8).
+      | (hnilConst) { case Left(l) => l } (Left.apply) (emptyCodec).
+      | (fieldConst) { case Right(r) => r } (Right.apply) (emptyCodec)
+  }
 
   implicit def codecFromReified[A](implicit A: Reified[A]): Codec[A] =
     Codec(encoderFromReified[A], decoderFromReified[A])
@@ -47,9 +60,10 @@ object Codecs {
         atom = utf8_32.encode,
         hNil = () => hnilCodec.encode(()),
         hCons = (_, h, t) => for {
+          fv <- fieldSignCodec.encode(())
           hv <- h
           tv <- t
-        } yield hv ++ tv,
+        } yield fv ++ hv ++ tv,
         sum = (l, v) => for {
           lv <- symbolCodec.encode(l)
           vv <- v
@@ -71,8 +85,16 @@ object Codecs {
         atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toEither },
         atomErr = { _ => Err("cannot decode atom") },
         hNil = { b => hnilCodec.decode(b).map(_.remainder).toEither },
-        hCons = { (b, _) =>
-          Either.right(Either.right((b, Either.right)))
+        hCons = { (b, l) =>
+          fieldDiscriminator.decode(b).fold(
+            err => Either.right(Either.left(err)),
+            dr => dr.value match {
+              case Left(_) =>
+                Either.left(Err(s"missing field: '${l.name}'"))
+              case Right(_) =>
+                Either.right(Either.right((dr.remainder, Right.apply)))
+            }
+          )
         },
         cNil = { _ => Err("no variant matched (CNil reached)") },
         cCons = { (b, l) =>
