@@ -17,16 +17,13 @@
 package com.example.streaming
 
 import java.io.{ InputStream, OutputStream, FileInputStream, FileOutputStream }
-import java.nio.file.{ Path, Paths }
 
-import fs2.{ Stream, Chunk, Task, Pure, Pull }
+import fs2.{ Stream, Chunk, Task, Pure }
 
 import scodec.bits.BitVector
-import scodec.{ Codec, Err, Attempt }
-import scodec.stream.{ encode, decode, StreamDecoder, StreamEncoder }
+import scodec.stream.StreamCodec
 
-import io.sigs.seals.{ Model, Reified }
-import io.sigs.seals.scodec.Codecs._
+import io.sigs.seals.scodec.StreamCodecs._
 
 object Main {
 
@@ -39,36 +36,9 @@ object Main {
   final case class Quokka(name: String, color: Color = Brown) extends Animal
   final case class Quagga(name: String, speed: Double) extends Animal
 
-  def decoder(implicit r: Reified[Animal]): StreamDecoder[Animal] = {
-    decode.once(Codec[Model]).flatMap { model =>
-      if (model compatible r.model) {
-        decode.many(Codec[Animal])
-      } else {
-        decode.fail(Err(s"incompatible models: expected '${r.model}', got '${model}'"))
-      }
-    }
-  }
-
-  def encoder(implicit r: Reified[Animal]): StreamEncoder[Animal] = {
-    def emit[A](bits: BitVector): StreamEncoder[A] = {
-      StreamEncoder.instance[A] { h =>
-        Pull.output1(bits) >> Pull.pure(h -> encode.empty[A])
-      }
-    }
-    Codec[Model].encode(r.model) match {
-      case Attempt.Successful(bv) =>
-        emit[Animal](bv) ++
-        encode.many(Codec[Animal])
-      case Attempt.Failure(err) =>
-        encode.fail(err)
-    }
-  }
-
-  def transform(from: InputStream, to: OutputStream)(f: Animal => Stream[Pure, Animal])(
-    implicit r: Reified[Animal]
-  ): Task[Unit] = {
-    val sIn: Stream[Task, Animal] = decoder.decodeInputStream(from).flatMap(f)
-    val sOut: Stream[Task, Unit] = encoder.encode(sIn).mapChunks[Byte] { bvs =>
+  def transform(from: InputStream, to: OutputStream)(f: Animal => Stream[Pure, Animal]): Task[Unit] = {
+    val sIn: Stream[Task, Animal] = StreamCodec[Animal].decodeInputStream(from).flatMap(f)
+    val sOut: Stream[Task, Unit] = StreamCodec[Animal].encode(sIn).mapChunks[Byte] { bvs =>
       Chunk.bytes(bvs.foldLeft(BitVector.empty)(_ ++ _).toByteArray)
     }.to(fs2.io.writeOutputStream(Task.now(to)))
     sOut.run

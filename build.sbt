@@ -164,6 +164,20 @@ lazy val exStreaming = project.in(file("examples/streaming"))
 
 lazy val exampleSettings = Seq(
   scalaVersion := "2.11.8",
+  scalacOptions ++= Seq(
+    "-feature",
+    "-deprecation",
+    "-unchecked",
+    "-encoding", "UTF-8",
+    "-Xlint:_",
+    "-Xfuture",
+    "-Yno-adapted-args",
+    "-Ywarn-numeric-widen",
+    "-Ywarn-dead-code",
+    "-Ywarn-unused-import"
+  ),
+  scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
+  scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   libraryDependencies ++= dependencies.test.map(_ % "test-internal"),
   (scalastyleConfig in Compile) := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
   publishArtifact := false

@@ -22,14 +22,16 @@ import shapeless.record._
 
 import org.scalatest.{ FlatSpec, Matchers }
 
-import fs2.{ Stream, Pure, Task }
+import fs2.{ Stream, Task }
 
 import scodec.Codec
 import scodec.bits.BitVector
+import scodec.stream.StreamCodec
 import scodec.stream.decode.DecodingError
 
 import io.sigs.seals._
 import io.sigs.seals.scodec.Codecs._
+import io.sigs.seals.scodec.StreamCodecs._
 
 class StreamingSpec extends FlatSpec with Matchers {
 
@@ -48,10 +50,12 @@ class StreamingSpec extends FlatSpec with Matchers {
 
   val animalStream = Stream.emits[Task, Animal](animals)
 
+  val codec = StreamCodec[Animal]
+
   "Encoding/decoding" should "work correctly" in {
     val tsk: Task[Unit] = for {
-      bv <- Main.encoder.encode(animalStream).runFold(BitVector.empty)(_ ++ _)
-      as <- Main.decoder.decode(bv).runLog
+      bv <- codec.encode(animalStream).runFold(BitVector.empty)(_ ++ _)
+      as <- codec.decode(bv).runLog
     } yield {
       as should === (animals)
     }
@@ -62,7 +66,7 @@ class StreamingSpec extends FlatSpec with Matchers {
     val mod = Reified[Record.`'Elephant -> Elephant, 'Quokka -> Quokka`.T].model
     val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail)
     val tsk: Task[Unit] = for {
-      as <- Main.decoder.decode(bv).runLog
+      as <- codec.decode(bv).runLog
     } yield {
       as should === (Vector.empty)
     }
@@ -75,12 +79,12 @@ class StreamingSpec extends FlatSpec with Matchers {
 
   "Transformation" should "work correctly" in {
     val tsk: Task[Unit] = for {
-      ibv <- Main.encoder.encode(animalStream).runFold(BitVector.empty)(_ ++ _)
+      ibv <- codec.encode(animalStream).runFold(BitVector.empty)(_ ++ _)
       is = new ByteArrayInputStream(ibv.toByteArray)
       os = new ByteArrayOutputStream
       _ <- Main.transform(is, os)(Main.transformer)
       obv = BitVector(os.toByteArray())
-      transformed <- Main.decoder.decode(obv).runFold(Vector.empty[Animal])(_ :+ _)
+      transformed <- codec.decode(obv).runFold(Vector.empty[Animal])(_ :+ _)
     } yield {
       transformed should === (transformedAnimals)
     }
