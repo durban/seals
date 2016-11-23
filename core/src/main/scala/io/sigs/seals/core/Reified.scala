@@ -21,6 +21,8 @@ import cats.{ Monad, InvariantMonoidal }
 import cats.implicits._
 
 import shapeless._
+import shapeless.union._
+import shapeless.record._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
 
@@ -298,6 +300,32 @@ object Reified extends LowPrioReified {
           (F.fromVector(v), b)
         }
       }
+    }
+  }
+
+  private type SomeRepr[A] = Record.`'value -> A`.T
+  private type OptionRepr[A] = Union.`'None -> HNil, 'Some -> SomeRepr[A]`.T
+
+  /**
+   * `Reified` instance for `Option[A]`.
+   *
+   * Necessary to be able to manually control the
+   * model for Options, since the automatically
+   * generated model is different for Scala 2.11
+   * and 2.12 (due to the renaming of the field `x`
+   * of `Some` to `value`).
+   */
+  implicit def reifiedForOption[A](
+    implicit A: Lazy[Reified[A]]
+  ): Reified.Aux[Option[A], Model.CCons, FFirst] = {
+
+    Reified[OptionRepr[A]].imap[Option[A]] {
+      case Inl(_) => None
+      case Inr(Inl(r)) => Some(r('value))
+      case Inr(Inr(cnil)) => cnil.impossible
+    } {
+      case None => Union[OptionRepr[A]](None = HNil : HNil)
+      case Some(value) => Union[OptionRepr[A]](Some = Record(value = value))
     }
   }
 }

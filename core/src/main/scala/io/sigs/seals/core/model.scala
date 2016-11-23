@@ -132,15 +132,23 @@ sealed trait Model extends Serializable {
     cachedPaths
 
   @transient
-  private[this] lazy val cachedPaths =
-    cachedPathsAndIds.mapValues(_._1)
+  private[this] lazy val cachedPaths = {
+    // this is a workaround for a serialization
+    // problem appearing due to SI-10075, otherwise
+    // we should use `mapValues`:
+    cachedPathsAndIds.map { case (k, v) => (k, v._1) }
+  }
 
   final def localIds: Map[Model, Int] =
     cachedIds
 
   @transient
-  private[this] lazy val cachedIds =
-    cachedPathsAndIds.mapValues(_._2)
+  private[this] lazy val cachedIds = {
+    // this is a workaround for a serialization
+    // problem appearing due to SI-10075, otherwise
+    // we should use `mapValues`:
+    cachedPathsAndIds.map { case (k, v) => (k, v._2) }
+  }
 
   private[this] type MapP = (Map[Model, (Model.Path, Int)], Int)
   private[this] type StMapP = State[MapP, Unit]

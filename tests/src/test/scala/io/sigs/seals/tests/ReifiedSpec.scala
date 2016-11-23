@@ -69,7 +69,7 @@ class ReifiedSpec extends BaseSpec {
 
           "should work with Option" in {
             Reified[Option[Int]].model should === (
-              'None -> (Model.HNil) :+: 'Some -> ('x -> Atom[Int] :: Model.HNil) :+: Model.CNil
+              'None -> (Model.HNil) :+: 'Some -> ('value -> Atom[Int] :: Model.HNil) :+: Model.CNil
             )
           }
         }

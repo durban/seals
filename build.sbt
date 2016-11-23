@@ -49,6 +49,7 @@ lazy val seals = project.in(file("."))
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
+  crossScalaVersions := Seq("2.11.8", "2.12.0"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
@@ -133,6 +134,9 @@ addCommandAlias("testAll", ";test;examples/test")
 // TODO: add ";test:scalastyle", ";examples/test:scalastyle"
 addCommandAlias("scalastyleAll", ";scalastyle;examples/scalastyle")
 addCommandAlias("validate", ";testAll;scalastyleAll;tut")
+
+// not all examples work with 2.12, so we can't do "+validate"
+addCommandAlias("validate212", ";++ 2.12.0;test;scalastyle;tut;++ 2.11.8")
 
 
 //////////////////////
