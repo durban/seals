@@ -30,7 +30,7 @@ object TestArbInstances extends ArbInstances {
     implicit val arbDefsAdt1: Arbitrary[TestTypes.adts.defs.Adt1] = {
       import org.scalacheck.Shapeless._
       derivedArbitrary(
-        null : shapeless.LowPriority,
+        null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.defs.Adt1]
       )
     }
@@ -38,7 +38,7 @@ object TestArbInstances extends ArbInstances {
     implicit val cogenDefsAdt1: Cogen[TestTypes.adts.defs.Adt1] = {
       import org.scalacheck.Shapeless._
       derivedCogen(
-        null : shapeless.LowPriority,
+        null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkCogen[TestTypes.adts.defs.Adt1]
       )
     }
@@ -49,7 +49,7 @@ object TestArbInstances extends ArbInstances {
     implicit val arbDefsIntList: Arbitrary[TestTypes.adts.recursive.IntList] = {
       import org.scalacheck.Shapeless._
       derivedArbitrary(
-        null : shapeless.LowPriority,
+        null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.recursive.IntList]
       )
     }

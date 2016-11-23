@@ -271,7 +271,9 @@ class ModelSpec extends BaseSpec {
     c1a.desc should === ("'l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil")
 
     val pc1aExp =
-      "'l -> ('l -> String :: 'm -> Int :: HNil) :+: 'm -> ('n -> Int :: 'p -> Int :: HNil) :+: 'n -> ('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) :+: CNil"
+      "'l -> ('l -> String :: 'm -> Int :: HNil) :+: " +
+      "'m -> ('n -> Int :: 'p -> Int :: HNil) :+: " +
+      "'n -> ('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) :+: CNil"
     pc1a.desc should === (pc1aExp)
 
     cy1a.desc should === (
@@ -360,7 +362,7 @@ class ModelSpec extends BaseSpec {
           _ <- h
           _ <- t
           _ <- mix(2)
-        }yield (),
+        } yield (),
         cNil = () => mix(3),
         cCons = (_, h, t) => for {
           _ <- h

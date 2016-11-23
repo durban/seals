@@ -69,6 +69,11 @@ lazy val commonSettings = Seq[Setting[_]](
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary),
+
+  // We need both of these, due to https://github.com/scalastyle/scalastyle-sbt-plugin/issues/44
+  scalastyleConfig in Test := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
+  scalastyleConfig in scalastyle := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
+
   libraryDependencies ++= Seq(
     Seq(
       dependencies.cats,
@@ -131,12 +136,11 @@ lazy val dependencies = new {
 }
 
 addCommandAlias("testAll", ";test;examples/test")
-// TODO: add ";test:scalastyle", ";examples/test:scalastyle"
-addCommandAlias("scalastyleAll", ";scalastyle;examples/scalastyle")
+addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
 addCommandAlias("validate", ";testAll;scalastyleAll;tut")
 
 // not all examples work with 2.12, so we can't do "+validate"
-addCommandAlias("validate212", ";++ 2.12.0;test;scalastyle;tut;++ 2.11.8")
+addCommandAlias("validate212", ";++ 2.12.0;test;scalastyle;test:scalastyle;tut;++ 2.11.8")
 
 
 //////////////////////
@@ -183,7 +187,12 @@ lazy val exampleSettings = Seq(
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   libraryDependencies ++= dependencies.test.map(_ % "test-internal"),
-  (scalastyleConfig in Compile) := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
+
+  // We need all three, due to https://github.com/scalastyle/scalastyle-sbt-plugin/issues/44
+  scalastyleConfig in Compile := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
+  scalastyleConfig in Test := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
+  scalastyleConfig in scalastyle := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
+
   publishArtifact := false
 )
 

@@ -25,6 +25,10 @@
    Removed from the main Scalastyle config:
      - org.scalastyle.scalariform.MagicNumberChecker
      - org.scalastyle.file.RegexChecker (println)
+     - org.scalastyle.scalariform.NoWhitespaceBeforeLeftBracketChecker
+
+   Modified:
+     - org.scalastyle.scalariform.ParameterNumberChecker (10 -> 15)
 
  -->
 
@@ -104,10 +108,9 @@
  <check level="warning" class="org.scalastyle.scalariform.EqualsHashCodeChecker" enabled="true" />
  <check level="warning" class="org.scalastyle.scalariform.ParameterNumberChecker" enabled="true">
   <parameters>
-   <parameter name="maxParameters">10</parameter>
+   <parameter name="maxParameters">15</parameter>
   </parameters>
  </check>
- <check level="warning" class="org.scalastyle.scalariform.NoWhitespaceBeforeLeftBracketChecker" enabled="true" />
  <check level="warning" class="org.scalastyle.scalariform.SpaceAfterCommentStartChecker" enabled="true" />
  <check level="warning" class="org.scalastyle.scalariform.CyclomaticComplexityChecker" enabled="true">
   <parameters>
