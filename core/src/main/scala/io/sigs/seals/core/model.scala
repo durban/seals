@@ -153,6 +153,7 @@ sealed trait Model extends Serializable {
   private[this] type MapP = (Map[Model, (Model.Path, Int)], Int)
   private[this] type StMapP = State[MapP, Unit]
 
+  @transient
   private[this] lazy val cachedPathsAndIds = {
     def compositePre(
       label: String,
@@ -184,6 +185,7 @@ sealed trait Model extends Serializable {
   final def atomRegistry: AtomRegistry =
     AtomRegistry.fromMap(allAtoms)
 
+  @transient
   private[this] lazy val allAtoms: Map[UUID, Atom[_]] = {
     this.fold[Map[UUID, Atom[_]]](
       hNil = () => Map.empty,
