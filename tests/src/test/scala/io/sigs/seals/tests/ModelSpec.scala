@@ -26,6 +26,8 @@ import laws.TestInstances.atomic.atomicMyUUID
 
 class ModelSpec extends BaseSpec {
 
+  import Model.Atom.atom
+
   val l = 'l
   val m = 'm
   val n = 'n
@@ -33,13 +35,13 @@ class ModelSpec extends BaseSpec {
   val q = 'q
   val r = 'r
 
-  val a1a = Atom[Int]
-  val a1b = Atom[Int]
-  val a2 = Atom[String]
-  val ac = Atom[MyUUID]
+  val a1a = atom[Int]
+  val a1b = atom[Int]
+  val a2 = atom[String]
+  val ac = atom[MyUUID]
 
   val p1a = l -> a2 :: m -> a1b :: Model.HNil
-  val p1b = l -> Atom[String] :: m -> a1a :: Model.HNil
+  val p1b = l -> atom[String] :: m -> a1a :: Model.HNil
   val p2 = n -> a1a :: p -> a1b :: Model.HNil
   val p2plus = n -> a1a :: p -> a1b :: Model.HCons('x, optional = true, a2, Model.HNil)
   val p3 = p -> a2 :: q -> a2 :: r -> a1a :: Model.HNil
@@ -89,7 +91,7 @@ class ModelSpec extends BaseSpec {
   lazy val cy2b: Model.HCons = Model.HCons(
     p,
     cy1b,
-    Model.HCons(l, Atom[MyUUID], Model.HNil)
+    Model.HCons(l, atom[MyUUID], Model.HNil)
   )
 
   "equals + hashCode" - {
@@ -292,8 +294,8 @@ class ModelSpec extends BaseSpec {
 
   "cats.Eq" in {
     val e = cats.Eq[Model]
-    assert(e.eqv(Atom[String], a2))
-    assert(e.eqv(Atom[MyUUID], ac))
+    assert(e.eqv(atom[String], a2))
+    assert(e.eqv(atom[MyUUID], ac))
     assert(e.eqv(k1a, k1b))
   }
 
@@ -327,16 +329,16 @@ class ModelSpec extends BaseSpec {
 
       val expected = Branch("HCons",
         Branch("CCons",
-          Branch("HCons", Leaf(Atom[String].toString), Leaf("HNil")),
+          Branch("HCons", Leaf(atom[String].toString), Leaf("HNil")),
           Branch("CCons",
             Branch("HCons",
               Leaf("CYCLE"),
-              Branch("HCons", Leaf(Atom[String].toString), Leaf("HNil"))
+              Branch("HCons", Leaf(atom[String].toString), Leaf("HNil"))
             ),
             Leaf("CNil")
           )
         ),
-        Branch("HCons", Leaf(Atom[MyUUID].toString), Leaf("HNil"))
+        Branch("HCons", Leaf(atom[MyUUID].toString), Leaf("HNil"))
       )
 
       tree should === (expected)
@@ -374,8 +376,8 @@ class ModelSpec extends BaseSpec {
         cycle = () => State.pure(())
       )
 
-      val a = Atom[String].uuid.##
-      val b = Atom[MyUUID].uuid.##
+      val a = atom[String].uuid.##
+      val b = atom[MyUUID].uuid.##
       val expected = for {
         _ <- mix(a)
         _ <- mix(1)

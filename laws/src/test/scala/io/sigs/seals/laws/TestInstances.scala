@@ -73,8 +73,8 @@ object TestInstances {
 
     implicit val registry: AtomRegistry = {
       AtomRegistry.builtinAtomRegistry +
-      Atom[MyUUID] +
-      Atom[Whatever.type]
+      Model.Atom.atom[MyUUID] +
+      Model.Atom.atom[Whatever.type]
     }
 
     object bad {

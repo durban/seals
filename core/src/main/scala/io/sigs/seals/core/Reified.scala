@@ -249,22 +249,20 @@ object Reified extends LowPrioReified {
     }
   }
 
-  implicit def reifiedFromAtom[A](
-    implicit A: Atom[A]
-  ): Reified.Aux[A, Atom[A], FFirst] = new Reified[A] {
-    override type Mod = Atom[A]
+  implicit def reifiedFromAtomic[A](
+    implicit A: Atomic[A]
+  ): Reified.Aux[A, Model.Atom, FFirst] = new Reified[A] {
+    override type Mod = Model.Atom
     override type Fold[B, T] = B
-    private[core] override val modelComponent = A
+    private[core] override val modelComponent = A.atom
     override def fold[B, T](a: A)(f: Folder[B, T]): B =
-      f.atom(this.modelComponent.stringRepr(a))
+      f.atom(A.stringRepr(a))
     override def close[B, T](x: Fold[B, T], f: T => B): B =
       x
     override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (A, B)] = {
       u.atom(b).flatMap { case (str, b) =>
-        Either.fromOption(
-          A.fromString(str).map(a => (a, b)),
-          u.atomErr(b)
-        )
+        // TODO: we could use the error message from Atomic here
+        A.fromString(str).map(a => (a, b)).leftMap(_ => u.atomErr(b))
       }
     }
   }

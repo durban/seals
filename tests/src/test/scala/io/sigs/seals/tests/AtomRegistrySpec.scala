@@ -21,6 +21,8 @@ import java.util.UUID
 
 class AtomRegistrySpec extends BaseSpec {
 
+  import Model.Atom.atom
+
   "Built-in registry should be in implicit scope" in {
     implicitly[AtomRegistry] shouldBe theSameInstanceAs (
       AtomRegistry.builtinAtomRegistry
@@ -32,14 +34,14 @@ class AtomRegistrySpec extends BaseSpec {
     "equals + hashCode" in {
       val u1 = UUID.randomUUID()
       val u2 = UUID.randomUUID()
-      val ar1 = AtomRegistry.fromMap(Map(u1 -> Atom[Int], u2 -> Atom[String]))
+      val ar1 = AtomRegistry.fromMap(Map(u1 -> atom[Int], u2 -> atom[String]))
       val ar2 = new AtomRegistry {
-        override def map = Map(u1 -> Atom[Int], u2 -> Atom[String])
+        override def map = Map(u1 -> atom[Int], u2 -> atom[String])
       }
       checkEqHash(ar1, ar2)
 
-      val ar1b = ar1 + Atom[Short]
-      val ar2b = ar2 + Atom[Short]
+      val ar1b = ar1 + atom[Short]
+      val ar2b = ar2 + atom[Short]
       checkEqHash(ar1b, ar2b)
     }
   }

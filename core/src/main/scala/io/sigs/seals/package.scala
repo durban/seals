@@ -27,10 +27,8 @@ package object seals {
   type Kleene[F[_]] = core.Kleene[F]
   val Kleene = core.Kleene
 
-  type Atom[A] = core.Atom[A]
-  val Atom = core.Atom
-
   type Atomic[A] = core.Atomic[A]
+  val Atomic = core.Atomic
 
   type Envelope[A] = core.Envelope[A]
   val Envelope = core.Envelope

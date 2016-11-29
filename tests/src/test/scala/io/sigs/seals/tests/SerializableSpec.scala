@@ -27,6 +27,8 @@ class SerializableSpec extends BaseSpec {
 
   "Model" - {
 
+    import Model.Atom.atom
+
     "Primitives should preserve identity" in {
       checkId(Model.HNil)
       checkId(Model.CNil)
@@ -34,38 +36,38 @@ class SerializableSpec extends BaseSpec {
 
     "Atoms should be serializable" in {
       import TestInstances.atomic.atomicMyUUID
-      checkSer(Atom[Int])
-      checkSer(Atom[String])
-      checkSer(Atom[UUID])
-      checkSer(Atom[MyUUID])
+      checkSer(atom[Int])
+      checkSer(atom[String])
+      checkSer(atom[UUID])
+      checkSer(atom[MyUUID])
     }
 
     "Products should be serializable" in {
-      checkSer('i -> Atom[Int] :: 's -> Atom[String] :: Model.HNil)
-      checkSer('i -> Atom[Int] :: Model.HCons('s, optional = true, Atom[String], Model.HNil))
+      checkSer('i -> atom[Int] :: 's -> atom[String] :: Model.HNil)
+      checkSer('i -> atom[Int] :: Model.HCons('s, optional = true, atom[String], Model.HNil))
       checkSer(
-        'x -> ('i -> Atom[Int] :+: 's -> Atom[String] :+: Model.CNil) :: 'y -> Atom[String] :: Model.HNil
+        'x -> ('i -> atom[Int] :+: 's -> atom[String] :+: Model.CNil) :: 'y -> atom[String] :: Model.HNil
       )
     }
 
     "Sums should be serializable" in {
-      checkSer('i -> Atom[Int] :+: 's -> Atom[String] :+: Model.CNil)
+      checkSer('i -> atom[Int] :+: 's -> atom[String] :+: Model.CNil)
       checkSer(
-        'p -> ('i -> Atom[Int] :: Model.HNil) :+: 'q -> Atom[String] :+: Model.CNil
+        'p -> ('i -> atom[Int] :: Model.HNil) :+: 'q -> atom[String] :+: Model.CNil
       )
     }
 
     "Vector should be serializable" in {
-      checkSer('x -> Model.Vector(Atom[String]))
+      checkSer('x -> Model.Vector(atom[String]))
     }
 
     "Cyclic models should be serializable" in {
       lazy val mod1: Model.CCons = Model.CCons(
         'p,
-        Model.HCons('s, Atom[String], Model.HNil),
+        Model.HCons('s, atom[String], Model.HNil),
         Model.CCons(
           'q,
-          Model.HCons('r, mod1, Model.HCons('s, Atom[String], Model.HNil)),
+          Model.HCons('r, mod1, Model.HCons('s, atom[String], Model.HNil)),
           Model.CNil
         )
       )
@@ -116,6 +118,19 @@ class SerializableSpec extends BaseSpec {
     }
   }
 
+  "Atomic" - {
+
+    "Built-in" in {
+      checkId(Atomic[Int])
+      checkId(Atomic[UUID])
+    }
+
+    "Custom" in {
+      import TestInstances.atomic.atomicMyUUID
+      checkId(Atomic[MyUUID])
+    }
+  }
+
   "Envelope" - {
 
     "of Atoms" in {
@@ -131,6 +146,8 @@ class SerializableSpec extends BaseSpec {
 
   "AtomRegistry" - {
 
+    import Model.Atom.atom
+
     "built-in" in {
       checkSer[AtomRegistry](AtomRegistry.builtinAtomRegistry)
     }
@@ -143,13 +160,13 @@ class SerializableSpec extends BaseSpec {
     "custom" in {
       checkSer[AtomRegistry](TestInstances.atomic.registry)
       checkSer[AtomRegistry](AtomRegistry.fromMap(Map.empty))
-      checkSer[AtomRegistry](AtomRegistry.fromMap(Map(UUID.randomUUID() -> Atom[Int])))
+      checkSer[AtomRegistry](AtomRegistry.fromMap(Map(UUID.randomUUID() -> atom[Int])))
       checkSer[AtomRegistry](AtomRegistry.fromMap(Map(
-        UUID.randomUUID() -> Atom[Int],
-        UUID.randomUUID() -> Atom[Int],
-        UUID.randomUUID() -> Atom[Int],
-        UUID.randomUUID() -> Atom[Int],
-        UUID.randomUUID() -> Atom[Int]
+        UUID.randomUUID() -> atom[Int],
+        UUID.randomUUID() -> atom[Int],
+        UUID.randomUUID() -> atom[Int],
+        UUID.randomUUID() -> atom[Int],
+        UUID.randomUUID() -> atom[Int]
       )))
     }
   }

@@ -21,24 +21,26 @@ import java.util.UUID
 
 class BuiltinAtomSpec extends BaseSpec {
 
+  import Model.Atom.atom
+
   "Built-in atoms" in {
     val atoms = Vector(
       // primitives:
-      Atom[Byte],
-      Atom[Short],
-      Atom[Char],
-      Atom[Int],
-      Atom[Long],
-      Atom[Float],
-      Atom[Double],
-      Atom[Boolean],
-      Atom[Unit],
+      atom[Byte],
+      atom[Short],
+      atom[Char],
+      atom[Int],
+      atom[Long],
+      atom[Float],
+      atom[Double],
+      atom[Boolean],
+      atom[Unit],
       // std types:
-      Atom[String],
-      Atom[Symbol],
-      Atom[BigInt],
-      Atom[BigDecimal],
-      Atom[UUID]
+      atom[String],
+      atom[Symbol],
+      atom[BigInt],
+      atom[BigDecimal],
+      atom[UUID]
     )
     atoms.map(_.uuid).toSet should have size atoms.size.toLong
     atoms.foreach { a =>

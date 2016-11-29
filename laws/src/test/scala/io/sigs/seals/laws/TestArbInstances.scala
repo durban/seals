@@ -78,12 +78,12 @@ trait TestArbInstances extends ArbInstances {
   }
 
   /** Inserts custom Atoms besides the built-in ones */
-  implicit override def arbModelAtom: Arbitrary[Atom[_]] = Arbitrary {
+  implicit override def arbModelAtom: Arbitrary[Model.Atom] = Arbitrary {
     import TestInstances.atomic._
     import TestTypes.Whatever
     Gen.oneOf(
       super.arbModelAtom.arbitrary,
-      Gen.oneOf[Atom[_]](Atom[UUID], Atom[Whatever.type])
+      Gen.oneOf[Model.Atom](Model.Atom.atom[UUID], Model.Atom.atom[Whatever.type])
     )
   }
 

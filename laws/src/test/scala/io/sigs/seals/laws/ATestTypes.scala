@@ -36,6 +36,8 @@ object MyUUID {
 
 object TestTypes {
 
+  import Model.Atom.atom
+
   final case object Whatever {
     implicit val arbW: Arbitrary[Whatever.type] = Arbitrary(Gen.const(Whatever))
     implicit val equW: Eq[Whatever.type] = Eq.fromUniversalEquals
@@ -59,11 +61,11 @@ object TestTypes {
         final case class Foo(s: String, i: Int) extends Adt1
         object Foo {
           val expModel =
-            's -> Atom[String] :: 'i -> Atom[Int] :: Model.HNil
+            's -> atom[String] :: 'i -> atom[Int] :: Model.HNil
         }
         final case object Boo extends Adt1
         val expModel =
-          'Boo -> Model.HNil :+: 'Foo -> ('s -> Atom[String] :: 'i -> Atom[Int] :: Model.HNil) :+: Model.CNil
+          'Boo -> Model.HNil :+: 'Foo -> ('s -> atom[String] :: 'i -> atom[Int] :: Model.HNil) :+: Model.CNil
       }
 
       sealed trait Adt2
@@ -90,11 +92,11 @@ object TestTypes {
         final case class C(a: Int, b: String = "boo", c: Float = 0.5f) extends Adt2
         object C {
           val expModel = {
-            'a -> Atom[Int] :: Model.HCons(
+            'a -> atom[Int] :: Model.HCons(
               'b,
               true,
-              Atom[String],
-              Model.HCons('c, true, Atom[Float], Model.HNil)
+              atom[String],
+              Model.HCons('c, true, atom[Float], Model.HNil)
             )
           }
         }
@@ -158,7 +160,7 @@ object TestTypes {
         implicit val intListEq: Eq[IntList] =
           Eq.fromUniversalEquals
         lazy val expModel: Model.Coproduct = {
-          'IntCons -> Model.HCons('head, Atom[Int], Model.HCons('tail, expModel, Model.HNil)) :+:
+          'IntCons -> Model.HCons('head, atom[Int], Model.HCons('tail, expModel, Model.HNil)) :+:
           'IntNil -> (Model.HNil) :+:
           Model.CNil
         }
@@ -207,7 +209,7 @@ object TestTypes {
     object WithUuid {
       val expModel = {
         import TestInstances.atomic.atomicMyUUID
-        'i -> Atom[Int] :: 'u -> Atom[MyUUID] :: Model.HNil
+        'i -> atom[Int] :: 'u -> atom[MyUUID] :: Model.HNil
       }
     }
 
@@ -261,7 +263,7 @@ object TestTypes {
 
     final case class WithList(i: Int, l: List[Float]) extends Adt
     object WithList {
-      val expModel = 'i -> Atom[Int] :: 'l -> Model.Vector(Atom[Float]) :: Model.HNil
+      val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float]) :: Model.HNil
     }
 
     final case class WithVector(els: Vector[Adt]) extends Adt

@@ -50,7 +50,7 @@ sealed trait Model extends Serializable {
     cNil: () => R,
     cCons: (Symbol, R, R) => R,
     vector: R => R,
-    atom: Atom[_] => R,
+    atom: Atom => R,
     cycle: () => R
   ): R = {
     foldImpl(
@@ -72,7 +72,7 @@ sealed trait Model extends Serializable {
     cNil: Ctx => R,
     cCons: (Ctx, Symbol, R, R) => R,
     vector: (Ctx, R) => R,
-    atom: (Ctx, Atom[_]) => R,
+    atom: (Ctx, Atom) => R,
     cycle: Ctx => R
   ): R = foldImpl(hNil, hCons, cNil, cCons, vector, atom, cycle, Memo.valMemo, Path.empty)
 
@@ -82,7 +82,7 @@ sealed trait Model extends Serializable {
     cNil: Ctx => R,
     cCons: (Ctx, Symbol, R, R) => R,
     vector: (Ctx, R) => R,
-    atom: (Ctx, Atom[_]) => R,
+    atom: (Ctx, Atom) => R,
     cycle: Ctx => R,
     memo: Memo,
     path: Path
@@ -124,7 +124,7 @@ sealed trait Model extends Serializable {
     case _: HCons => HCons.pathComp
     case CNil => "CNil"
     case _: CCons => CCons.pathComp
-    case _: Atom[_] => Atom.pathComp
+    case _: Atom => Atom.pathComp
     case _: Vector => "Vector"
   }
 
@@ -186,8 +186,8 @@ sealed trait Model extends Serializable {
     AtomRegistry.fromMap(allAtoms)
 
   @transient
-  private[this] lazy val allAtoms: Map[UUID, Atom[_]] = {
-    this.fold[Map[UUID, Atom[_]]](
+  private[this] lazy val allAtoms: Map[UUID, Atom] = {
+    this.fold[Map[UUID, Atom]](
       hNil = () => Map.empty,
       hCons = (_, _, h, t) => h ++ t,
       cNil = () => Map.empty,
@@ -423,7 +423,7 @@ object Model {
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
       vector: (Ctx, R) => R,
-      atom: (Ctx, Atom[_]) => R,
+      atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
       path: Path
@@ -464,7 +464,7 @@ object Model {
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
       vector: (Ctx, R) => R,
-      atom: (Ctx, Atom[_]) => R,
+      atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
       path: Path
@@ -533,7 +533,7 @@ object Model {
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
       vector: (Ctx, R) => R,
-      atom: (Ctx, Atom[_]) => R,
+      atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
       path: Path
@@ -557,7 +557,7 @@ object Model {
       cNil: Ctx => R,
       cCons: (Ctx, Symbol, R, R) => R,
       vector: (Ctx, R) => R,
-      atom: (Ctx, Atom[_]) => R,
+      atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
       path: Path
@@ -602,6 +602,55 @@ object Model {
       new CCons(label, h _, t _)
   }
 
+  final class Atom private (
+      private[seals] val uuid: UUID,
+      private[core] val atomDesc: String
+  ) extends Model {
+
+    private[this] def compEq(that: Atom): Boolean =
+      this.uuid === that.uuid
+
+    private[core] def atomHash: Int =
+      this.uuid.##
+
+    final protected[core] override def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = {
+      that match {
+        case that: Atom =>
+          this.compEq(that)
+        case _ =>
+          false
+      }
+    }
+
+    protected[core] final override def foldImpl[R](
+      hNil: Model.Ctx => R,
+      hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
+      cNil: Model.Ctx => R,
+      cCons: (Model.Ctx, Symbol, R, R) => R,
+      vector: (Model.Ctx, R) => R,
+      atom: (Model.Ctx, Atom) => R,
+      cycle: Model.Ctx => R,
+      memo: Model.Memo,
+      path: Model.Path
+    ): R = {
+      atom(Model.Ctx(this, path :+ this.pathComp), this)
+    }
+  }
+
+  object Atom {
+
+    private[core] val pathComp = "Atom"
+
+    def apply(uuid: UUID, desc: String): Atom =
+      new Atom(uuid, desc)
+
+    def atom[A](implicit atomic: Atomic[A]): Atom =
+      atomic.atom
+
+    implicit val eqForAtom: Eq[Atom] =
+      Eq.fromUniversalEquals
+  }
+
   final class Vector private (val elem: Model) extends Model {
 
     def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
@@ -617,7 +666,7 @@ object Model {
       cNil: Model.Ctx => R,
       cCons: (Model.Ctx, Symbol, R, R) => R,
       vector: (Model.Ctx, R) => R,
-      atom: (Model.Ctx, Atom[_]) => R,
+      atom: (Model.Ctx, Atom) => R,
       cycle: Model.Ctx => R,
       memo: Model.Memo,
       path: Model.Path): R = vector(
@@ -640,103 +689,4 @@ object Model {
     def apply(elem: Model): Vector =
       new Vector(elem)
   }
-}
-
-sealed trait Atom[A] extends Model {
-
-  def stringRepr(a: A): String
-
-  def fromString(s: String): Option[A]
-
-  protected def compEq(that: Atom[_]): Boolean
-
-  private[core] def atomHash: Int
-
-  private[core] def atomDesc: String
-
-  private[seals] def uuid: UUID
-
-  final protected[core] override def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = {
-    that match {
-      case that: Atom[_] =>
-        this.compEq(that)
-      case _ =>
-        false
-    }
-  }
-}
-
-object Atom extends LowPrioAtom {
-
-  private[core] val pathComp = "Atom"
-
-  def apply[A](implicit A: Atom[A]): Atom[A] = A
-
-  implicit def builtinAtom[A](implicit builtin: BuiltinAtom[A]): Atom[A] =
-    builtin.atom
-
-  implicit def atomicAtom[A](implicit atomic: Atomic[A]): Atom[A] =
-    new AtomicAtom[A](atomic)
-
-  implicit def eqForAtom[A]: Eq[Atom[A]] =
-    Eq.fromUniversalEquals
-}
-
-private[core] sealed trait LowPrioAtom {
-
-  implicit val eqForExistentialAtom: Eq[Atom[_]] =
-    Eq.fromUniversalEquals
-}
-
-private sealed abstract class AbstractAtom[A] extends Atom[A] {
-  protected[core] final override def foldImpl[R](
-    hNil: Model.Ctx => R,
-    hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
-    cNil: Model.Ctx => R,
-    cCons: (Model.Ctx, Symbol, R, R) => R,
-    vector: (Model.Ctx, R) => R,
-    atom: (Model.Ctx, Atom[_]) => R,
-    cycle: Model.Ctx => R,
-    memo: Model.Memo,
-    path: Model.Path): R = {
-    atom(Model.Ctx(this, path :+ this.pathComp), this)
-  }
-}
-
-private abstract class SimpleAtom[A](
-    private[core] override val atomDesc: String,
-    uuidString: String,
-    a2s: A => String,
-    s2a: String => Option[A]
-) extends AbstractAtom[A] {
-
-  final override def stringRepr(a: A) =
-    a2s(a)
-
-  final override def fromString(s: String) =
-    s2a(s)
-
-  final protected override def compEq(that: Atom[_]) =
-    this eq that
-
-  private[core] final override def atomHash =
-    System.identityHashCode(this)
-
-  private[seals] final override val uuid =
-    UUID.fromString(uuidString)
-}
-
-private final class AtomicAtom[A](private val atomic: Atomic[A])
-    extends AbstractAtom[A] {
-  private[core] override def atomDesc: String = atomic.description
-  private[core] override def atomHash: Int = atomic.uuid.##
-  private[seals] override def uuid: UUID = atomic.uuid
-  protected override def compEq(that: Atom[_]): Boolean = that match {
-    case that: AtomicAtom[_] =>
-      atomic.uuid === that.atomic.uuid
-    case _ =>
-      false
-  }
-  override def fromString(s: String): Option[A] = atomic.fromString(s).toOption
-  override def stringRepr(a: A): String = atomic.stringRepr(a)
 }

@@ -21,21 +21,23 @@ import java.util.UUID
 
 import cats.implicits._
 
+import Model.Atom
+
 trait AtomRegistry extends Serializable {
 
-  protected def map: Map[UUID, Atom[_]]
+  protected def map: Map[UUID, Atom]
 
-  final def getAtom(id: UUID): Either[String, Atom[_]] =
+  final def getAtom(id: UUID): Either[String, Atom] =
     Either.fromOption(map.get(id), s"not found Atom with id ${id}")
 
-  final def getAtom(s: String): Either[String, Atom[_]] = {
+  final def getAtom(s: String): Either[String, Atom] = {
     for {
       uuid <- Either.catchNonFatal(UUID.fromString(s)).bimap(_.getMessage, identity)
       atom <- getAtom(uuid)
     } yield atom
   }
 
-  final def + (a: Atom[_]): AtomRegistry =
+  final def + (a: Atom): AtomRegistry =
     new AtomRegistry.Impl(map.updated(a.uuid, a))
 
   final def ++ (that: AtomRegistry): AtomRegistry =
@@ -54,14 +56,14 @@ trait AtomRegistry extends Serializable {
 
 object AtomRegistry {
 
-  private final class Impl(protected override val map: Map[UUID, Atom[_]])
+  private final class Impl(protected override val map: Map[UUID, Atom])
     extends AtomRegistry
 
   private final val hashConst = 0x48d400c7
 
-  def fromMap(m: Map[UUID, Atom[_]]): AtomRegistry =
+  def fromMap(m: Map[UUID, Atom]): AtomRegistry =
     new AtomRegistry.Impl(m)
 
   implicit val builtinAtomRegistry: AtomRegistry =
-    fromMap(BuiltinAtom.registry)
+    fromMap(Atomic.registry)
 }

@@ -27,15 +27,17 @@ import laws.{ TestInstances, TestTypes }
 
 class ReifiedSpec extends BaseSpec {
 
+  import Model.Atom.atom
+
   "Reified" - {
 
     "for Records" - {
 
       "should exist" in {
         Reified[HNil].model should === (Model.HNil)
-        Reified[Record.`'p -> Int`.T].model should === ('p -> Atom[Int] :: Model.HNil)
+        Reified[Record.`'p -> Int`.T].model should === ('p -> atom[Int] :: Model.HNil)
         Reified[Record.`'s -> String, 'i -> Int`.T].model should === (
-          's -> Atom[String] :: 'i -> Atom[Int] :: Model.HNil
+          's -> atom[String] :: 'i -> atom[Int] :: Model.HNil
         )
       }
     }
@@ -44,9 +46,9 @@ class ReifiedSpec extends BaseSpec {
 
       "should exist" in {
         Reified[CNil].model should === (Model.CNil)
-        Reified[Union.`'i -> Int`.T].model should === ('i -> Atom[Int] :+: Model.CNil)
+        Reified[Union.`'i -> Int`.T].model should === ('i -> atom[Int] :+: Model.CNil)
         Reified[Union.`'s -> String, 'i -> Int`.T].model should === (
-          's -> Atom[String] :+: 'i -> Atom[Int] :+: Model.CNil
+          's -> atom[String] :+: 'i -> atom[Int] :+: Model.CNil
         )
       }
     }
@@ -69,7 +71,7 @@ class ReifiedSpec extends BaseSpec {
 
           "should work with Option" in {
             Reified[Option[Int]].model should === (
-              'None -> (Model.HNil) :+: 'Some -> ('value -> Atom[Int] :: Model.HNil) :+: Model.CNil
+              'None -> (Model.HNil) :+: 'Some -> ('value -> atom[Int] :: Model.HNil) :+: Model.CNil
             )
           }
         }
@@ -155,12 +157,12 @@ class ReifiedSpec extends BaseSpec {
       import TestTypes.collections._
 
       "List" in {
-        Reified[List[Boolean]].model should === (Model.Vector(Atom[Boolean]))
+        Reified[List[Boolean]].model should === (Model.Vector(atom[Boolean]))
         Reified[WithList].model should === (WithList.expModel)
       }
 
       "Vector" in {
-        Reified[Vector[Boolean]].model should === (Model.Vector(Atom[Boolean]))
+        Reified[Vector[Boolean]].model should === (Model.Vector(atom[Boolean]))
         Reified[WithVector].model should === (WithVector.expModel)
       }
 

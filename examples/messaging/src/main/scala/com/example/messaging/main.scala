@@ -18,12 +18,10 @@ package com.example.messaging
 
 import org.http4s._
 import org.http4s.dsl._
-import org.http4s.server.{ Server, ServerApp }
+import org.http4s.server.ServerApp
 import org.http4s.circe._
 
 import scalaz.concurrent.Task
-
-import io.circe._
 
 import io.sigs.seals._
 import io.sigs.seals.circe.Codec._
@@ -43,14 +41,14 @@ object MyClient extends App {
 
   val pongGood = jsonEncoderOf[Envelope[Ping]].toEntity(
     Envelope(Ping(42L, Vector(1, 2, 3, 4)))
-  ).flatMap(ping).run
+  ).flatMap(ping).unsafePerformSync
   assert(pongGood == Pong(42L))
   println(pongGood)
 
   try {
     val pongBad = jsonEncoderOf[Envelope[PingIncompatible]].toEntity(
       Envelope(PingIncompatible(99L, Vector(4, 5), 0))
-    ).flatMap(ping).run
+    ).flatMap(ping).unsafePerformSync
     println(pongBad)
   } finally {
     client.shutdownNow()
