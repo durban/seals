@@ -17,15 +17,37 @@
 package io.sigs.seals
 package circe
 
-import cats.kernel.Eq
-import cats.instances.all._
+import cats.{ ~>, Eq }
+import cats.implicits._
 
 import org.scalacheck.Arbitrary
+
+import io.circe._
 
 import io.sigs.seals.laws.ArbInstances
 import io.sigs.seals.laws.TestArbInstances
 import io.sigs.seals.laws.TestTypes
+import io.sigs.seals.laws.WireLaws
+import io.sigs.seals.core.Wire
 
+// TODO: fix the test failure
+class CirceLawsSpec2
+    extends tests.BaseLawsSpec
+    with ArbInstances {
+
+  import TestArbInstances.forTestData._
+  import TestTypes.adts.defs.{ Adt1, Adt2 }
+
+  // TODO: fix this
+  //checkAll(
+  //  "WireLaws[Adt1, Adt2]",
+    WireLaws[Adt1, Adt2, Json, DecodingFailure](
+      λ[Reified ~> Wire.Aux[?, Json, DecodingFailure]](x => Wires.wireFromReified(x))
+    ).roundtrip
+  //)
+}
+
+// TODO: remove this, when the one above is fixed
 class CirceLawsSpec extends tests.BaseLawsSpec {
 
   import Codec._

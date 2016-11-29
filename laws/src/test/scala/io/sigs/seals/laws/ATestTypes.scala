@@ -102,6 +102,9 @@ object TestTypes {
         val expModel = {
           'C -> C.expModel :+: 'Dummy -> Model.HNil :+: Model.CNil
         }
+
+        implicit val adt2Eq: Eq[Adt2] =
+          Eq.fromUniversalEquals
       }
 
       sealed trait Adt3

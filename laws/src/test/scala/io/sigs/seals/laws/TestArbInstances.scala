@@ -23,7 +23,9 @@ import org.scalacheck.{ Arbitrary, Gen, Cogen }
 import org.scalacheck.rng.Seed
 import org.scalacheck.derive.Recursive
 
-object TestArbInstances extends ArbInstances {
+object TestArbInstances extends TestArbInstances
+
+trait TestArbInstances extends ArbInstances {
 
   object forTestData {
 
@@ -40,6 +42,14 @@ object TestArbInstances extends ArbInstances {
       derivedCogen(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkCogen[TestTypes.adts.defs.Adt1]
+      )
+    }
+
+    implicit val arbDefsAdt2: Arbitrary[TestTypes.adts.defs.Adt2] = {
+      import org.scalacheck.Shapeless._
+      derivedArbitrary(
+        null : shapeless.LowPriority, // scalastyle:ignore null
+        org.scalacheck.derive.MkArbitrary[TestTypes.adts.defs.Adt2]
       )
     }
 
