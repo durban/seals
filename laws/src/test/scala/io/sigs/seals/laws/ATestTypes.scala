@@ -170,6 +170,10 @@ object TestTypes {
 
       object v2 {
         sealed trait IntList
+        object IntList {
+          implicit val intListEq: Eq[IntList] =
+            Eq.fromUniversalEquals
+        }
         final case object IntNil extends IntList
         final case class IntCons(head: Int, tail: IntList, dummy: Int = 42)
           extends IntList

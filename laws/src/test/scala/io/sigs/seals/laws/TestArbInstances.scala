@@ -75,6 +75,17 @@ trait TestArbInstances extends ArbInstances {
       }
       Cogen(perturb _)
     }
+
+    implicit val recDefsIntListV2: Recursive[TestTypes.adts.recursive.v2.IntList] =
+      Recursive(Gen.const(TestTypes.adts.recursive.v2.IntNil))
+
+    implicit val arbDefsIntListV2: Arbitrary[TestTypes.adts.recursive.v2.IntList] = {
+      import org.scalacheck.Shapeless._
+      derivedArbitrary(
+        null : shapeless.LowPriority, // scalastyle:ignore null
+        org.scalacheck.derive.MkArbitrary[TestTypes.adts.recursive.v2.IntList]
+      )
+    }
   }
 
   /** Inserts custom Atoms besides the built-in ones */

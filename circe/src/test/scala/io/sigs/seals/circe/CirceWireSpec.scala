@@ -35,6 +35,7 @@ class CirceWireSpec
   import TestArbInstances.forTestData._
   import TestTypes.adts.defs.{ Adt1, Adt2 }
   import TestTypes.adts.recursive.IntList
+  import TestTypes.adts.recursive.v2.{ IntList => IntListV2 }
   import TestTypes.collections.Adt
 
   val mkWire = λ[Reified ~> Wire.Aux[?, Json, DecodingFailure]](
@@ -54,10 +55,6 @@ class CirceWireSpec
     WireLaws[Vector[String], Json, DecodingFailure](mkWire).roundtrip
   )
   checkAll(
-    "WireLaws[IntList, Json, DecodingFailure]",
-    WireLaws[IntList, Json, DecodingFailure](mkWire).roundtrip
-  )
-  checkAll(
     "WireLaws[List[IntList], Json, DecodingFailure]",
     WireLaws[List[IntList], Json, DecodingFailure](mkWire).roundtrip
   )
@@ -69,5 +66,9 @@ class CirceWireSpec
   checkAll(
     "WireLaws[Adt1, Json, DecodingFailure]+Adt2",
     WireLaws[Adt1, Json, DecodingFailure](mkWire).roundtripCompat[Adt2]
+  )
+  checkAll(
+    "WireLaws[IntList, Json, DecodingFailure]+v2",
+    WireLaws[IntList, Json, DecodingFailure](mkWire).roundtripCompat[IntListV2]
   )
 }
