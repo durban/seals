@@ -44,10 +44,11 @@ class BuiltinAtomSpec extends BaseSpec {
     )
     atoms.map(_.uuid).toSet should have size atoms.size.toLong
     atoms.foreach { a =>
-      AtomRegistry.builtinAtomRegistry.getAtom(a.uuid).fold(
-        err => fail(err),
-        b => b shouldBe theSameInstanceAs (a)
-      )
+      Atomic.registry.get(a.uuid).fold {
+        fail("missing Atomic")
+      } { b =>
+        b shouldBe theSameInstanceAs (a)
+      }
     }
   }
 }

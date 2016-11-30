@@ -144,33 +144,6 @@ class SerializableSpec extends BaseSpec {
     }
   }
 
-  "AtomRegistry" - {
-
-    import Model.Atom.atom
-
-    "built-in" in {
-      checkSer[AtomRegistry](AtomRegistry.builtinAtomRegistry)
-    }
-
-    "of model" in {
-      import TestTypes.adts.iso._
-      checkSer[AtomRegistry](Reified[Adt1].model.atomRegistry)
-    }
-
-    "custom" in {
-      checkSer[AtomRegistry](TestInstances.atomic.registry)
-      checkSer[AtomRegistry](AtomRegistry.fromMap(Map.empty))
-      checkSer[AtomRegistry](AtomRegistry.fromMap(Map(UUID.randomUUID() -> atom[Int])))
-      checkSer[AtomRegistry](AtomRegistry.fromMap(Map(
-        UUID.randomUUID() -> atom[Int],
-        UUID.randomUUID() -> atom[Int],
-        UUID.randomUUID() -> atom[Int],
-        UUID.randomUUID() -> atom[Int],
-        UUID.randomUUID() -> atom[Int]
-      )))
-    }
-  }
-
   "Compat" - {
     import TestTypes.adts.defs._
 

@@ -29,8 +29,8 @@ private sealed trait ModelRepr {
 
   import ModelRepr._
 
-  final def toModel(reg: AtomRegistry): Either[String, Model] = {
-    val res = toModelSt(reg).value.runA(Map.empty).value
+  final def toModel: Either[String, Model] = {
+    val res = toModelSt.value.runA(Map.empty).value
     // do a full traverse, to allow
     // dropping thunks and to ensure
     // that any bug in the decoding
@@ -41,7 +41,7 @@ private sealed trait ModelRepr {
     }
   }
 
-  protected def toModelSt(reg: AtomRegistry): DecSt[Model]
+  protected def toModelSt: DecSt[Model]
 }
 
 private object ModelRepr extends ModelReprBase {
@@ -61,9 +61,9 @@ private object ModelRepr extends ModelReprBase {
 
     protected def build(h: Eval[Model], t: Eval[T]): C
 
-    protected def decTail(tr: TR, reg: AtomRegistry): DecSt[T]
+    protected def decTail(tr: TR): DecSt[T]
 
-    protected def toCompositeModel(reg: AtomRegistry): DecSt[C] = {
+    protected def toCompositeModel: DecSt[C] = {
       val x = for {
         st <- State.get[DecMap]
       } yield {
@@ -72,9 +72,9 @@ private object ModelRepr extends ModelReprBase {
           Eval.later(t.value._2.getOrElse(impossible(s"accessing ${desc} parent of invalid `t`")))
         )
         lazy val newSt: DecMap = st + (id -> res)
-        lazy val h = head.toModelSt(reg).value.run(newSt)
+        lazy val h = head.toModelSt.value.run(newSt)
         lazy val lh = Eval.later(h.value._2)
-        lazy val t = decTail(tail, reg).value.run(h.value._1)
+        lazy val t = decTail(tail).value.run(h.value._1)
         lazy val lt = Eval.later(t.value._2)
         (res, t.value._1, (lh, lt))
       }
@@ -107,15 +107,15 @@ private object ModelRepr extends ModelReprBase {
 
   sealed trait ProdRepr extends ModelRepr {
 
-    protected final override def toModelSt(reg: AtomRegistry): DecSt[Model] =
-      toProdSt(reg).map[Model](identity)
+    protected final override def toModelSt: DecSt[Model] =
+      toProdSt.map[Model](identity)
 
-    private[ModelRepr] def toProdSt(reg: AtomRegistry): DecSt[Model.HList]
+    private[ModelRepr] def toProdSt: DecSt[Model.HList]
   }
 
   final case object HNil extends ProdRepr {
 
-    private[ModelRepr] override def toProdSt(reg: AtomRegistry): DecSt[Model.HList] =
+    private[ModelRepr] override def toProdSt: DecSt[Model.HList] =
       EitherT.liftT(State.pure(Model.HNil))
   }
 
@@ -132,24 +132,24 @@ private object ModelRepr extends ModelReprBase {
     protected override def build(h: Eval[Model], t: Eval[Model.HList]): Model.HCons =
       Model.HCons(label, optional, h.value, t.value)
 
-    protected override def decTail(tr: ProdRepr, reg: AtomRegistry): DecSt[Model.HList] =
-      tr.toProdSt(reg)
+    protected override def decTail(tr: ProdRepr): DecSt[Model.HList] =
+      tr.toProdSt
 
-    private[ModelRepr] override def toProdSt(reg: AtomRegistry): DecSt[Model.HList] =
-      toCompositeModel(reg).map(identity)
+    private[ModelRepr] override def toProdSt: DecSt[Model.HList] =
+      toCompositeModel.map(identity)
   }
 
   sealed trait SumRepr extends ModelRepr {
 
-    protected final override def toModelSt(reg: AtomRegistry): DecSt[Model] =
-      toSumSt(reg).map[Model](identity)
+    protected final override def toModelSt: DecSt[Model] =
+      toSumSt.map[Model](identity)
 
-    private[ModelRepr] def toSumSt(reg: AtomRegistry): DecSt[Model.Coproduct]
+    private[ModelRepr] def toSumSt: DecSt[Model.Coproduct]
   }
 
   final case object CNil extends SumRepr {
 
-    private[ModelRepr] override def toSumSt(reg: AtomRegistry): DecSt[Model.Coproduct] =
+    private[ModelRepr] override def toSumSt: DecSt[Model.Coproduct] =
       EitherT.liftT(State.pure(Model.CNil))
   }
 
@@ -165,25 +165,25 @@ private object ModelRepr extends ModelReprBase {
     protected override def build(h: Eval[Model], t: Eval[Model.Coproduct]): Model.CCons =
       Model.CCons(label, h.value, t.value)
 
-    protected override def decTail(tr: SumRepr, reg: AtomRegistry): DecSt[Model.Coproduct] =
-      tr.toSumSt(reg)
+    protected override def decTail(tr: SumRepr): DecSt[Model.Coproduct] =
+      tr.toSumSt
 
-    private[ModelRepr] override def toSumSt(reg: AtomRegistry): DecSt[Model.Coproduct] =
-      toCompositeModel(reg).map(identity)
+    private[ModelRepr] override def toSumSt: DecSt[Model.Coproduct] =
+      toCompositeModel.map(identity)
   }
 
   final case class Vector(elems: ModelRepr) extends ModelRepr {
-    protected override def toModelSt(reg: AtomRegistry): DecSt[Model] =
-      elems.toModelSt(reg).map(e => Model.Vector(e))
+    protected override def toModelSt: DecSt[Model] =
+      elems.toModelSt.map(Model.Vector(_))
   }
 
-  final case class Atom(id: UUID) extends ModelRepr {
-    protected override def toModelSt(reg: AtomRegistry): DecSt[Model] =
-      EitherT.fromEither(reg.getAtom(id))
+  final case class Atom(id: UUID, desc: String) extends ModelRepr {
+    protected override def toModelSt: DecSt[Model] =
+      EitherT.fromEither(Right(Model.Atom(id, desc)))
   }
 
   final case class Ref(id: Int) extends ModelRepr {
-    protected override def toModelSt(reg: AtomRegistry): DecSt[Model] = {
+    protected override def toModelSt: DecSt[Model] = {
       EitherT(State.get[DecMap].map { map =>
         Either.fromOption(map.get(id), s"invalid ID: $id")
       })
@@ -214,7 +214,7 @@ private object ModelRepr extends ModelReprBase {
         }
       },
       vector = (c, e) => Vector(e),
-      atom = (_, a) => Atom(a.uuid),
+      atom = (_, a) => Atom(a.uuid, a.atomDesc),
       cycle = { c =>
         val id = map.get(c.m).getOrElse {
           impossible(s"no ID found for cycle at ${c.p} (map is ${map})")

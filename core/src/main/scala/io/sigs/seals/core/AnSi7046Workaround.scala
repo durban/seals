@@ -14,25 +14,18 @@
  * limitations under the License.
  */
 
-package io.sigs
+package io.sigs.seals
+package core
 
-package object seals {
+/**
+ * This is an ugly workaround for SI-7046,
+ * regarding `Model` and 2 of its subclasses.
+ */
+private final class AnSi7046Workaround {
 
-  type Reified[A] = core.Reified[A]
-  val Reified = core.Reified
+  private def `This is to force Composite`: Model.Composite[_, _] =
+    sys.error("This should never be called")
 
-  type Model = core.Model
-  val Model = core.Model
-
-  type Kleene[F[_]] = core.Kleene[F]
-  val Kleene = core.Kleene
-
-  type Atomic[A] = core.Atomic[A]
-  val Atomic = core.Atomic
-
-  type Envelope[A] = core.Envelope[A]
-  val Envelope = core.Envelope
-
-  type Compat[A, B] = core.Compat[A, B]
-  val Compat = core.Compat
+  private def `And this is to force Vector`: Model.Vector =
+    sys.error("This should never be called")
 }

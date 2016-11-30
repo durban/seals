@@ -56,14 +56,9 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     }
   }
 
-  "conflicts with built-in Atoms are disallowed" in {
-    // TODO: determine what to do with this
-    //import shapeless.test.illTyped
-    //import laws.TestInstances.atomic.bad._
-    //illTyped(
-    //  "Model.Atom.atom[Int]",
-    //  ".*ambiguous implicit values.*"
-    //)
+  "custom Atomic has higher priority than built-in" in {
+    import laws.TestInstances.atomic.bad._
+    Model.Atom.atom[Int].uuid should === (laws.TestInstances.atomic.bad.atomicInt.uuid)
   }
 
   "have higher priority than generic Reified" in {

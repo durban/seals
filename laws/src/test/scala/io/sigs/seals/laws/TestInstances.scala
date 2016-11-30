@@ -71,12 +71,6 @@ object TestInstances {
         UUID.fromString("fa786e05-9baf-4a87-a06d-712d83d3c5d7")
     }
 
-    implicit val registry: AtomRegistry = {
-      AtomRegistry.builtinAtomRegistry +
-      Model.Atom.atom[MyUUID] +
-      Model.Atom.atom[Whatever.type]
-    }
-
     object bad {
 
       implicit val atomicInt: Atomic[Int] =

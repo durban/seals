@@ -17,8 +17,6 @@
 package io.sigs.seals
 package circe
 
-import java.util.UUID
-
 import cats.implicits._
 
 import io.circe._
@@ -69,13 +67,13 @@ object ModelCodecSpec {
 
 class ModelCodecSpec extends BaseJsonSpec {
 
-  import Model.Atom.atom
   import ModelCodecSpec._
 
-  def atomJson(id: UUID): Json = {
+  def atom[A](implicit atc: Atomic[A]): Json = {
     Json.obj(
       "Atom" -> Json.obj(
-        "id" -> Json.fromString(id.toString)
+        "id" -> Json.fromString(atc.uuid.toString),
+        "desc" -> Json.fromString(atc.description)
       )
     )
   }
@@ -107,13 +105,13 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("1"),
       "label" -> Json.fromString("i"),
       "optional" -> jfalse,
-      "head" -> atomJson(atom[Int].uuid),
+      "head" -> atom[Int],
       "tail" -> Json.obj(
         "HCons" -> Json.obj(
           "id" -> Json.fromString("0"),
           "label" -> Json.fromString("s"),
           "optional" -> jfalse,
-          "head" -> atomJson(atom[String].uuid),
+          "head" -> atom[String],
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
           )
@@ -126,7 +124,7 @@ class ModelCodecSpec extends BaseJsonSpec {
     "HCons" -> Json.obj(
       "tail" -> Json.obj(
         "HCons" -> Json.obj(
-          "head" -> atomJson(atom[String].uuid),
+          "head" -> atom[String],
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
           ),
@@ -135,7 +133,7 @@ class ModelCodecSpec extends BaseJsonSpec {
           "id" -> Json.fromString("0")
         )
       ),
-      "head" -> atomJson(atom[Int].uuid),
+      "head" -> atom[Int],
       "label" -> Json.fromString("i"),
       "id" -> Json.fromString("1"),
       "optional" -> jfalse
@@ -208,14 +206,14 @@ class ModelCodecSpec extends BaseJsonSpec {
   val optMod: Model = Model.HCons(
     'x,
     optional = true,
-    atom[Int],
+    Model.Atom.atom[Int],
     Model.HNil
   )
 
   val optMod2: Model = Model.HCons(
     'x,
     optional = false,
-    atom[Int],
+    Model.Atom.atom[Int],
     Model.HNil
   )
 
@@ -224,7 +222,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("0"),
       "label" -> Json.fromString("x"),
       "optional" -> jtrue,
-      "head" -> atomJson(atom[Int].uuid),
+      "head" -> atom[Int],
       "tail" -> Json.obj(
         "HNil" -> Json.obj()
       )
@@ -236,7 +234,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("0"),
       "label" -> Json.fromString("x"),
       // no "optional" field
-      "head" -> atomJson(atom[Int].uuid),
+      "head" -> atom[Int],
       "tail" -> Json.obj(
         "HNil" -> Json.obj()
       )
@@ -246,8 +244,8 @@ class ModelCodecSpec extends BaseJsonSpec {
   "Encoding" - {
 
     "atoms" in {
-      a1.asJson should === (atomJson(atom[Int].uuid))
-      a2.asJson should === (atomJson(atom[String].uuid))
+      a1.asJson should === (atom[Int])
+      a2.asJson should === (atom[String])
     }
 
     "simple models" in {
@@ -268,11 +266,11 @@ class ModelCodecSpec extends BaseJsonSpec {
   "Decoding" - {
 
     "atoms" in {
-      atomJson(atom[Int].uuid).as[Model] should === (
-        Either.right(atom[Int])
+      atom[Int].as[Model] should === (
+        Either.right(Model.Atom.atom[Int])
       )
-      atomJson(atom[String].uuid).as[Model] should === (
-        Either.right(atom[String])
+      atom[String].as[Model] should === (
+        Either.right(Model.Atom.atom[String])
       )
     }
 
@@ -306,13 +304,13 @@ class ModelCodecSpec extends BaseJsonSpec {
             "id" -> Json.fromString("1"),
             "label" -> Json.fromString("i"),
             "optional" -> jfalse,
-            "head" -> atomJson(atom[Int].uuid),
+            "head" -> atom[Int],
             "tail" -> Json.obj(
               "HCons" -> Json.obj(
                 "id" -> Json.fromString("0"),
                 "label" -> Json.fromString("s"),
                 "optional" -> jfalse,
-                "head" -> atomJson(atom[String].uuid),
+                "head" -> atom[String],
                 "tail" -> Json.obj(
                   "HNil" -> Json.obj()
                 )
@@ -331,7 +329,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("1"),
               "label" -> Json.fromString("i"),
               "optional" -> jfalse,
-              "head" -> atomJson(atom[Int].uuid)
+              "head" -> atom[Int]
               // no "tail"
             )
           )
@@ -344,7 +342,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("1"),
               "label" -> Json.fromString("i"),
               "optional" -> jfalse,
-              "head" -> atomJson(atom[Int].uuid),
+              "head" -> atom[Int],
               "tail" -> Json.arr() // not an object
             )
           )
@@ -355,7 +353,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("i"),
               "optional" -> Json.Null, // not a string
-              "head" -> atomJson(atom[Int].uuid),
+              "head" -> atom[Int],
               "tail" -> Json.obj(
                 "HNil" -> Json.obj()
               )
@@ -473,7 +471,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
-              "head" -> atomJson(atom[String].uuid),
+              "head" -> atom[String],
               "tail" -> Json.obj(
                 "Ref" -> Json.obj(
                   "id" -> Json.fromString("0") // from tail
@@ -501,7 +499,7 @@ class ModelCodecSpec extends BaseJsonSpec {
                   "id" -> Json.fromString("0"),
                   "label" -> Json.fromString("d"),
                   "optional" -> jfalse,
-                  "head" -> atomJson(atom[String].uuid),
+                  "head" -> atom[String],
                   "tail" -> Json.obj(
                     "HNil" -> Json.obj()
                   )
@@ -519,15 +517,13 @@ class ModelCodecSpec extends BaseJsonSpec {
   "Roundtrip" - {
 
     "built-in atoms" in {
-      checkJson[Model](atom[Int])
-      checkJson[Model](atom[String])
+      checkJson[Model](Model.Atom.atom[Int])
+      checkJson[Model](Model.Atom.atom[String])
     }
 
     "custom atoms" in {
-      // TODO: better API for custom registries
       import TestInstances.atomic.atomicMyUUID
-      implicit val r: AtomRegistry = AtomRegistry.builtinAtomRegistry + atom[MyUUID]
-      checkJson[Model](atom[MyUUID])
+      checkJson[Model](Model.Atom.atom[MyUUID])
     }
 
     "simple models" in {

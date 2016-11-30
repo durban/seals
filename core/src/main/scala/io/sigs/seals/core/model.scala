@@ -182,9 +182,6 @@ sealed trait Model extends Serializable {
     st.runS((Map.empty, 0)).value._1
   }
 
-  final def atomRegistry: AtomRegistry =
-    AtomRegistry.fromMap(allAtoms)
-
   @transient
   private[this] lazy val allAtoms: Map[UUID, Atom] = {
     this.fold[Map[UUID, Atom]](
@@ -216,11 +213,9 @@ object Model {
   // TODO: test laws
   /**
    * Reified instance for Model
-   *
-   * Requires an implicit AtomRegistry.
    */
-  implicit def reifiedForModel(implicit reg: AtomRegistry): Reified.Aux[Model, Model.CCons, Reified.FFirst] =
-    ModelRepr.reifiedForModelRepr.pimap[Model](_.toModel(reg))(ModelRepr.fromModel)
+  implicit val reifiedForModel: Reified.Aux[Model, Model.CCons, Reified.FFirst] =
+    ModelRepr.reifiedForModelRepr.pimap[Model](_.toModel)(ModelRepr.fromModel)
 
   private object hash {
 
@@ -607,16 +602,13 @@ object Model {
       private[core] val atomDesc: String
   ) extends Model {
 
-    private[this] def compEq(that: Atom): Boolean =
-      this.uuid === that.uuid
-
     private[core] def atomHash: Int =
       this.uuid.##
 
-    final protected[core] override def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = {
+    protected[core] final override def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = {
       that match {
         case that: Atom =>
-          this.compEq(that)
+          this.uuid === that.uuid
         case _ =>
           false
       }
@@ -643,6 +635,9 @@ object Model {
 
     def apply(uuid: UUID, desc: String): Atom =
       new Atom(uuid, desc)
+
+    def unknown(uuid: UUID): Atom =
+      new Atom(uuid, s"<UnknownAtom:${uuid}>")
 
     def atom[A](implicit atomic: Atomic[A]): Atom =
       atomic.atom

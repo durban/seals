@@ -30,7 +30,7 @@ import io.sigs.seals.laws.TestTypes
 import io.sigs.seals.laws.WireLaws
 import io.sigs.seals.core.Wire
 
-// TODO: fix the test failure
+// TODO: add more tests
 class CirceLawsSpec2
     extends tests.BaseLawsSpec
     with ArbInstances {
@@ -38,13 +38,14 @@ class CirceLawsSpec2
   import TestArbInstances.forTestData._
   import TestTypes.adts.defs.{ Adt1, Adt2 }
 
-  // TODO: fix this
-  //checkAll(
-  //  "WireLaws[Adt1, Adt2]",
-    WireLaws[Adt1, Adt2, Json, DecodingFailure](
-      λ[Reified ~> Wire.Aux[?, Json, DecodingFailure]](x => Wires.wireFromReified(x))
-    ).roundtrip
-  //)
+  val mkWire = λ[Reified ~> Wire.Aux[?, Json, DecodingFailure]](
+    x => Wires.wireFromReified(x)
+  )
+
+  checkAll(
+    "WireLaws[Adt1, Adt2, Json, DecodingFailure]",
+    WireLaws[Adt1, Adt2, Json, DecodingFailure](mkWire).roundtrip
+  )
 }
 
 // TODO: remove this, when the one above is fixed

@@ -42,7 +42,6 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[Envelope[TestTypes.adts.recursive.IntList], Int, Int]("Envelope[IntList]")
 
   locally {
-    import TestInstances.atomic.registry
     checkReifiedLaws[Model, Int, String]("Model")
   }
 
