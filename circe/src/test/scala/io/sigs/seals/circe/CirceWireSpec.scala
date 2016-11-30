@@ -17,10 +17,8 @@
 package io.sigs.seals
 package circe
 
-import cats.{ ~>, Eq }
+import cats.~>
 import cats.implicits._
-
-import org.scalacheck.Arbitrary
 
 import io.circe._
 
@@ -30,40 +28,46 @@ import io.sigs.seals.laws.TestTypes
 import io.sigs.seals.laws.WireLaws
 import io.sigs.seals.core.Wire
 
-// TODO: add more tests
-class CirceLawsSpec2
+class CirceWireSpec
     extends tests.BaseLawsSpec
     with ArbInstances {
 
   import TestArbInstances.forTestData._
   import TestTypes.adts.defs.{ Adt1, Adt2 }
+  import TestTypes.adts.recursive.IntList
+  import TestTypes.collections.Adt
 
   val mkWire = λ[Reified ~> Wire.Aux[?, Json, DecodingFailure]](
     x => Wires.wireFromReified(x)
   )
 
   checkAll(
-    "WireLaws[Adt1, Adt2, Json, DecodingFailure]",
-    WireLaws[Adt1, Adt2, Json, DecodingFailure](mkWire).roundtrip
+    "WireLaws[Int, Json, DecodingFailure]",
+    WireLaws[Int, Json, DecodingFailure](mkWire).roundtrip
   )
-}
+  checkAll(
+    "WireLaws[String, Json, DecodingFailure]",
+    WireLaws[String, Json, DecodingFailure](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[Vector[String], Json, DecodingFailure]",
+    WireLaws[Vector[String], Json, DecodingFailure](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[IntList, Json, DecodingFailure]",
+    WireLaws[IntList, Json, DecodingFailure](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[List[IntList], Json, DecodingFailure]",
+    WireLaws[List[IntList], Json, DecodingFailure](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[collections.Adt, Json, DecodingFailure]",
+    WireLaws[Adt, Json, DecodingFailure](mkWire).roundtrip
+  )
 
-// TODO: remove this, when the one above is fixed
-class CirceLawsSpec extends tests.BaseLawsSpec {
-
-  import Codec._
-  import ArbInstances.arbEnvelope
-  import TestArbInstances.forTestData._
-
-  checkParametricLaws[Int]("Int")
-  checkParametricLaws[String]("String")
-  checkParametricLaws[Vector[String]]("Vector[String]")
-  checkParametricLaws[TestTypes.adts.defs.Adt1]("Adt1")
-  checkParametricLaws[TestTypes.adts.recursive.IntList]("IntList")
-  checkParametricLaws[List[TestTypes.adts.recursive.IntList]]("List[IntList]")
-  checkParametricLaws[TestTypes.collections.Adt]("collections.Adt")
-
-  def checkParametricLaws[A](name: String)(implicit a: Arbitrary[A], eq: Eq[A], r: Reified[A]): Unit = {
-    checkAll(s"Envelope[$name].CirceLaws", claws.CirceLaws[Envelope[A]].roundtrip)
-  }
+  checkAll(
+    "WireLaws[Adt1, Json, DecodingFailure]+Adt2",
+    WireLaws[Adt1, Json, DecodingFailure](mkWire).roundtripCompat[Adt2]
+  )
 }

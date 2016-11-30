@@ -28,47 +28,42 @@ import io.sigs.seals.core.Wire
 
 object WireLaws {
 
-  def apply[A, B, R, E](wfr: Reified ~> Wire.Aux[?, R, E])(
+  def apply[A, R, E](wfr: Reified ~> Wire.Aux[?, R, E])(
     implicit
     arbA: Arbitrary[A],
-    arbB: Arbitrary[B],
     equA: Eq[A],
-    equB: Eq[B],
-    reiA: Reified[A],
-    reiB: Reified[B],
-    comp: Compat[A, B]
-  ): WireLaws[A, B, R, E] = new WireLaws[A, B, R, E] {
+    reiA: Reified[A]
+  ): WireLaws[A, R, E] = new WireLaws[A, R, E] {
 
     def ArbA: Arbitrary[A] = arbA
-    def ArbB: Arbitrary[B] = arbB
     def EquA: Eq[A] = equA
-    def EquB: Eq[B] = equB
     def ReiA: Reified[A] = reiA
-    def ReiB: Reified[B] = reiB
-    def Comp: Compat[A, B] = comp
 
     def wireFromReified[X](implicit X: Reified[X]): Wire.Aux[X, R, E] = wfr(X)
   }
 }
 
-trait WireLaws[A, B, R, E] extends Laws with ArbInstances {
+trait WireLaws[A, R, E] extends Laws with ArbInstances {
 
   implicit def ArbA: Arbitrary[A]
-  implicit def ArbB: Arbitrary[B]
   implicit def EquA: Eq[A]
-  implicit def EquB: Eq[B]
   implicit def ReiA: Reified[A]
-  implicit def ReiB: Reified[B]
-
-  implicit def Comp: Compat[A, B]
 
   implicit def wireFromReified[X](implicit X: Reified[X]): Wire.Aux[X, R, E]
 
   def roundtrip: this.RuleSet = new WireRuleSet(
     "roundtrip",
+    parent = None,
     "simpleRoundtrip" -> simpleRoundtrip[A],
+    "envelopeSimpleRoundtrip" -> simpleRoundtrip[Envelope[A]]
+  )
+
+  def roundtripCompat[B](
+    implicit arbB: Arbitrary[B], equB: Eq[B], reiB: Reified[B], compat: Compat[A, B]
+  ): this.RuleSet = new WireRuleSet(
+    "roundtripCompat",
+    parent = Some(roundtrip),
     "roundtripThroughCompat" -> roundtripThroughCompat[A, B],
-    "envelopeSimpleRoundtrip" -> simpleRoundtrip[Envelope[A]],
     "envelopeRoundtripThroughCompat" -> roundtripThroughCompat[Envelope[A], Envelope[B]]
   )
 
@@ -122,9 +117,9 @@ trait WireLaws[A, B, R, E] extends Laws with ArbInstances {
 
   final class WireRuleSet(
     val name: String,
+    val parent: Option[RuleSet],
     val props: (String, Prop)*
   ) extends RuleSet with HasOneParent {
-    val parent = None
     val bases = Nil
   }
 }
