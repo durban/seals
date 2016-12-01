@@ -55,7 +55,8 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
     "roundtrip",
     parent = None,
     "simpleRoundtrip" -> simpleRoundtrip[A],
-    "envelopeSimpleRoundtrip" -> simpleRoundtrip[Envelope[A]]
+    "envelopeSimpleRoundtrip" -> simpleRoundtrip[Envelope[A]],
+    "modelSimpleRoundtrip" -> simpleRoundtrip[Model]
   )
 
   def roundtripCompat[B](

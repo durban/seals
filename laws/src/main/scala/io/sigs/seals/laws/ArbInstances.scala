@@ -20,6 +20,7 @@ package laws
 import shapeless._
 
 import org.scalacheck.{ Arbitrary, Gen, Cogen }
+import org.scalacheck.derive.Recursive
 
 object ArbInstances extends ArbInstances
 
@@ -98,8 +99,16 @@ trait ArbInstances {
     Gen.oneOf(core.Atomic.registry.values.toSeq)
   }
 
-  implicit def arbModel: Arbitrary[Model] =
-    _arbModel
+  implicit def recModel: Recursive[Model] =
+    Recursive(arbModelAtom.arbitrary)
+
+  implicit def arbModel: Arbitrary[Model] = {
+    Arbitrary {
+      Gen.sized { n =>
+        Gen.resize(n / 2, Gen.lzy(_arbModel.arbitrary))
+      }
+    }
+  }
 
   private[this] lazy val _arbModel: Arbitrary[Model] = {
 
