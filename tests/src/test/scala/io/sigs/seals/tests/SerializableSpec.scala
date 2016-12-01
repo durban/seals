@@ -59,6 +59,7 @@ class SerializableSpec extends BaseSpec {
 
     "Vector should be serializable" in {
       checkSer('x -> Model.Vector(atom[String]))
+      checkSer(Reified[TestTypes.collections.Cyclic].model)
     }
 
     "Cyclic models should be serializable" in {

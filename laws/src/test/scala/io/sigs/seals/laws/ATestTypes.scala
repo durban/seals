@@ -274,5 +274,13 @@ object TestTypes {
     object WithVector {
       lazy val expModel = Model.HCons('els, Model.Vector(Adt.expModel), Model.HNil)
     }
+
+    sealed trait Cyclic
+    object Cyclic {
+      implicit val eqForCyclic: Eq[Cyclic] =
+        Eq.fromUniversalEquals
+    }
+    final case class CyA(i: Int, cs: Vector[Cyclic]) extends Cyclic
+    final case object CyB extends Cyclic
   }
 }

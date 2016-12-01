@@ -86,6 +86,17 @@ trait TestArbInstances extends ArbInstances {
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.recursive.v2.IntList]
       )
     }
+
+    implicit val recCollCyclic: Recursive[TestTypes.collections.Cyclic] =
+      Recursive(Gen.const(TestTypes.collections.CyB))
+
+    implicit val arbCollCyclic: Arbitrary[TestTypes.collections.Cyclic] = {
+      import org.scalacheck.Shapeless._
+      derivedArbitrary(
+        null : shapeless.LowPriority, // scalastyle:ignore null
+        org.scalacheck.derive.MkArbitrary[TestTypes.collections.Cyclic]
+      )
+    }
   }
 
   /** Inserts custom Atoms besides the built-in ones */
