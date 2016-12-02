@@ -22,6 +22,7 @@ import shapeless.union._
 
 import _root_.scodec.bits._
 import _root_.scodec.{ Attempt, DecodeResult, Codec }
+import _root_.scodec.codecs.vlong
 
 import Codecs._
 import laws.TestTypes.{ CaseClass, Whatever }
@@ -32,6 +33,9 @@ import laws.TestInstances.atomic._
 class CodecsSpec extends tests.BaseSpec {
 
   type U = Union.`'a -> Int, 'b -> Int`.T
+
+  def vl(i: Int): ByteVector =
+    vlong.encode(i.toLong).getOrElse(fail()).bytes
 
   "Encoder from Reified" - {
 
@@ -46,10 +50,10 @@ class CodecsSpec extends tests.BaseSpec {
 
     "Products" in {
       encoderFromReified[Record.`'a -> Int`.T].encode(Record(a = 42)) should === (
-        Attempt.successful(hex"A2 0000 0002 3432  A1".bits)
+        Attempt.successful(hex"A2 ${vl(6)} 0000 0002 3432  A1".bits)
       )
       encoderFromReified[CaseClass].encode(CaseClass(42L)) should === (
-        Attempt.successful(hex"A2 0000 0002 3432  A1".bits)
+        Attempt.successful(hex"A2 ${vl(6)} 0000 0002 3432  A1".bits)
       )
     }
 
@@ -58,7 +62,7 @@ class CodecsSpec extends tests.BaseSpec {
         Attempt.successful(hex"0000 0001 62  0000 0002 3432".bits)
       )
       encoderFromReified[Adt1].encode(Adt1.C(42)) should === (
-        Attempt.successful(hex"0000 0001 43  A2 0000 0002 3432  A2 0000 0003 626F6F  A1".bits)
+        Attempt.successful(hex"0000 0001 43  A2 ${vl(6)} 0000 0002 3432  A2 ${vl(7)} 0000 0003 626F6F  A1".bits)
       )
     }
 
@@ -67,7 +71,7 @@ class CodecsSpec extends tests.BaseSpec {
         Attempt.successful(hex"0000 0002  0000 0002 3432  0000 0002 3433".bits)
       )
       encoderFromReified[WithList].encode(WithList(42, List(42.0f))) should === (
-        Attempt.successful(hex"A2 0000 0002 3432  A2 0000 0001  0000 0004  3432 2E30  A1".bits)
+        Attempt.successful(hex"A2 ${vl(6)} 0000 0002 3432  A2 ${vl(12)} 0000 0001  0000 0004  3432 2E30  A1".bits)
       )
     }
   }
@@ -84,10 +88,10 @@ class CodecsSpec extends tests.BaseSpec {
     }
 
     "Products" in {
-      decoderFromReified[Record.`'a -> Int`.T].decode(hex"A2 0000 0002 3432  A1   abcd".bits) should === (
+      decoderFromReified[Record.`'a -> Int`.T].decode(hex"A2 ${vl(6)} 0000 0002 3432  A1   abcd".bits) should === (
         Attempt.successful(DecodeResult(Record(a = 42), hex"abcd".bits))
       )
-      decoderFromReified[CaseClass].decode(hex"A2 0000 0002 3432  A1".bits) should === (
+      decoderFromReified[CaseClass].decode(hex"A2 ${vl(6)} 0000 0002 3432  A1".bits) should === (
         Attempt.successful(DecodeResult(CaseClass(42L), BitVector.empty))
       )
     }
@@ -96,7 +100,7 @@ class CodecsSpec extends tests.BaseSpec {
       decoderFromReified[U].decode(hex"0000 0001 62  0000 0002 3432   babe".bits) should === (
         Attempt.successful(DecodeResult(Union[U](b = 42), hex"babe".bits))
       )
-      decoderFromReified[Adt1].decode(hex"0000 0001 43  A2 0000 0002 3432  A2 0000 0003 626F6F  A1   aaaa".bits) should === (
+      decoderFromReified[Adt1].decode(hex"0000 0001 43  A2 ${vl(6)} 0000 0002 3432  A2 ${vl(7)} 0000 0003 626F6F  A1   aaaa".bits) should === (
         Attempt.successful(DecodeResult(Adt1.C(42), hex"aaaa".bits))
       )
     }
@@ -105,7 +109,7 @@ class CodecsSpec extends tests.BaseSpec {
       decoderFromReified[Vector[Int]].decode(hex"0000 0002  0000 0002 3432  0000 0002 3433   dead".bits) should === (
         Attempt.successful(DecodeResult(Vector(42, 43), hex"dead".bits))
       )
-      decoderFromReified[WithList].decode(hex"A2 0000 0002 3432  A2 0000 0001  0000 0004  3432 2E30  A1   ff".bits) should === (
+      decoderFromReified[WithList].decode(hex"A2 ${vl(6)} 0000 0002 3432  A2 ${vl(12)} 0000 0001  0000 0004  3432 2E30  A1   ff".bits) should === (
         Attempt.successful(DecodeResult(WithList(42, List(42.0f)), hex"ff".bits))
       )
     }

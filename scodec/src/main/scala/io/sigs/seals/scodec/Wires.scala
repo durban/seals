@@ -14,28 +14,28 @@
  * limitations under the License.
  */
 
-package io.sigs
+package io.sigs.seals
+package scodec
 
-package object seals {
+import _root_.scodec.bits.BitVector
+import _root_.scodec.{ Err => SErr }
 
-  type Reified[A] = core.Reified[A]
-  val Reified = core.Reified
+trait Wires {
 
-  type Model = core.Model
-  val Model = core.Model
+  implicit def wireFromReified[A](
+    implicit A: Reified[A]
+  ): Wire.Aux[A, BitVector, SErr] = new Wire[A] {
+    type Repr = BitVector
+    type Err = SErr
 
-  type Kleene[F[_]] = core.Kleene[F]
-  val Kleene = core.Kleene
+    override def toWire(a: A): Either[Err, BitVector] =
+      Codecs.encoderFromReified(A).encode(a).toEither
 
-  type Atomic[A] = core.Atomic[A]
-  val Atomic = core.Atomic
+    override def fromWire(r: BitVector): Either[Err, A] =
+      Codecs.decoderFromReified(A).decode(r).toEither.right.map(_.value)
 
-  type Envelope[A] = core.Envelope[A]
-  val Envelope = core.Envelope
-
-  type Compat[A, B] = core.Compat[A, B]
-  val Compat = core.Compat
-
-  type Wire[A] = core.Wire[A]
-  val Wire = core.Wire
+    override def reified = A
+  }
 }
+
+object Wires extends Wires

@@ -18,10 +18,10 @@ package io.sigs.seals
 package scodec
 
 import cats.implicits._
-import cats.Traverse
+import cats.{ Traverse, Monad }
 
 import _root_.scodec.{ Codec, Encoder, Decoder, Attempt, SizeBound, DecodeResult, Err }
-import _root_.scodec.codecs.{ int32, uint8, utf8_32, constant, discriminated }
+import _root_.scodec.codecs.{ int32, bits, uint8, vlong, utf8_32, constant, discriminated, variableSizeBytesLong }
 import _root_.scodec.bits._
 import _root_.scodec.interop.cats._
 
@@ -40,6 +40,12 @@ object Codecs {
 
   private[this] val fieldSignCodec: Codec[Unit] =
     constant(uint8.encode(fieldConst).getOrElse(throw new AssertionError))
+
+  private[this] val fieldLengthCodec: Codec[Long] =
+    vlong
+
+  private[this] val lengthPrefixField: Codec[BitVector] =
+    variableSizeBytesLong(fieldLengthCodec, bits)
 
   private[this] val emptyCodec: Codec[Unit] =
     constant(BitVector.empty)
@@ -62,6 +68,7 @@ object Codecs {
         hCons = (_, h, t) => for {
           fv <- fieldSignCodec.encode(())
           hv <- h
+          hv <- lengthPrefixField.encode(hv)
           tv <- t
         } yield fv ++ hv ++ tv,
         sum = (l, v) => for {
@@ -84,7 +91,24 @@ object Codecs {
       val x = A.unfold(Reified.Unfolder.instance[BitVector, Err, Int](
         atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toEither },
         atomErr = { _ => Err("cannot decode atom") },
-        hNil = { b => hnilCodec.decode(b).map(_.remainder).toEither },
+        hNil = { b =>
+          // we may have to skip fields:
+          Monad[Attempt].tailRecM(b) { b: BitVector =>
+            fieldDiscriminator.decode(b).fold(
+              err => Attempt.failure(err),
+              dr => dr.value match {
+                case Left(_) =>
+                  // OK, this is HNil, we're done:
+                  Attempt.successful(Right(dr.remainder))
+                case Right(_) =>
+                  // we have a field, skip it and continue:
+                  lengthPrefixField.decode(dr.remainder).map { dr =>
+                    Left(dr.remainder)
+                  }
+              }
+            )
+          }.toEither
+        },
         hCons = { (b, l) =>
           fieldDiscriminator.decode(b).fold(
             err => Either.right(Either.left(err)),
@@ -92,7 +116,7 @@ object Codecs {
               case Left(_) =>
                 Either.left(Err(s"missing field: '${l.name}'"))
               case Right(_) =>
-                Either.right(Either.right((dr.remainder, Right.apply)))
+                Either.right(fieldLengthCodec.decode(dr.remainder).toEither.map(dr => (dr.remainder, Right(_))))
             }
           )
         },
