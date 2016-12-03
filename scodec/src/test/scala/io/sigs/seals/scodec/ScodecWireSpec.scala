@@ -18,6 +18,7 @@ package io.sigs.seals
 package scodec
 
 import cats.~>
+import cats.implicits._
 
 import _root_.scodec.bits.BitVector
 import _root_.scodec.Err
@@ -34,13 +35,45 @@ class ScodecWireSpec
 
   import TestArbInstances.forTestData._
   import TestTypes.adts.defs.{ Adt1, Adt2 }
+  import TestTypes.adts.recursive.IntList
+  import TestTypes.adts.recursive.v2.{ IntList => IntListV2 }
+  import TestTypes.collections.{ Adt, Cyclic }
 
   val mkWire = λ[Reified ~> Wire.Aux[?, BitVector, Err]](
     x => Wires.wireFromReified(x)
   )
 
   checkAll(
+    "WireLaws[Int, BitVector, Err]",
+    WireLaws[Int, BitVector, Err](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[String, BitVector, Err]",
+    WireLaws[String, BitVector, Err](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[Vector[String], BitVector, Err]",
+    WireLaws[Vector[String], BitVector, Err](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[List[IntList], BitVector, Err]",
+    WireLaws[List[IntList], BitVector, Err](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[collections.Adt, BitVector, Err]",
+    WireLaws[Adt, BitVector, Err](mkWire).roundtrip
+  )
+  checkAll(
+    "WireLaws[collections.Cyclic, BitVector, Err]",
+    WireLaws[Cyclic, BitVector, Err](mkWire).roundtrip
+  )
+
+  checkAll(
     "WireLaws[Adt1, BitVector, Err]+Adt2",
     WireLaws[Adt1, BitVector, Err](mkWire).roundtripCompat[Adt2]
+  )
+  checkAll(
+    "WireLaws[IntList, BitVector, Err]+v2",
+    WireLaws[IntList, BitVector, Err](mkWire).roundtripCompat[IntListV2]
   )
 }
