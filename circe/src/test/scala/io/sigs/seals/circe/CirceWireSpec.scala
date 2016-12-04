@@ -17,62 +17,19 @@
 package io.sigs.seals
 package circe
 
-import cats.~>
-import cats.implicits._
-
 import io.circe._
-
-import io.sigs.seals.laws.ArbInstances
-import io.sigs.seals.laws.TestArbInstances
-import io.sigs.seals.laws.TestTypes
-import io.sigs.seals.laws.WireLaws
-import io.sigs.seals.core.Wire
 
 class CirceWireSpec
     extends tests.BaseLawsSpec
-    with ArbInstances {
+    with laws.AbstractWireSpec[Json, DecodingFailure]
+    with laws.ArbInstances {
 
-  import TestArbInstances.forTestData._
-  import TestTypes.adts.defs.{ Adt1, Adt2 }
-  import TestTypes.adts.recursive.IntList
-  import TestTypes.adts.recursive.v2.{ IntList => IntListV2 }
-  import TestTypes.collections.{ Adt, Cyclic }
+  override def descR: String =
+    "Json"
 
-  val mkWire = λ[Reified ~> Wire.Aux[?, Json, DecodingFailure]](
-    x => Wires.wireFromReified(x)
-  )
+  override def descE: String =
+    "DecodingFailure"
 
-  checkAll(
-    "WireLaws[Int, Json, DecodingFailure]",
-    WireLaws[Int, Json, DecodingFailure](mkWire).roundtrip
-  )
-  checkAll(
-    "WireLaws[String, Json, DecodingFailure]",
-    WireLaws[String, Json, DecodingFailure](mkWire).roundtrip
-  )
-  checkAll(
-    "WireLaws[Vector[String], Json, DecodingFailure]",
-    WireLaws[Vector[String], Json, DecodingFailure](mkWire).roundtrip
-  )
-  checkAll(
-    "WireLaws[List[IntList], Json, DecodingFailure]",
-    WireLaws[List[IntList], Json, DecodingFailure](mkWire).roundtrip
-  )
-  checkAll(
-    "WireLaws[collections.Adt, Json, DecodingFailure]",
-    WireLaws[Adt, Json, DecodingFailure](mkWire).roundtrip
-  )
-  checkAll(
-    "WireLaws[collections.Cyclic, Json, DecodingFailure]",
-    WireLaws[Cyclic, Json, DecodingFailure](mkWire).roundtrip
-  )
-
-  checkAll(
-    "WireLaws[Adt1, Json, DecodingFailure]+Adt2",
-    WireLaws[Adt1, Json, DecodingFailure](mkWire).roundtripCompat[Adt2]
-  )
-  checkAll(
-    "WireLaws[IntList, Json, DecodingFailure]+v2",
-    WireLaws[IntList, Json, DecodingFailure](mkWire).roundtripCompat[IntListV2]
-  )
+  override def mkWire[A](r: Reified[A]): Wire.Aux[A, Json, DecodingFailure] =
+    Wires.wireFromReified(r)
 }
