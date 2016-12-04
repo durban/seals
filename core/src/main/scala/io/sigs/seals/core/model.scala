@@ -210,7 +210,6 @@ object Model {
   implicit val modelEquality: Eq[Model] =
     Eq.fromUniversalEquals[Model]
 
-  // TODO: test laws
   /**
    * Reified instance for Model
    */
