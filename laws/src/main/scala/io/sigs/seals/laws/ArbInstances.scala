@@ -104,8 +104,9 @@ trait ArbInstances {
 
   implicit def arbModel: Arbitrary[Model] = {
     Arbitrary {
-      Gen.sized { n =>
-        Gen.resize(n / 2, Gen.lzy(_arbModel.arbitrary))
+      Gen.sized { oldSize =>
+        val newSize = Math.sqrt(oldSize.toDouble).ceil.toInt
+        Gen.resize(newSize, Gen.lzy(_arbModel.arbitrary))
       }
     }
   }
