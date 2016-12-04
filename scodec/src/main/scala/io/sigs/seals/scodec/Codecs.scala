@@ -29,17 +29,12 @@ import core.symbolEq
 
 object Codecs {
 
-  private[this] final val hnilConst = 0xA1
-  private[this] final val fieldConst = 0xA2
+  private sealed abstract class FieldOrEnd(val marker: Int)
+  private final case object Field extends FieldOrEnd(0xA2)
+  private final case object End extends FieldOrEnd(0xA1)
 
   private[this] val symbolCodec: Codec[Symbol] =
     utf8_32.xmap(Symbol.apply, _.name)
-
-  private[this] val hnilCodec: Codec[Unit] =
-    constant(uint8.encode(hnilConst).getOrElse(throw new AssertionError))
-
-  private[this] val fieldSignCodec: Codec[Unit] =
-    constant(uint8.encode(fieldConst).getOrElse(throw new AssertionError))
 
   private[this] val fieldLengthCodec: Codec[Long] =
     vlong
@@ -50,10 +45,10 @@ object Codecs {
   private[this] val emptyCodec: Codec[Unit] =
     constant(BitVector.empty)
 
-  private[this] val fieldDiscriminator = {
-    discriminated[Either[Unit, Unit]].by(uint8).
-      | (hnilConst) { case Left(l) => l } (Left.apply) (emptyCodec).
-      | (fieldConst) { case Right(r) => r } (Right.apply) (emptyCodec)
+  private[this] val fieldOrEnd = {
+    discriminated[FieldOrEnd].by(uint8).
+      | (Field.marker) { case Field => () } (_ => Field) (emptyCodec).
+      | (End.marker) { case End => () } (_ => End) (emptyCodec)
   }
 
   implicit def codecFromReified[A](implicit A: Reified[A]): Codec[A] =
@@ -64,9 +59,9 @@ object Codecs {
     override def encode(value: A): Attempt[BitVector] = {
       A.foldClose(value)(Reified.Folder.simple[Attempt[BitVector]](
         atom = utf8_32.encode,
-        hNil = () => hnilCodec.encode(()),
+        hNil = () => fieldOrEnd.encode(End),
         hCons = (_, h, t) => for {
-          fv <- fieldSignCodec.encode(())
+          fv <- fieldOrEnd.encode(Field)
           hv <- h
           hv <- lengthPrefixField.encode(hv)
           tv <- t
@@ -94,13 +89,13 @@ object Codecs {
         hNil = { b =>
           // we may have to skip fields:
           Monad[Attempt].tailRecM(b) { b: BitVector =>
-            fieldDiscriminator.decode(b).fold(
+            fieldOrEnd.decode(b).fold(
               err => Attempt.failure(err),
               dr => dr.value match {
-                case Left(_) =>
+                case End =>
                   // OK, this is HNil, we're done:
                   Attempt.successful(Right(dr.remainder))
-                case Right(_) =>
+                case Field =>
                   // we have a field, skip it and continue:
                   lengthPrefixField.decode(dr.remainder).map { dr =>
                     Left(dr.remainder)
@@ -110,12 +105,12 @@ object Codecs {
           }.toEither
         },
         hCons = { (b, l) =>
-          fieldDiscriminator.decode(b).fold(
+          fieldOrEnd.decode(b).fold(
             err => Either.right(Either.left(err)),
             dr => dr.value match {
-              case Left(_) =>
+              case End =>
                 Either.left(Err(s"missing field: '${l.name}'"))
-              case Right(_) =>
+              case Field =>
                 Either.right(fieldLengthCodec.decode(dr.remainder).toEither.map(dr => (dr.remainder, Right(_))))
             }
           )
