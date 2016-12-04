@@ -22,7 +22,7 @@ import shapeless.union._
 
 import _root_.scodec.bits._
 import _root_.scodec.{ Attempt, DecodeResult, Codec }
-import _root_.scodec.codecs.vlong
+import _root_.scodec.codecs.{ vint, vlong }
 
 import Codecs._
 import laws.TestTypes.{ CaseClass, Whatever }
@@ -33,6 +33,9 @@ import laws.TestInstances.atomic._
 class CodecsSpec extends tests.BaseSpec {
 
   type U = Union.`'a -> Int, 'b -> Int`.T
+
+  def vi(i: Int): ByteVector =
+    vint.encode(i).getOrElse(fail()).bytes
 
   def vl(i: Int): ByteVector =
     vlong.encode(i.toLong).getOrElse(fail()).bytes
@@ -59,10 +62,10 @@ class CodecsSpec extends tests.BaseSpec {
 
     "Sums" in {
       encoderFromReified[U].encode(Union[U](b = 42)) should === (
-        Attempt.successful(hex"0000 0001 62  0000 0002 3432".bits)
+        Attempt.successful(hex"${vi(1)} 62  0000 0002 3432".bits)
       )
       encoderFromReified[Adt1].encode(Adt1.C(42)) should === (
-        Attempt.successful(hex"0000 0001 43  A2 ${vl(6)} 0000 0002 3432  A2 ${vl(7)} 0000 0003 626F6F  A1".bits)
+        Attempt.successful(hex"${vi(1)} 43  A2 ${vl(6)} 0000 0002 3432  A2 ${vl(7)} 0000 0003 626F6F  A1".bits)
       )
     }
 
@@ -97,10 +100,10 @@ class CodecsSpec extends tests.BaseSpec {
     }
 
     "Sums" in {
-      decoderFromReified[U].decode(hex"0000 0001 62  0000 0002 3432   babe".bits) should === (
+      decoderFromReified[U].decode(hex"${vi(1)} 62  0000 0002 3432   babe".bits) should === (
         Attempt.successful(DecodeResult(Union[U](b = 42), hex"babe".bits))
       )
-      decoderFromReified[Adt1].decode(hex"0000 0001 43  A2 ${vl(6)} 0000 0002 3432  A2 ${vl(7)} 0000 0003 626F6F  A1   aaaa".bits) should === (
+      decoderFromReified[Adt1].decode(hex"${vi(1)} 43  A2 ${vl(6)} 0000 0002 3432  A2 ${vl(7)} 0000 0003 626F6F  A1   aaaa".bits) should === (
         Attempt.successful(DecodeResult(Adt1.C(42), hex"aaaa".bits))
       )
     }

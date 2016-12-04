@@ -17,11 +17,25 @@
 package io.sigs.seals
 package scodec
 
+import java.nio.charset.StandardCharsets
+
 import cats.implicits._
 import cats.{ Traverse, Monad }
 
 import _root_.scodec.{ Codec, Encoder, Decoder, Attempt, SizeBound, DecodeResult, Err }
-import _root_.scodec.codecs.{ int32, bits, uint8, vlong, utf8_32, constant, discriminated, variableSizeBytesLong }
+import _root_.scodec.codecs.{
+  int32,
+  uint8,
+  vlong,
+  vint,
+  utf8_32,
+  bits,
+  constant,
+  string,
+  discriminated,
+  variableSizeBytes,
+  variableSizeBytesLong
+}
 import _root_.scodec.bits._
 import _root_.scodec.interop.cats._
 
@@ -39,7 +53,9 @@ trait Codecs {
   private[this] final val endMarker = 0xA1
 
   private[this] val symbolCodec: Codec[Symbol] =
-    utf8_32.xmap(Symbol.apply, _.name)
+    variableSizeBytes(vint, string(StandardCharsets.UTF_8))
+      .withToString("Symbol")
+      .xmap(Symbol.apply, _.name)
 
   private[this] val fieldLengthCodec: Codec[Long] =
     vlong
