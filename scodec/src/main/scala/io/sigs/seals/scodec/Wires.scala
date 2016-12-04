@@ -20,6 +20,8 @@ package scodec
 import _root_.scodec.bits.BitVector
 import _root_.scodec.{ Err => SErr }
 
+object Wires extends Wires
+
 trait Wires {
 
   implicit def wireFromReified[A](
@@ -37,5 +39,3 @@ trait Wires {
     override def reified = A
   }
 }
-
-object Wires extends Wires

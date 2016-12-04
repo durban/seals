@@ -20,8 +20,9 @@ package circe
 import io.circe._
 import cats.implicits._
 
-// TODO: rename to Codecs
-object Codec {
+object Codecs extends Codecs
+
+trait Codecs {
 
   // TODO: these also provide codecs for String, Int, ...
   // (every Atom), and when imported, they have a higher

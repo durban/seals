@@ -24,7 +24,7 @@ import org.http4s.circe._
 import scalaz.concurrent.Task
 
 import io.sigs.seals._
-import io.sigs.seals.circe.Codec._
+import io.sigs.seals.circe.Codecs._
 
 object Protocol {
   final case class Ping(seqNr: Long, payload: Vector[Int])

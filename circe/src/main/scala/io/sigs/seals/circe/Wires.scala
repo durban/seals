@@ -19,7 +19,7 @@ package circe
 
 import io.circe._
 
-import io.sigs.seals.core.Wire
+object Wires extends Wires
 
 trait Wires {
 
@@ -30,13 +30,11 @@ trait Wires {
     type Err = DecodingFailure
 
     override def toWire(a: A): Either[DecodingFailure, Json] =
-      Right(Codec.encoderFromReified(A).apply(a))
+      Right(Codecs.encoderFromReified(A).apply(a))
 
     override def fromWire(r: Json): Either[DecodingFailure, A] =
-      Codec.decoderFromReified(A).decodeJson(r)
+      Codecs.decoderFromReified(A).decodeJson(r)
 
     override def reified = A
   }
 }
-
-object Wires extends Wires

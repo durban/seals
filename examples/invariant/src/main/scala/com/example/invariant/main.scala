@@ -24,7 +24,7 @@ import io.circe._
 import io.circe.syntax._
 
 import io.sigs.seals.Reified
-import io.sigs.seals.circe.Codec._
+import io.sigs.seals.circe.Codecs._
 
 object Main extends App with PolySupport {
 

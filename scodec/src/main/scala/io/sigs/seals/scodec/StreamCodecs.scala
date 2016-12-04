@@ -23,7 +23,9 @@ import _root_.scodec.Err
 import _root_.scodec.bits.BitVector
 import _root_.scodec.stream.{ StreamEncoder, StreamDecoder, StreamCodec, decode, encode }
 
-object StreamCodecs {
+object StreamCodecs extends StreamCodecs
+
+trait StreamCodecs {
 
   implicit def streamCodecFromReified[A](implicit A: Reified[A]): StreamCodec[A] =
     StreamCodec.instance(streamEncoderFromReified(A), streamDecoderFromReified(A))

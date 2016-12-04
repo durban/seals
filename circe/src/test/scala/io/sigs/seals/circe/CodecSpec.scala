@@ -24,7 +24,7 @@ import cats.implicits._
 import io.circe._
 import io.circe.syntax._
 
-import Codec._
+import Codecs._
 import laws.MyUUID
 import laws.TestInstances.atomic.atomicMyUUID
 

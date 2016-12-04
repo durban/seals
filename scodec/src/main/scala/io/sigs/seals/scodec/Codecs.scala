@@ -27,7 +27,9 @@ import _root_.scodec.interop.cats._
 
 import core.symbolEq
 
-object Codecs {
+object Codecs extends Codecs
+
+trait Codecs {
 
   private sealed abstract class FieldOrEnd(val marker: Int)
   private final case object Field extends FieldOrEnd(fieldMarker)

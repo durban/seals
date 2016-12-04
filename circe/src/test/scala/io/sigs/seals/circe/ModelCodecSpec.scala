@@ -26,7 +26,7 @@ import laws.MyUUID
 import laws.TestInstances
 import laws.TestTypes
 
-import Codec._
+import Codecs._
 
 object ModelCodecSpec {
 
