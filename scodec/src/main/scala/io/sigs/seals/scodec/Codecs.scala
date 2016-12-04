@@ -30,8 +30,11 @@ import core.symbolEq
 object Codecs {
 
   private sealed abstract class FieldOrEnd(val marker: Int)
-  private final case object Field extends FieldOrEnd(0xA2)
-  private final case object End extends FieldOrEnd(0xA1)
+  private final case object Field extends FieldOrEnd(fieldMarker)
+  private final case object End extends FieldOrEnd(endMarker)
+
+  private[this] final val fieldMarker = 0xA2
+  private[this] final val endMarker = 0xA1
 
   private[this] val symbolCodec: Codec[Symbol] =
     utf8_32.xmap(Symbol.apply, _.name)
