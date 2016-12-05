@@ -19,11 +19,17 @@ package core
 
 /**
  * This is an ugly workaround for SI-7046,
- * regarding `Model` and 2 of its subclasses.
+ * regarding `Model` and some of its subclasses.
  */
 private final class AnSi7046Workaround {
 
   private def `This is to force Composite`: Model.Composite[_, _] =
+    sys.error("This should never be called")
+
+  private def `This is to force HCons`: Model.HCons =
+    sys.error("This should never be called")
+
+  private def `This is to force CCons`: Model.CCons =
     sys.error("This should never be called")
 
   private def `And this is to force Vector`: Model.Vector =
