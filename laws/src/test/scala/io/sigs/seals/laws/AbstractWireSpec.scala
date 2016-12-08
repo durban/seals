@@ -17,7 +17,7 @@
 package io.sigs.seals
 package laws
 
-import cats.~>
+import cats.{ ~>, Eq }
 import cats.implicits._
 
 import org.typelevel.discipline.scalatest.Discipline
@@ -32,9 +32,11 @@ trait AbstractWireSpec[R, E] { this: Discipline =>
 
   def mkWire[A](r: Reified[A]): Wire.Aux[A, R, E]
 
+  def descE: String
+
   def descR: String
 
-  def descE: String
+  implicit def equR: Eq[R]
 
   val mkWireNt = λ[Reified ~> Wire.Aux[?, R, E]](
     r => mkWire(r)

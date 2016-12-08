@@ -32,11 +32,13 @@ object WireLaws {
     implicit
     arbA: Arbitrary[A],
     equA: Eq[A],
+    equR: Eq[R],
     reiA: Reified[A]
   ): WireLaws[A, R, E] = new WireLaws[A, R, E] {
 
     def ArbA: Arbitrary[A] = arbA
     def EquA: Eq[A] = equA
+    def EquR: Eq[R] = equR
     def ReiA: Reified[A] = reiA
 
     def wireFromReified[X](implicit X: Reified[X]): Wire.Aux[X, R, E] = wfr(X)
@@ -47,6 +49,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
 
   implicit def ArbA: Arbitrary[A]
   implicit def EquA: Eq[A]
+  implicit def EquR: Eq[R]
   implicit def ReiA: Reified[A]
 
   implicit def wireFromReified[X](implicit X: Reified[X]): Wire.Aux[X, R, E]
@@ -76,8 +79,18 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
         err => Prop.proved,
         repr => {
           wir.fromWire(repr).fold(
-            err => Prop(Result(status = False)) :| { err.toString },
-            x2 => x2 ?== x)
+            err => Prop.falsified :| s"cannot decode encoded value '${x}': '${err}'",
+            x2 => {
+              val objOk = x2 ?== x
+              wir.toWire(x2).fold(
+                err => Prop.falsified :| s"cannot reencode decoded value '${x2}': '${err}'",
+                repr2 => {
+                  val reprOk = repr2 ?== repr
+                  objOk && reprOk
+                }
+              )
+            }
+          )
         }
       )
     }
@@ -97,8 +110,13 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
         err => Prop.proved,
         repr => {
           wirY.fromWire(repr).fold(
-            err => Prop(Result(status = False)) :| s"xy: ${err}",
-            y2 => Prop.proved // TODO: should eq `x` with defaults
+            err => Prop.falsified :| s"xy: ${err}",
+            y2 => {
+              val transformed: Y = CanonicalRepr.unfold[Y](
+                CanonicalRepr.fold[X](x)(wirX.reified)
+              )(wirY.reified)
+              y2 ?== transformed
+            }
           )
         }
       )
@@ -106,8 +124,13 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
         err => Prop.proved,
         repr => {
           wirX.fromWire(repr).fold(
-            err => Prop(Result(status = False)) :| s"yx: ${err}",
-            x2 => Prop.proved // TODO: should eq `y` with defaults
+            err => Prop.falsified :| s"yx: ${err}",
+            x2 => {
+              val transformed: X = CanonicalRepr.unfold[X](
+                CanonicalRepr.fold[Y](y)(wirY.reified)
+              )(wirX.reified)
+              x2 ?== transformed
+            }
           )
         }
       )

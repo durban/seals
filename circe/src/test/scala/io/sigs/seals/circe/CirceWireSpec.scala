@@ -17,6 +17,8 @@
 package io.sigs.seals
 package circe
 
+import cats.Eq
+
 import io.circe._
 
 class CirceWireSpec
@@ -24,11 +26,14 @@ class CirceWireSpec
     with laws.AbstractWireSpec[Json, DecodingFailure]
     with laws.ArbInstances {
 
+  override def descE: String =
+    "DecodingFailure"
+
   override def descR: String =
     "Json"
 
-  override def descE: String =
-    "DecodingFailure"
+  override def equR: Eq[Json] =
+    Json.eqJson
 
   override def mkWire[A](r: Reified[A]): Wire.Aux[A, Json, DecodingFailure] =
     Wires.wireFromReified(r)

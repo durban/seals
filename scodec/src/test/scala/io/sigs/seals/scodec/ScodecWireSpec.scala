@@ -17,6 +17,8 @@
 package io.sigs.seals
 package scodec
 
+import cats.Eq
+
 import _root_.scodec.bits.BitVector
 import _root_.scodec.Err
 
@@ -25,11 +27,14 @@ class ScodecWireSpec
     with laws.AbstractWireSpec[BitVector, Err]
     with laws.ArbInstances {
 
+  override def descE: String =
+    "Err"
+
   override def descR: String =
     "BitVector"
 
-  override def descE: String =
-    "Err"
+  override def equR: Eq[BitVector] =
+    _root_.scodec.interop.cats.BitVectorEqInstance
 
   override def mkWire[A](r: Reified[A]): Wire.Aux[A, BitVector, Err] =
     Wires.wireFromReified(r)
