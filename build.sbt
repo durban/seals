@@ -137,7 +137,7 @@ lazy val dependencies = new {
 
 addCommandAlias("testAll", ";test;examples/test")
 addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
-addCommandAlias("validate", ";testAll;scalastyleAll;tut")
+addCommandAlias("validate", ";clean;testAll;scalastyleAll;tut")
 
 // not all examples work with 2.12, so we can't do "+validate"
 addCommandAlias("validate212", ";++ 2.12.0;test;scalastyle;test:scalastyle;tut;++ 2.11.8")
