@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M14-7")
-addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.4.6")
+addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15-1")
+addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.4.7")
 addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.3.2")
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
