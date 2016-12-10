@@ -107,7 +107,7 @@ lazy val scodecSettings = Seq[Setting[_]](
 lazy val dependencies = new {
 
   val catsVersion = "0.8.1"
-  val circeVersion = "0.6.0"
+  val circeVersion = "0.6.1"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -131,16 +131,13 @@ lazy val dependencies = new {
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.0.0"
+    "org.scalatest" %% "scalatest" % "3.0.1"
   )
 }
 
 addCommandAlias("testAll", ";test;examples/test")
 addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
 addCommandAlias("validate", ";clean;testAll;scalastyleAll;tut")
-
-// not all examples work with 2.12, so we can't do "+validate"
-addCommandAlias("validate212", ";++ 2.12.0;test;scalastyle;test:scalastyle;tut;++ 2.11.8")
 
 
 //////////////////////
@@ -198,7 +195,7 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.14.11a"
+  val http4sVersion = "0.15.0a"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -208,7 +205,7 @@ lazy val exampleDependencies = new {
     "org.slf4j" % "slf4j-simple" % "1.7.21"
   )
 
-  val spire = "org.spire-math" %% "spire" % "0.12.0"
+  val spire = "org.spire-math" %% "spire" % "0.13.0"
 
   val fs2 = Seq(
     "co.fs2" %% "fs2-core" % "0.9.2",
