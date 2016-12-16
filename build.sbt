@@ -147,7 +147,7 @@ addCommandAlias("validate", ";clean;testAll;scalastyleAll;tut")
 lazy val examples = project.in(file("examples"))
   .settings(name := "seals-examples")
   .settings(exampleSettings)
-  .aggregate(exInvariant, exMessaging, exStreaming)
+  .aggregate(exInvariant, exMessaging, exStreaming, exLib)
 
 lazy val exInvariant = project.in(file("examples/invariant"))
   .settings(name := "seals-examples-invariant")
@@ -166,6 +166,27 @@ lazy val exStreaming = project.in(file("examples/streaming"))
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.fs2)
   .dependsOn(core, scodec)
+
+lazy val exLib = project.in(file("examples/lib"))
+  .settings(name := "seals-examples-lib")
+  .settings(exampleSettings)
+  .aggregate(exLibProto, exLibServer, exLibClient)
+
+lazy val exLibProto = project.in(file("examples/lib/proto"))
+  .settings(name := "seals-examples-lib-proto")
+  .settings(exampleSettings)
+
+lazy val exLibServer = project.in(file("examples/lib/server"))
+  .settings(name := "seals-examples-lib-server")
+  .settings(exampleSettings)
+  .settings(libraryDependencies ++= exampleDependencies.fs2)
+  .dependsOn(core, scodec, exLibProto)
+
+lazy val exLibClient = project.in(file("examples/lib/client"))
+  .settings(name := "seals-examples-lib-client")
+  .settings(exampleSettings)
+  .settings(libraryDependencies ++= exampleDependencies.akka)
+  .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
   scalaVersion := "2.11.8",
@@ -210,5 +231,10 @@ lazy val exampleDependencies = new {
   val fs2 = Seq(
     "co.fs2" %% "fs2-core" % "0.9.2",
     "co.fs2" %% "fs2-io" % "0.9.2"
+  )
+
+  val akka = Seq(
+    "com.typesafe.akka" %% "akka-stream" % "2.4.14",
+    "org.scodec" %% "scodec-akka" % "0.2.0"
   )
 }
