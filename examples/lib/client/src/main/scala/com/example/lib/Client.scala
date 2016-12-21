@@ -21,6 +21,7 @@ import java.net.{ InetAddress, InetSocketAddress }
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
+import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream._
 import akka.stream.scaladsl._
@@ -28,14 +29,13 @@ import akka.util.{ ByteString }
 
 import scala.concurrent.Await
 
-import scodec.Codec
-import scodec.bits.BitVector
 import scodec.interop.akka._
 import scodec.stream.codec.StreamCodec
 
-import io.sigs.seals._
-import io.sigs.seals.scodec.Codecs._
+import streamz.converter._
+
 import io.sigs.seals.scodec.StreamCodecs._
+import io.sigs.seals.scodec.StreamCodecs.{ pipe => decPipe }
 
 import Protocol.v1.{ Request, Response, Seed, Random }
 
@@ -43,40 +43,40 @@ object Client {
 
   val addr = new InetSocketAddress(InetAddress.getLoopbackAddress, 1234)
 
-  val reqCodec: Codec[Request] = Codec[Request]
+  val reqCodec: StreamCodec[Request] = StreamCodec[Request]
   val resCodec: StreamCodec[Response] = StreamCodec[Response]
 
   def main(args: Array[String]): Unit = {
     implicit val sys: ActorSystem = ActorSystem("ClientSystem")
     implicit val mat: Materializer = ActorMaterializer()
     try {
-      val resp = Await.result(client, 10.seconds)
+      val resp = Await.result(client(), 10.seconds)
       println(resp)
     } finally {
       sys.terminate()
     }
   }
 
-  def client(implicit sys: ActorSystem, mat: Materializer): Future[Vector[Response]] = {
-    import sys.dispatcher
-    val graph = Tcp().outgoingConnection(addr).joinMat(logic)(Keep.right)
-    graph.run().flatMap { bv =>
-      Interop.futureFromTask(resCodec.decode(bv).runLog)
-    }
-  }
+  def client()(implicit sys: ActorSystem, mat: Materializer): Future[Vector[Response]] =
+    Tcp().outgoingConnection(addr).joinMat(logic)(Keep.right).run()
 
-  def logic(implicit sys: ActorSystem): Flow[ByteString, ByteString, Future[BitVector]] = {
-    val requests = Source[Request](
-      Seed(0xabcdL) :: Random(1, 100) :: Nil
-    ).map(reqCodec.encode)
-    val model = Source.single(
-      Reified[Request].model
-    ).map(Codec[Model].encode)
-    val source = model.concat(requests)
-      .map(_.getOrElse(throw new Exception("impossible")))
-      .map(_.bytes.toByteString)
-    val sink = Interop.lazyBitVectorSink()(sys.dispatcher)
-      .contramap[ByteString](_.toByteVector.bits)
+  def logic(implicit sys: ActorSystem, mat: Materializer): Flow[ByteString, ByteString, Future[Vector[Response]]] = {
+    import sys.dispatcher
+
+    val requests = fs2.Stream(Seed(0xabcdL), Random(1, 100))
+    val source = Source.fromGraph(reqCodec.encode(requests).toSource)
+      .map(_.toByteVector.toByteString)
+
+    val decode: Flow[ByteString, Response, NotUsed] = Flow.fromGraph(Flow[ByteString]
+      .map(_.toByteVector.bits)
+      .toPipe(_ => ())
+      .andThen(decPipe[fs2.Task, Response])
+      .toFlow
+    )
+    val sink: Sink[ByteString, Future[Vector[Response]]] = decode.toMat(
+      Sink.fold(Vector.empty[Response])(_ :+ _)
+    )(Keep.right)
+
     Flow.fromSinkAndSourceMat(sink, source)(Keep.left)
   }
 }

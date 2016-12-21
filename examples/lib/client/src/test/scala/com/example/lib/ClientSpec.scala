@@ -51,7 +51,7 @@ class ClientSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
       Stream(Server.serve.drain, Stream.eval(sem.decrement))
     ).take(1).runLog.unsafeRunAsync(_ => ())
     try {
-      val resp = Await.result(Client.client, 2.seconds)
+      val resp = Await.result(Client.client(), 2.seconds)
       // constant, because we always seed with the same value:
       resp should === (Vector[Response](Seeded, RandInt(42)))
     } finally {

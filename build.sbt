@@ -186,6 +186,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .settings(name := "seals-examples-lib-client")
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.akka)
+  .settings(exampleDependencies.streamz)
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
@@ -236,5 +237,10 @@ lazy val exampleDependencies = new {
   val akka = Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.4.14",
     "org.scodec" %% "scodec-akka" % "0.2.0"
+  )
+
+  val streamz = Seq[Setting[_]](
+    resolvers += "krasserm" at "http://dl.bintray.com/krasserm/maven",
+    libraryDependencies += "com.github.krasserm" %% "streamz-converter" % "0.7"
   )
 }

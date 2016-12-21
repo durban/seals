@@ -17,11 +17,12 @@
 package io.sigs.seals
 package scodec
 
-import fs2.Pull
+import fs2.{ Pull, Pipe, Handle }
 
-import _root_.scodec.Err
+import _root_.scodec.{ Err, Attempt, Decoder, DecodeResult }
 import _root_.scodec.bits.BitVector
 import _root_.scodec.stream.{ StreamEncoder, StreamDecoder, StreamCodec, decode, encode }
+import decode.DecodingError
 
 object StreamCodecs extends StreamCodecs
 
@@ -55,5 +56,49 @@ trait StreamCodecs {
         decode.fail(Err(s"incompatible models: expected '${A.model}', got '${model}'"))
       }
     }
+  }
+
+  def pipe[F[_], A](implicit A: Reified[A]): Pipe[F, BitVector, A] = {
+
+    def decodeOne[R](h: Handle[F, BitVector], decoder: Decoder[R]) = {
+      def go(buff: BitVector, h: Handle[F, BitVector]): Pull[F, Nothing, (R, Handle[F, BitVector])] = {
+        for {
+          (bv, h) <- h.await1
+          h <- {
+            val data = buff ++ bv
+            decoder.decode(data) match {
+              case Attempt.Failure(err: Err.InsufficientBits) =>
+                go(data, h)
+              case Attempt.Failure(err) =>
+                Pull.fail(DecodingError(err))
+              case Attempt.Successful(DecodeResult(a, rem)) =>
+                Pull.pure((a, h.push1(rem)))
+            }
+          }
+        } yield h
+      }
+      go(BitVector.empty, h)
+    }
+
+    def decodeMany[R](decoder: Decoder[R]): Handle[F, BitVector] => Pull[F, R, Nothing] = {
+      Pull.loop[F, R, Handle[F, BitVector]] { h =>
+        for {
+          (r, h) <- decodeOne[R](h, decoder)
+          _ <- Pull.output1(r)
+        } yield h
+      }
+    }
+
+    def decode(h: Handle[F, BitVector]): Pull[F, A, Handle[F, BitVector]] = {
+      decodeOne[Model](h, Codecs.decoderFromReified[Model]).flatMap { case (model, h) =>
+        if (model compatible A.model) {
+          decodeMany(Codecs.decoderFromReified[A])(h)
+        } else {
+          Pull.fail(DecodingError(Err(s"incompatible models: expected '${A.model}', got '${model}'")))
+        }
+      }
+    }
+
+    _.pull(decode)
   }
 }

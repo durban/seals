@@ -28,9 +28,10 @@ import fs2.{ Stream, Task, Strategy, Chunk }
 import fs2.io.tcp
 
 import scodec.bits.BitVector
-import scodec.stream.{ StreamCodec, toLazyBitVector }
+import scodec.stream.StreamCodec
 
 import io.sigs.seals.scodec.StreamCodecs._
+import io.sigs.seals.scodec.StreamCodecs.{ pipe => decPipe }
 
 import Protocol.v1.{ Request, Response, Random, Seed, RandInt, Seeded }
 
@@ -61,9 +62,8 @@ object Server {
   def serve(implicit acg: ACG, st: Strategy): Stream[Task, Unit] = {
     val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr).flatMap { sockets =>
       Stream.emit(sockets.flatMap { socket =>
-        val bvs = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
-        val bv: BitVector = toLazyBitVector(bvs)
-        val requests: Stream[Task, Request] = reqCodec.decode(bv)
+        val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
+        val requests: Stream[Task, Request] = bvs.through(decPipe[Task, Request])
         val responses: Stream[Task, Response] = requests.flatMap(req => Stream.eval(logic(req)))
         val encoded: Stream[Task, Byte] = resCodec.encode(responses).mapChunks { ch =>
           Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
@@ -92,15 +92,5 @@ object Server {
         rnd.setSeed(s)
         Seeded
       }
-  }
-
-  def echo(implicit acg: ACG, st: Strategy): Stream[Task, Unit] = {
-    val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr).flatMap { sockets =>
-      Stream.emit(sockets.flatMap { socket =>
-        val in = socket.reads(bufferSize, timeout)
-        in.to(socket.writes(timeout)).onFinalize(socket.endOfOutput)
-      })
-    }
-    fs2.concurrent.join(maxClients)(s)
   }
 }
