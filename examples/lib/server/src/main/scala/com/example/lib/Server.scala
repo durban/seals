@@ -42,7 +42,9 @@ object Server {
   final val maxClients = 200
 
   val rnd = new scala.util.Random
-  val addr = new InetSocketAddress(InetAddress.getLoopbackAddress, 1234)
+
+  def addr(port: Int): InetSocketAddress =
+    new InetSocketAddress(InetAddress.getLoopbackAddress, port)
 
   val reqCodec: StreamCodec[Request] = StreamCodec[Request]
   val resCodec: StreamCodec[Response] = StreamCodec[Response]
@@ -52,15 +54,15 @@ object Server {
     val cg = ACG.withThreadPool(ex)
     val st = Strategy.fromExecutor(ex)
     try {
-      serve(cg, st).run.unsafeRun()
+      serve(1234)(cg, st).run.unsafeRun()
     } finally {
       cg.shutdown()
       ex.shutdown()
     }
   }
 
-  def serve(implicit acg: ACG, st: Strategy): Stream[Task, Unit] = {
-    val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr).flatMap { sockets =>
+  def serve(port: Int)(implicit acg: ACG, st: Strategy): Stream[Task, Unit] = {
+    val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr(port)).flatMap { sockets =>
       Stream.emit(sockets.flatMap { socket =>
         val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
         val requests: Stream[Task, Request] = bvs.through(decPipe[Task, Request])

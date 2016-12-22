@@ -48,10 +48,10 @@ class ClientSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   "Client" should "receive the correct response" in {
     val sem = fs2.async.mutable.Semaphore.empty[Task].unsafeRun()
     fs2.concurrent.join(Int.MaxValue)(
-      Stream(Server.serve.drain, Stream.eval(sem.decrement))
+      Stream(Server.serve(1237).drain, Stream.eval(sem.decrement))
     ).take(1).runLog.unsafeRunAsync(_ => ())
     try {
-      val resp = Await.result(Client.client(), 2.seconds)
+      val resp = Await.result(Client.client(1237), 2.seconds)
       // constant, because we always seed with the same value:
       resp should === (Vector[Response](Seeded, RandInt(42)))
     } finally {

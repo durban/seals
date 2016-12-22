@@ -23,10 +23,11 @@ import org.scalatest.{ FlatSpec, Matchers, BeforeAndAfterAll }
 
 import fs2.{ Task, Stream, Chunk, Strategy }
 
-import scodec.stream.toLazyBitVector
 import scodec.bits._
 
 import Protocol.v1.{ Response, Request, Random, RandInt, Seed, Seeded }
+
+import io.sigs.seals.scodec.StreamCodecs
 
 class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
@@ -51,7 +52,7 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
       case _ => false
     }
     val responses: Vector[Response] = fs2.concurrent.join(Int.MaxValue)(
-      Stream(Server.serve.drain, clients(nClients))
+      Stream(Server.serve(1235).drain, clients(1235, nClients))
     ).take((nClients * testData.size).toLong).runLog.unsafeRun
 
     val randInts = responses.collect { case RandInt(i) => i }
@@ -72,18 +73,17 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     Random(1, 100)
   )
 
-  def clients(count: Int, maxConcurrent: Int = 10): Stream[Task, Response] = {
+  def clients(port: Int, count: Int, maxConcurrent: Int = 10): Stream[Task, Response] = {
     val cls: Stream[Task, Stream[Task, Response]] = {
       Stream.range(0, count).map { i =>
-        fs2.io.tcp.client[Task](Server.addr).flatMap { socket =>
+        fs2.io.tcp.client[Task](Server.addr(port)).flatMap { socket =>
           val bvs: Stream[Nothing, BitVector] = Server.reqCodec.encode(Stream(testData: _*))
           val bs: Stream[Nothing, Byte] = bvs.mapChunks { ch =>
             Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
           }
           val read = bs.to(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
             socket.reads(Server.bufferSize, Server.timeout).chunks.map(ch => BitVector.view(ch.toArray))
-          val responseBv = toLazyBitVector(read)
-          Server.resCodec.decode(responseBv)
+          read.through(StreamCodecs.pipe[Task, Response])
         }
       }
     }

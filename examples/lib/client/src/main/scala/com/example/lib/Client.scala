@@ -41,8 +41,6 @@ import Protocol.v1.{ Request, Response, Seed, Random }
 
 object Client {
 
-  val addr = new InetSocketAddress(InetAddress.getLoopbackAddress, 1234)
-
   val reqCodec: StreamCodec[Request] = StreamCodec[Request]
   val resCodec: StreamCodec[Response] = StreamCodec[Response]
 
@@ -50,15 +48,17 @@ object Client {
     implicit val sys: ActorSystem = ActorSystem("ClientSystem")
     implicit val mat: Materializer = ActorMaterializer()
     try {
-      val resp = Await.result(client(), 10.seconds)
+      val resp = Await.result(client(1234), 10.seconds)
       println(resp)
     } finally {
       sys.terminate()
     }
   }
 
-  def client()(implicit sys: ActorSystem, mat: Materializer): Future[Vector[Response]] =
+  def client(port: Int)(implicit sys: ActorSystem, mat: Materializer): Future[Vector[Response]] = {
+    val addr = new InetSocketAddress(InetAddress.getLoopbackAddress, port)
     Tcp().outgoingConnection(addr).joinMat(logic)(Keep.right).run()
+  }
 
   def logic(implicit sys: ActorSystem, mat: Materializer): Flow[ByteString, ByteString, Future[Vector[Response]]] = {
     import sys.dispatcher
