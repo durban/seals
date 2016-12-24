@@ -18,6 +18,7 @@ lazy val core = project
   .settings(name := "seals-core")
   .settings(commonSettings)
   .settings(tutSettings)
+  .settings(addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
 
 lazy val laws = project
   .settings(name := "seals-laws")
