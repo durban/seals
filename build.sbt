@@ -31,6 +31,12 @@ lazy val tests = project
   .settings(commonSettings)
   .dependsOn(core, laws % "test->test;compile->compile")
 
+lazy val extractor = project
+  .settings(name := "seals-extractor")
+  .settings(commonSettings)
+  .settings(extractorSettings)
+  .dependsOn(core, circe)
+
 lazy val circe = project
   .settings(name := s"seals-circe")
   .settings(commonSettings)
@@ -95,6 +101,10 @@ lazy val commonSettings = Seq[Setting[_]](
 
 lazy val lawsSettings = Seq[Setting[_]](
   libraryDependencies ++= dependencies.laws
+)
+
+lazy val extractorSettings = Seq[Setting[_]](
+  libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 )
 
 lazy val circeSettings = Seq[Setting[_]](

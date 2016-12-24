@@ -53,6 +53,8 @@ final class schema extends StaticAnnotation {
   def macroTransform(annottees: Any*): Any = macro SchemaMacros.schemaImpl
 }
 
+final class schemaMarker extends StaticAnnotation
+
 object SchemaMacros {
 
   def constModel[A]: String = macro constModelImpl[A]
