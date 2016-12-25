@@ -18,7 +18,7 @@ lazy val core = project
   .settings(name := "seals-core")
   .settings(commonSettings)
   .settings(tutSettings)
-  .settings(addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full))
+  .settings(macroParadiseSettings)
 
 lazy val laws = project
   .settings(name := "seals-laws")
@@ -35,6 +35,7 @@ lazy val extractor = project
   .settings(name := "seals-extractor")
   .settings(commonSettings)
   .settings(extractorSettings)
+  .settings(macroParadiseSettings)
   .dependsOn(core, circe)
 
 lazy val circe = project
@@ -105,6 +106,10 @@ lazy val lawsSettings = Seq[Setting[_]](
 
 lazy val extractorSettings = Seq[Setting[_]](
   libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
+)
+
+lazy val macroParadiseSettings = Seq[Setting[_]](
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 )
 
 lazy val circeSettings = Seq[Setting[_]](

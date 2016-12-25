@@ -22,10 +22,21 @@ import org.scalatest.{ FlatSpec, Matchers }
 
 import shapeless.Witness
 
+@schema
+final case class Foo(i: Int, s: String)
+
+@schema
+sealed trait ST
+final case class X(i: Int) extends ST
+
 object A {
 
   @schema
-  final case class Foo()
+  final case class Foo(i: Int, f: Float)
+
+  @schema
+  sealed trait ST
+  final case class X(b: Boolean) extends ST
 
   object Bar {
     final val constModel = "bar"
@@ -40,8 +51,19 @@ class SchemaSpec extends FlatSpec with Matchers {
 
   "Extract" should "work" in {
     import SchemaExtractor.extract
-    extract("io.sigs.seals.core.test.A.Foo", "constModel") should === ("Model[HNil]")
     extract("io.sigs.seals.core.test.A.Bar", "constModel") should === ("bar")
     extract("io.sigs.seals.core.test.A.Baz", "constModel") should === ("baz")
+  }
+
+  "@schema" should "put a val and a def into the companion object" in {
+    val inst = Foo.$io$sigs$seals$core$Reified$Instance
+    inst shouldBe theSameInstanceAs (
+      Foo.$io$sigs$seals$core$Reified$Instance$Forwarder()
+    )
+    inst.model should === (Reified[Foo].model)
+    ST.$io$sigs$seals$core$Reified$Instance.model should === (Reified[ST].model)
+
+    A.Foo.$io$sigs$seals$core$Reified$Instance.model should === (Reified[A.Foo].model)
+    A.ST.$io$sigs$seals$core$Reified$Instance.model should === (Reified[A.ST].model)
   }
 }

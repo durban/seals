@@ -17,28 +17,21 @@
 package io.sigs.seals
 package extractor
 
-@core.schemaMarker
+@core.schema
 sealed trait Foo
 final case class Bar(i: Int) extends Foo
 final case object Baz extends Foo
-object Foo {
-  implicit val reified: Reified[Foo] =
-    shapeless.cachedImplicit
-}
 
-@core.schemaMarker
+@core.schema
 final case class CC(i: Int, s: String)
-object CC {
-  implicit val reified: Reified[CC] =
-    shapeless.cachedImplicit
-}
 
 object Wrap {
-  // TODO: doesn't work
-  // @core.schemaMarker
-  final case class Empty()
-  object Empty {
-    implicit val reified: Reified[Empty] =
-      shapeless.cachedImplicit[Reified[Empty]]
-  }
+
+  @core.schema
+  sealed trait WFoo
+  final case class Bar(j: Float) extends WFoo
+  final case object Baz extends WFoo
+
+  @core.schema
+  final case class WCC(s: String)
 }

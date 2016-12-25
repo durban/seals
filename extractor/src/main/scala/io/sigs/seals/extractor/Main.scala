@@ -64,14 +64,16 @@ class Main(classloader: ClassLoader) {
     packageOrModule.typeSignature.members.sorted.flatMap { sym =>
       if (sym.isClass) {
         // can be a schema:
-        if (isSchema(sym)) {
-          sym :: Nil
+        val cls = mirror.staticClass(sym.fullName)
+        if (isSchema(cls)) {
+          cls :: Nil
         } else {
           Nil
         }
       } else if (sym.isModule) {
         // can contain schemata:
-        allSchemas(sym)
+        val mod = mirror.staticModule(sym.fullName)
+        allSchemas(mod)
       } else {
         // no other possibilities:
         Nil
@@ -89,7 +91,7 @@ class Main(classloader: ClassLoader) {
   }
 
   def extract(cls: Symbol): Json = {
-    val tree = q"_root_.io.sigs.seals.core.Reified.apply[${cls}](${cls.companion}.reified).model"
+    val tree = q"""${cls.companion}.${TermName(core.SchemaMacros.defName)}().model"""
     val model = toolbox.eval(tree.duplicate) match {
       case m: Model => m
       case _ => core.impossible("expected a Model")

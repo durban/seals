@@ -28,31 +28,40 @@ import io.sigs.seals.circe.Codecs._
 class MainSpec extends FlatSpec with Matchers {
 
   val decoder = Decoder[Model]
-  val prefix = this.getClass.getPackage.getName
+  val pack = this.getClass.getPackage.getName
 
   val fooName = ru.symbolOf[Foo].fullName
   val ccName = ru.symbolOf[CC].fullName
-  val emptyName = ru.symbolOf[Wrap.Empty].fullName
+  val wfooName = ru.symbolOf[Wrap.WFoo].fullName
+  val wccName = ru.symbolOf[Wrap.WCC].fullName
+
+  // force WFoo subclasses (SI-7046 workaround):
+  def dummy1: Wrap.Bar = ???
+  def dummy2: Wrap.Baz.type = ???
 
   val main = Main(this.getClass.getClassLoader)
 
   "Main.extractAll" should "find all marked classes in a package" in {
-    val json = main.extractAll(prefix)
+    val json = main.extractAll(pack)
     val models = json.as[JsonObject]
       .fold(err => fail(err.toString), identity)
       .toMap
       .mapValues(j => decoder.decodeJson(j).fold(err => fail(err.toString), identity))
     val expected = Map(
-      fooName -> Foo.reified.model,
-      ccName -> CC.reified.model
+      fooName -> Reified[Foo].model,
+      ccName -> Reified[CC].model,
+      wfooName -> Reified[Wrap.WFoo].model,
+      wccName -> Reified[Wrap.WCC].model
     )
     models should === (expected)
   }
 
   "Main.allSchemas" should "collect all annotated classes" in {
-    main.allSchemas(prefix).map(_.fullName).toSet should === (Set(
+    main.allSchemas(pack).map(_.fullName).toSet should === (Set(
       fooName,
-      ccName
+      ccName,
+      wfooName,
+      wccName
     ))
   }
 }

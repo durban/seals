@@ -57,6 +57,9 @@ final class schemaMarker extends StaticAnnotation
 
 object SchemaMacros {
 
+  final val valName = "$io$sigs$seals$core$Reified$Instance"
+  final val defName = valName + "$Forwarder"
+
   def constModel[A]: String = macro constModelImpl[A]
 
   def constModelImpl[A: c.WeakTypeTag](c: WContext): c.Expr[String] = {
@@ -82,15 +85,17 @@ object SchemaMacros {
           anns.filter {
             case pq"_root_.io.sigs.seals.core.schema" => false
             case _ => true
-          }
+          } :+ q"new _root_.io.sigs.seals.core.schemaMarker()"
         }
 
         q"""
           ${ClassDef(newMods, name, tparam, impl)}
 
           object ${name.toTermName} {
-            //final val constModel = _root_.io.sigs.seals.core.Reified[$${name}].model
-            final val constModel = _root_.io.sigs.seals.core.SchemaMacros.constModel[${name}]
+            final lazy val ${TermName(valName)}: _root_.io.sigs.seals.core.Reified[${name}] =
+              _root_.shapeless.cachedImplicit[_root_.io.sigs.seals.core.Reified[${name}]]
+            final def ${TermName(defName)}() =
+              this.${TermName(valName)}
           }
         """
 
