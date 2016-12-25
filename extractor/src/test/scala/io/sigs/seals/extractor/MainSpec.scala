@@ -48,10 +48,10 @@ class MainSpec extends FlatSpec with Matchers {
       .toMap
       .mapValues(j => decoder.decodeJson(j).fold(err => fail(err.toString), identity))
     val expected = Map(
-      fooName -> Reified[Foo].model,
-      ccName -> Reified[CC].model,
-      wfooName -> Reified[Wrap.WFoo].model,
-      wccName -> Reified[Wrap.WCC].model
+      fooName -> Foo.$io$sigs$seals$core$Reified$Instance.model,
+      ccName -> CC.$io$sigs$seals$core$Reified$Instance.model,
+      wfooName -> Wrap.WFoo.$io$sigs$seals$core$Reified$Instance.model,
+      wccName -> Wrap.WCC.$io$sigs$seals$core$Reified$Instance.model
     )
     models should === (expected)
   }

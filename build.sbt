@@ -191,6 +191,8 @@ lazy val exLib = project.in(file("examples/lib"))
 lazy val exLibProto = project.in(file("examples/lib/proto"))
   .settings(name := "seals-examples-lib-proto")
   .settings(exampleSettings)
+  .settings(macroParadiseSettings)
+  .dependsOn(core)
 
 lazy val exLibServer = project.in(file("examples/lib/server"))
   .settings(name := "seals-examples-lib-server")

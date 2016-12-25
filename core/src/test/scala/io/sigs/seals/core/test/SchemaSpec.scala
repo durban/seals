@@ -28,6 +28,7 @@ final case class Foo(i: Int, s: String)
 @schema
 sealed trait ST
 final case class X(i: Int) extends ST
+object ST // SI-7046 workaround
 
 object A {
 
@@ -37,6 +38,7 @@ object A {
   @schema
   sealed trait ST
   final case class X(b: Boolean) extends ST
+  object ST // SI-7046 workaround
 
   object Bar {
     final val constModel = "bar"

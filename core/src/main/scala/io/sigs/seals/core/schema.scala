@@ -77,26 +77,42 @@ object SchemaMacros {
 
     import c.universe._
 
+    def transformAnns(anns: List[c.Tree]): List[c.Tree] = {
+      anns.filter {
+        case pq"_root_.io.sigs.seals.core.schema" => false
+        case _ => true
+      } :+ q"new _root_.io.sigs.seals.core.schemaMarker()"
+    }
+
+    def injectedDefis(cls: TypeName): List[c.Tree] = List(
+      q"""
+        final lazy val ${TermName(valName)}: _root_.io.sigs.seals.core.Reified[${cls}] =
+          _root_.shapeless.cachedImplicit[_root_.io.sigs.seals.core.Reified[${cls}]]
+      """,
+      q"""
+        final def ${TermName(defName)}() =
+          this.${TermName(valName)}
+      """
+    )
+
     val tree = annottees.map(_.tree) match {
 
-      case List(cls @ ClassDef(mods, name, tparam, impl)) =>
-
-        val newMods = mods.mapAnnotations { anns =>
-          anns.filter {
-            case pq"_root_.io.sigs.seals.core.schema" => false
-            case _ => true
-          } :+ q"new _root_.io.sigs.seals.core.schemaMarker()"
-        }
-
+      case List(ClassDef(mods, name, tparam, impl)) =>
+        val newMods = mods.mapAnnotations(transformAnns(_))
         q"""
           ${ClassDef(newMods, name, tparam, impl)}
 
           object ${name.toTermName} {
-            final lazy val ${TermName(valName)}: _root_.io.sigs.seals.core.Reified[${name}] =
-              _root_.shapeless.cachedImplicit[_root_.io.sigs.seals.core.Reified[${name}]]
-            final def ${TermName(defName)}() =
-              this.${TermName(valName)}
+            ..${injectedDefis(name)}
           }
+        """
+
+      case List(ClassDef(cMods, cName, tparam, cImpl), ModuleDef(oMods, oName, Template(ps, sl, body))) =>
+        val newCMods = cMods.mapAnnotations(transformAnns(_))
+        val newBody = body ++ injectedDefis(cName)
+        q"""
+          ${ClassDef(newCMods, cName, tparam, cImpl)}
+          ${ModuleDef(oMods, oName, Template(ps, sl, newBody))}
         """
 
       case h :: t =>
