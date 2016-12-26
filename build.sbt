@@ -38,6 +38,11 @@ lazy val extractor = project
   .settings(macroParadiseSettings)
   .dependsOn(core, circe)
 
+lazy val plugin = project
+  .settings(name := "seals-plugin")
+  .settings(commonSettings)
+  .settings(sbtPluginSettings)
+
 lazy val circe = project
   .settings(name := s"seals-circe")
   .settings(commonSettings)
@@ -53,11 +58,11 @@ lazy val scodec = project
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .aggregate(core, laws, tests, circe, scodec)
+  .aggregate(core, laws, tests, extractor, plugin, circe, scodec)
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
-  crossScalaVersions := Seq("2.11.8", "2.12.0"),
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.0"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
@@ -91,7 +96,7 @@ lazy val commonSettings = Seq[Setting[_]](
   ).flatten,
   organization := "io.sigs",
   publishMavenStyle := true,
-  publishArtifact := false, // TODO
+  publishArtifact := true, // TODO
   mappings in (Compile, packageBin) ++= Seq("LICENSE.txt", "NOTICE.txt") map { f =>
     ((baseDirectory in ThisBuild).value / f) -> f
   },
@@ -110,6 +115,21 @@ lazy val extractorSettings = Seq[Setting[_]](
 
 lazy val macroParadiseSettings = Seq[Setting[_]](
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+)
+
+lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
+  sbtPlugin := true,
+  scalaVersion := "2.10.6",
+  crossScalaVersions := Seq(scalaVersion.value),
+  scalaOrganization := "org.scala-lang",
+  scalacOptions := scalacOptions.value.flatMap {
+    case "-Xlint:_" => "-Xlint" :: Nil
+    case "-Ypartial-unification" => Nil
+    case "-Ywarn-unused-import" => Nil
+    case opt => opt :: Nil
+  },
+  scriptedLaunchOpts += "-Dplugin.version=" + version.value,
+  scriptedBufferLog := false
 )
 
 lazy val circeSettings = Seq[Setting[_]](

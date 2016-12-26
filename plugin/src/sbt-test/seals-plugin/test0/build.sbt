@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15-1")
-addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.4.7")
-addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.3.2")
-addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
+scalaVersion := "2.11.8"
+addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 
-libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
+libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-SNAPSHOT" // TODO: don't hardcode version
+sealsSchemaPackages += "com.example.test0"

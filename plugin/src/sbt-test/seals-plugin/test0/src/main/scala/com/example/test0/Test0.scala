@@ -14,9 +14,18 @@
  * limitations under the License.
  */
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15-1")
-addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.4.7")
-addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.3.2")
-addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
+package com.example.test0
 
-libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
+import io.sigs.seals.core.schema
+
+object Test0 {
+
+  @schema
+  sealed trait Message
+
+  final case class Put(k: String, v: Int) extends Message
+
+  final case class Get(k: String) extends Message
+
+  object Message // SI-7046 workaround
+}

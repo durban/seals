@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-M15-1")
-addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.4.7")
-addSbtPlugin("org.typelevel" % "sbt-typelevel" % "0.3.2")
-addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "0.8.0")
+val pluginVersion = System.getProperty("plugin.version") match {
+  case null => throw new RuntimeException("missing plugin.version system property")
+  case "" => throw new RuntimeException("plugin.version system property is an empty string")
+  case str => str
+}
 
-libraryDependencies += "org.scala-sbt" % "scripted-plugin" % sbtVersion.value
+addSbtPlugin("io.sigs" % "seals-plugin" % pluginVersion)

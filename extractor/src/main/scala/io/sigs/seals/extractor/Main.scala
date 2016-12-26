@@ -51,6 +51,7 @@ class Main(classloader: ClassLoader) {
   }
 
   def extractAll(pack: String): Json = {
+    trace(s"Checking package '${pack}' ...")
     val models = allSchemas(pack).map { sym =>
       sym.fullName -> extract(sym)
     }
@@ -61,6 +62,7 @@ class Main(classloader: ClassLoader) {
     allSchemas(mirror.staticPackage(pack))
 
   def allSchemas(packageOrModule: Symbol): List[Symbol] = {
+    trace(s"  Members of '${packageOrModule}' are: ${packageOrModule.typeSignature.members.sorted}")
     packageOrModule.typeSignature.members.sorted.flatMap { sym =>
       if (sym.isClass) {
         // can be a schema:
@@ -68,6 +70,7 @@ class Main(classloader: ClassLoader) {
         if (isSchema(cls)) {
           cls :: Nil
         } else {
+          trace(s"  Ignoring non-schema class/trait '${cls.fullName}'.")
           Nil
         }
       } else if (sym.isModule) {
@@ -76,6 +79,7 @@ class Main(classloader: ClassLoader) {
         allSchemas(mod)
       } else {
         // no other possibilities:
+        trace(s"  Ignoring symbol '${sym}'.")
         Nil
       }
     }
@@ -91,11 +95,17 @@ class Main(classloader: ClassLoader) {
   }
 
   def extract(cls: Symbol): Json = {
+    trace(s"  Extracting from schema class/trait '${cls.fullName}' ...")
     val tree = q"""${cls.companion}.${TermName(core.SchemaMacros.defName)}().model"""
     val model = toolbox.eval(tree.duplicate) match {
       case m: Model => m
       case _ => core.impossible("expected a Model")
     }
+    trace(s"  Successfully extracted the model.")
     encoder.apply(model)
+  }
+
+  def trace(msg: => String): Unit = {
+    System.err.println(msg) // TODO
   }
 }
