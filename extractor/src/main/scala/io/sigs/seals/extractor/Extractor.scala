@@ -24,10 +24,10 @@ import io.circe.{ Json, Encoder }
 
 import io.sigs.seals.circe.Codecs._
 
-object Main extends Main(getClass.getClassLoader) {
+object Extractor extends Extractor(getClass.getClassLoader) {
 
-  def apply(classloader: ClassLoader): Main =
-    new Main(classloader)
+  def apply(classloader: ClassLoader): Extractor =
+    new Extractor(classloader)
 
   def main(args: Array[String]): Unit = {
     val res = extractAllPackages(args.toVector)
@@ -35,7 +35,7 @@ object Main extends Main(getClass.getClassLoader) {
   }
 }
 
-class Main(classloader: ClassLoader) {
+class Extractor(classloader: ClassLoader) {
 
   import ru._
 

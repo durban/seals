@@ -47,7 +47,7 @@ object SealsPlugin extends AutoPlugin {
 
   def check(streams: TaskStreams, runner: ScalaRun, classpath: Classpath, packs: Seq[String]): Unit = {
     val output = runner.run(
-      mainClass = "io.sigs.seals.extractor.Main",
+      mainClass = "io.sigs.seals.extractor.Extractor",
       classpath = sbt.Attributed.data(classpath),
       options = packs,
       log = streams.log

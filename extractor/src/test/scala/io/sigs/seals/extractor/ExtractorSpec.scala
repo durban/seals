@@ -25,7 +25,7 @@ import io.circe.{ Decoder, JsonObject }
 
 import io.sigs.seals.circe.Codecs._
 
-class MainSpec extends FlatSpec with Matchers {
+class ExtractorSpec extends FlatSpec with Matchers {
 
   val decoder = Decoder[Model]
   val pack = this.getClass.getPackage.getName
@@ -39,10 +39,10 @@ class MainSpec extends FlatSpec with Matchers {
   def dummy1: Wrap.Bar = ???
   def dummy2: Wrap.Baz.type = ???
 
-  val main = Main(this.getClass.getClassLoader)
+  val extractor = Extractor(this.getClass.getClassLoader)
 
   "Main.extractAll" should "find all marked classes in a package" in {
-    val json = main.extractAll(pack)
+    val json = extractor.extractAll(pack)
     val models = json.as[JsonObject]
       .fold(err => fail(err.toString), identity)
       .toMap
@@ -57,7 +57,7 @@ class MainSpec extends FlatSpec with Matchers {
   }
 
   "Main.allSchemas" should "collect all annotated classes" in {
-    main.allSchemas(pack).map(_.fullName).toSet should === (Set(
+    extractor.allSchemas(pack).map(_.fullName).toSet should === (Set(
       fooName,
       ccName,
       wfooName,
