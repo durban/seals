@@ -21,3 +21,23 @@ addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.fu
 libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-SNAPSHOT" // TODO: don't hardcode version
 
 sealsSchemaPackages += "com.example.test0"
+
+checkExpectedModels := checkExpectedModelsTask.value
+
+lazy val checkExpectedModels = taskKey[Unit]("checkExpectedModels")
+
+lazy val checkExpectedModelsTask = Def.task {
+  val log = streams.value.log
+  log.info("Reading expected models ...")
+  val expected = IO.read(file("expected_models.json")).trim
+  log.info("Reading actual models ...")
+  val actual = IO.read(sealsSchemaTarget.value / "models.json").trim
+  if (expected == actual) {
+    log.info("OK, models are the same.")
+  } else {
+    log.warn("Expected and actual models are different!")
+    log.warn("Expected:\n" + expected)
+    log.warn("Actual:\n" + actual)
+    throw new AssertionError("unexpected models.json contents")
+  }
+}

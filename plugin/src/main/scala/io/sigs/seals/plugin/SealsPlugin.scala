@@ -31,6 +31,7 @@ object SealsPlugin extends AutoPlugin {
 
   override def projectSettings: Seq[Def.Setting[_]] = Seq(
     sealsSchemaPackages := Nil,
+    sealsSchemaTarget := crossTarget.value / "seals",
     sealsCheckSchema := checkTask.value,
     // TODO: use version from build info
     // TODO: test-internal
@@ -47,6 +48,7 @@ object SealsPlugin extends AutoPlugin {
       runner,
       classpath,
       classdir,
+      sealsSchemaTarget.value,
       sealsSchemaPackages.value
     )
   }
@@ -56,12 +58,14 @@ object SealsPlugin extends AutoPlugin {
     runner: ScalaRun,
     classpath: Classpath,
     classdir: File,
+    outdir: File,
     packs: Seq[String]
   ): Unit = {
+    assert(outdir.mkdirs())
     val output = runner.run(
       mainClass = "io.sigs.seals.extractor.Extractor",
       classpath = sbt.Attributed.data(classpath),
-      options = classdir.getAbsolutePath +: packs,
+      options = classdir.getAbsolutePath +: outdir.getAbsolutePath +: packs,
       log = streams.log
     )
     toError(output)
@@ -71,6 +75,8 @@ object SealsPlugin extends AutoPlugin {
 sealed abstract class SealsKeys {
 
   final val sealsSchemaPackages = settingKey[Seq[String]]("packages")
+
+  final val sealsSchemaTarget = settingKey[File]("target")
 
   final val sealsCheckSchema = taskKey[Unit]("check")
 }

@@ -27,6 +27,7 @@ import io.circe.{ Json, Encoder }
 import io.sigs.seals.circe.Codecs._
 import scala.reflect.io.AbstractFile
 import scala.io.Codec
+import scala.collection.JavaConverters._
 import scala.tools.nsc.util.{ ClassPath, DirectoryClassPath }
 import java.lang.IllegalArgumentException
 
@@ -36,10 +37,13 @@ object Extractor {
     new Extractor(classloader, jarOrDir)
 
   def main(args: Array[String]): Unit = {
-    val jarOrDir :: packs = args.toList
+    val jarOrDir :: target :: packs = args.toList
     val main = apply(this.getClass.getClassLoader, new java.io.File(jarOrDir))
     val res = main.extractAllPackages(packs.toVector)
-    Console.println(res.spaces2)
+    java.nio.file.Files.write(
+      java.nio.file.Paths.get(target, "models.json"),
+      List(res.spaces2).asJava
+    )
   }
 }
 

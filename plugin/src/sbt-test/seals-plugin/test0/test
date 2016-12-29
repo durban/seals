@@ -13,3 +13,5 @@
 #*  limitations under the License.
 
 > sealsCheckSchema
+$ exists target/scala-2.11/seals/models.json
+> checkExpectedModels
