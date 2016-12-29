@@ -41,15 +41,27 @@ object SealsPlugin extends AutoPlugin {
     val streams = Keys.streams.value
     val runner = (Keys.runner in Compile).value
     val classpath = (fullClasspath in Compile).value
-    val packs = sealsSchemaPackages.value
-    check(streams, runner, classpath, packs)
+    val classdir = (classDirectory in Compile).value
+    check(
+      streams,
+      runner,
+      classpath,
+      classdir,
+      sealsSchemaPackages.value
+    )
   }
 
-  def check(streams: TaskStreams, runner: ScalaRun, classpath: Classpath, packs: Seq[String]): Unit = {
+  def check(
+    streams: TaskStreams,
+    runner: ScalaRun,
+    classpath: Classpath,
+    classdir: File,
+    packs: Seq[String]
+  ): Unit = {
     val output = runner.run(
       mainClass = "io.sigs.seals.extractor.Extractor",
       classpath = sbt.Attributed.data(classpath),
-      options = packs,
+      options = classdir.getAbsolutePath +: packs,
       log = streams.log
     )
     toError(output)

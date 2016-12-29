@@ -17,8 +17,6 @@
 package io.sigs.seals
 package extractor
 
-import scala.reflect.runtime.{ universe => ru }
-
 import org.scalatest.{ FlatSpec, Matchers }
 
 import io.circe.{ Decoder, JsonObject }
@@ -30,18 +28,31 @@ class ExtractorSpec extends FlatSpec with Matchers {
   val decoder = Decoder[Model]
   val pack = this.getClass.getPackage.getName
 
-  val fooName = ru.symbolOf[Foo].fullName
-  val ccName = ru.symbolOf[CC].fullName
-  val wfooName = ru.symbolOf[Wrap.WFoo].fullName
-  val wccName = ru.symbolOf[Wrap.WCC].fullName
+  val fooName = s"$pack.Foo"
+  val ccName = s"$pack.CC"
+  val wfooName = s"$pack.Wrap.WFoo"
+  val wccName = s"$pack.Wrap.WCC"
 
   // force WFoo subclasses (SI-7046 workaround):
   def dummy1: Wrap.Bar = ???
   def dummy2: Wrap.Baz.type = ???
 
-  val extractor = Extractor(this.getClass.getClassLoader)
+  val extractor = Extractor(
+    this.getClass.getClassLoader,
+    new java.io.File(this.getClass.getProtectionDomain.getCodeSource.getLocation.toURI)
+  )
 
-  "Main.extractAll" should "find all marked classes in a package" in {
+  "Extractor#allClasses" should "find every class" in {
+    extractor.allClasses("io.sigs.seals.extractor") should contain allOf (
+      "Foo",
+      "Foo$",
+      "CC",
+      "CC$",
+      "Wrap$"
+    )
+  }
+
+  "Extractor#extractAll" should "find all marked classes in a package" in {
     val json = extractor.extractAll(pack)
     val models = json.as[JsonObject]
       .fold(err => fail(err.toString), identity)
@@ -56,8 +67,8 @@ class ExtractorSpec extends FlatSpec with Matchers {
     models should === (expected)
   }
 
-  "Main.allSchemas" should "collect all annotated classes" in {
-    extractor.allSchemas(pack).map(_.fullName).toSet should === (Set(
+  "Extractor#allSchemas" should "collect all annotated classes" in {
+    extractor.allSchemasOfPackage(pack).map(_.fullName).toSet should === (Set(
       fooName,
       ccName,
       wfooName,
