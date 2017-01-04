@@ -274,7 +274,7 @@ lazy val exampleDependencies = new {
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.4.14",
-    "org.scodec" %% "scodec-akka" % "0.2.0"
+    "org.scodec" %% "scodec-akka" % "0.3.0"
   )
 
   val streamz = Seq[Setting[_]](
