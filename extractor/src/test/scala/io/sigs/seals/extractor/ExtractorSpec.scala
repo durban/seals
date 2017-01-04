@@ -34,8 +34,8 @@ class ExtractorSpec extends FlatSpec with Matchers {
   val wccName = s"$pack.Wrap.WCC"
 
   // force WFoo subclasses (SI-7046 workaround):
-  def dummy1: Wrap.Bar = ???
-  def dummy2: Wrap.Baz.type = ???
+  def dummy1: Wrap.Bar = sys.error("dummy1")
+  def dummy2: Wrap.Baz.type = sys.error("dummy2")
 
   val extractor = Extractor(
     this.getClass.getClassLoader,

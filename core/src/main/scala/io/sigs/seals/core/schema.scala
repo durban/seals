@@ -65,10 +65,39 @@ object SchemaMacros {
   def constModelImpl[A: c.WeakTypeTag](c: WContext): c.Expr[String] = {
     import c.universe._
     val reiTpe: Type = typeOf[Reified[_]].typeConstructor
-    val tpe: Type = weakTypeOf[A]
-    val imp: Tree = c.inferImplicitValue(appliedType(reiTpe, List(tpe)), silent = false)
-    val tree: Tree = q"_root_.io.sigs.seals.core.Reified[${tpe}](${imp}).model"
-    val m: Model = c.eval(c.Expr[Model](c.untypecheck(tree.duplicate)))
+    val lzyTpe: Type = typeOf[shapeless.Lazy[_]].typeConstructor
+    val tpe: Type = weakTypeOf[A].dealias
+    val imp: Tree = c.inferImplicitValue(
+      appliedType(lzyTpe, List(appliedType(reiTpe, List(tpe)))),
+      silent = false
+    )
+
+    val tr: Transformer = new Transformer {
+      override def transform(tree: Tree): Tree = {
+        super.transform {
+          tree match {
+            case q"lazy private[this] val $nme: $tpe = $_" =>
+              EmptyTree
+            case df @ DefDef(mods, nme, tparam, params, ret, body)
+                if df.symbol.asTerm.isLazy && df.symbol.asTerm.isAccessor && df.symbol.asTerm.isStable =>
+              body match {
+                case q"$lhs = $exp; $r" if lhs.symbol == r.symbol =>
+                  val rep = q"lazy val $nme = $exp"
+                  rep
+                case x =>
+                  df
+              }
+            case t =>
+              t
+          }
+        }
+      }
+    }
+
+    val imp2 = tr.transform(imp)
+    val tree: Tree = q"""${imp2}.value.model"""
+    val treeToEval = c.untypecheck(tree.duplicate)
+    val m: Model = c.eval(c.Expr[Model](treeToEval))
     val s: String = m.toString
     c.Expr[String](q"$s")
   }
