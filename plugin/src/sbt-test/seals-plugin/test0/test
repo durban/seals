@@ -12,6 +12,13 @@
 #*  See the License for the specific language governing permissions and
 #*  limitations under the License.
 
+> clean
+> ++ 2.11.8
 > sealsCheckSchema
 $ exists target/scala-2.11/seals/models.json
+> checkExpectedModels
+> clean
+> ++ 2.12.1
+> sealsCheckSchema
+$ exists target/scala-2.12/seals/models.json
 > checkExpectedModels

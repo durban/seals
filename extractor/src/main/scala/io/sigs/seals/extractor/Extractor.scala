@@ -28,10 +28,11 @@ import io.sigs.seals.circe.Codecs._
 import scala.reflect.io.AbstractFile
 import scala.io.Codec
 import scala.collection.JavaConverters._
-import scala.tools.nsc.util.{ ClassPath, DirectoryClassPath }
 import java.lang.IllegalArgumentException
 
 object Extractor {
+
+  final val classExt = ".class"
 
   def apply(classloader: ClassLoader, jarOrDir: java.io.File): Extractor =
     new Extractor(classloader, jarOrDir)
@@ -50,28 +51,32 @@ object Extractor {
 class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
 
   import ru._
+  import Extractor._
 
   val mirror = runtimeMirror(classloader)
   val toolbox = ToolBox(mirror).mkToolBox(options = "-Xlog-implicits")
-  val scp = {
-    val absFile = AbstractFile.getDirectory(new scala.reflect.io.File(jarOrDir)(Codec.UTF8))
-    new DirectoryClassPath(absFile, ClassPath.DefaultJavaContext)
-  }
+  val root = AbstractFile.getDirectory(new scala.reflect.io.File(jarOrDir)(Codec.UTF8))
 
   val encoder = Encoder[Model]
 
   def allClasses(pack: String): Vector[String] = {
-    val p = findPack(scp, pack).getOrElse(throw new IllegalArgumentException(s"no such package: '${pack}'"))
-    p.classes.map(_.name)
+    val p = findPack(root, pack).getOrElse(throw new IllegalArgumentException(s"no such package: '${pack}'"))
+    p.iterator
+      .filter(!_.isDirectory)
+      .map(_.name)
+      .filter(_.endsWith(classExt))
+      .map(_.dropRight(classExt.length))
+      .filter(_.nonEmpty)
+      .toVector
   }
 
-  def findPack(cp: DirectoryClassPath, pack: String): Option[DirectoryClassPath] = {
+  def findPack(from: AbstractFile, pack: String): Option[AbstractFile] = {
     val idx = pack.indexWhere(_ === '.')
     if (idx === -1) {
-      cp.packages.find(_.name === pack)
+      Option(from.lookupName(pack, directory = true))
     } else {
       val (h, t) = (pack.take(idx), pack.drop(idx + 1))
-      cp.packages.find(_.name === h).flatMap(cp => findPack(cp, t))
+      Option(from.lookupName(h, directory = true)).flatMap(f => findPack(f, t))
     }
   }
 

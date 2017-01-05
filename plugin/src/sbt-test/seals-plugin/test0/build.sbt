@@ -16,6 +16,8 @@
 
 scalaVersion := "2.11.8"
 
+crossScalaVersions := Seq(scalaVersion.value, "2.12.1")
+
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 
 libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-SNAPSHOT" // TODO: don't hardcode version
