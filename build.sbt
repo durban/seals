@@ -171,9 +171,9 @@ lazy val dependencies = new {
   )
 }
 
-addCommandAlias("testAll", ";test;examples/test")
-addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
-addCommandAlias("validate", ";clean;testAll;scalastyleAll;tut")
+addCommandAlias("testAll", ";so test;so examples/test")
+addCommandAlias("scalastyleAll", ";so scalastyle;so test:scalastyle;so examples/scalastyle;so examples/test:scalastyle")
+addCommandAlias("validate", ";clean;testAll;scalastyleAll;so core/tut")
 
 
 //////////////////////
