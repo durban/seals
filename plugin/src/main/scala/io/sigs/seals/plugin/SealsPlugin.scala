@@ -60,14 +60,19 @@ object SealsPlugin extends AutoPlugin { self =>
 
     val streams = Keys.streams.value
 
-    def extractOne(classdir: File, target: File) = {
+    def extractOne(
+      classdir: File,
+      target: File,
+      remove: Set[File] = Set.empty
+    ) = {
       // FIXME: This won't work if a previous artifact
       // FIXME: depends on an incompatible version of us.
-      val classpath = (fullClasspath in Compile).value
+      val classpath = sbt.Attributed.data((fullClasspath in Compile).value)
+      val modifiedClasspath = classdir +: classpath.filterNot(remove.contains)
       extract(
         streams,
         (runner in Compile).value,
-        classpath,
+        modifiedClasspath,
         classdir,
         target,
         sealsSchemaPackages.value
@@ -87,7 +92,7 @@ object SealsPlugin extends AutoPlugin { self =>
       extractOne(current, currTarget)
       val prevs = previous.map { case (module, prev) =>
         val targetFile = targetDir / "previous" / s"${module}.json"
-        extractOne(prev, targetFile)
+        extractOne(prev, targetFile, remove = Set(current))
         targetFile
       }.toSet
       prevs + currTarget
@@ -104,15 +109,16 @@ object SealsPlugin extends AutoPlugin { self =>
   def extract(
     streams: TaskStreams,
     runner: ScalaRun,
-    classpath: Classpath,
+    classpath: Seq[File],
     classdir: File,
     targetFile: File,
     packs: Seq[String]
   ): Unit = {
+    streams.log.debug(s"Starting extractor with classpath: ${classpath}")
     targetFile.getAbsoluteFile.getParentFile.mkdirs()
     val res = runner.run(
       mainClass = "io.sigs.seals.extractor.Extractor",
-      classpath = sbt.Attributed.data(classpath),
+      classpath = classpath,
       options = classdir.getAbsolutePath +: targetFile.getAbsolutePath +: packs,
       log = streams.log
     )

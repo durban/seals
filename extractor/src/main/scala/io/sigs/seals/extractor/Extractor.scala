@@ -103,19 +103,26 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
       if (clsName.endsWith("$")) {
         // it's a module
         val modName = clsName.dropRight(1)
-        try {
-          val modSym = mirror.staticModule(s"${pack}.${modName}")
-          allSchemasOfModule(modSym)
+        val mods = try {
+          Vector(mirror.staticModule(s"${pack}.${modName}"))
         } catch {
           case ScalaReflectionException(_) =>
             // probably a nested module,
             // we'll get it through its parent
             Vector.empty
         }
+        mods.flatMap(allSchemasOfModule)
       } else {
         // it's a class
-        val clsSym = mirror.staticClass(s"${pack}.${clsName}")
-        allSchemasOfClass(clsSym)
+        val clss = try {
+          Vector(mirror.staticClass(s"${pack}.${clsName}"))
+        } catch {
+          case ScalaReflectionException(_) =>
+            // probably an anonymous or otherwise,
+            // tricky class, we can ignore it
+            Vector.empty
+        }
+        clss.flatMap(allSchemasOfClass)
       }
     }
   }

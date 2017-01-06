@@ -78,7 +78,9 @@ object Checker {
     if (!ok) {
       error(mkList(
         s"Schema '${name}' changed in an incompatible way",
-        s"current: ${curr}" :: s"previous: ${prev}" :: Nil
+        s"current:  ${curr}" ::
+        s"previous: ${prev}" ::
+        Nil
       ))
     }
   }

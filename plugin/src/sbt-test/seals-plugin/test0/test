@@ -13,19 +13,25 @@
 #*  limitations under the License.
 
 > clean
-> ++ 2.11.8
-> publishLocal
-> sealsExtractSchema
+$ copy-file changes/Test0_original.scala src/main/scala/com/example/test0/Test0.scala
+> + publishLocal
+> + sealsExtractSchema
 $ exists target/scala-2.11/seals/current.json
-$ exists target/scala-2.11/seals/previous/com.example:test0_2.11:0.1.0-SNAPSHOT.json
-> checkExpectedModels
-> sealsCheckSchema
-
-> clean
-> ++ 2.12.1
-> publishLocal
-> sealsExtractSchema
 $ exists target/scala-2.12/seals/current.json
+$ exists target/scala-2.11/seals/previous/com.example:test0_2.11:0.1.0-SNAPSHOT.json
 $ exists target/scala-2.12/seals/previous/com.example:test0_2.12:0.1.0-SNAPSHOT.json
-> checkExpectedModels
-> sealsCheckSchema
+> + checkExpectedModels
+> + sealsCheckSchema
+
+> reload
+$ copy-file changes/Test0_compatible.scala src/main/scala/com/example/test0/Test0.scala
+> + compile
+> + sealsCheckSchema
+
+> reload
+$ copy-file changes/Test0_incompatible.scala src/main/scala/com/example/test0/Test0.scala
+> + compile
+> ++ 2.11.8
+-> sealsCheckSchema
+> ++ 2.12.1
+-> sealsCheckSchema
