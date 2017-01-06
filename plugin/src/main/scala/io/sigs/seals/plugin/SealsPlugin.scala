@@ -33,8 +33,7 @@ object SealsPlugin extends AutoPlugin {
     sealsSchemaPackages := Nil,
     sealsSchemaTarget := crossTarget.value / "seals",
     sealsCheckSchema := checkTask.value,
-    // TODO: use version from build info
-    libraryDependencies += "io.sigs" %% "seals-extractor" % "0.1.0-SNAPSHOT" % "compile-internal"
+    libraryDependencies += "io.sigs" %% "seals-extractor" % BuildInfo.version % "compile-internal"
   )
 
   lazy val checkTask = Def.task {

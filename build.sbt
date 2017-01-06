@@ -42,6 +42,7 @@ lazy val plugin = project
   .settings(name := "seals-plugin")
   .settings(commonSettings)
   .settings(sbtPluginSettings)
+  .enablePlugins(BuildInfoPlugin)
 
 lazy val circe = project
   .settings(name := s"seals-circe")
@@ -128,6 +129,8 @@ lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
     case "-Ywarn-unused-import" => Nil
     case opt => opt :: Nil
   },
+  buildInfoKeys := Seq[BuildInfoKey](version),
+  buildInfoPackage := "io.sigs.seals.plugin",
   scriptedLaunchOpts += "-Dplugin.version=" + version.value,
   scriptedBufferLog := false
 )
