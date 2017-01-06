@@ -25,12 +25,10 @@ $ exists target/scala-2.12/seals/previous/com.example:test0_2.12:0.1.0-SNAPSHOT.
 
 > reload
 $ copy-file changes/Test0_compatible.scala src/main/scala/com/example/test0/Test0.scala
-> + compile
 > + sealsCheckSchema
 
 > reload
 $ copy-file changes/Test0_incompatible.scala src/main/scala/com/example/test0/Test0.scala
-> + compile
 > ++ 2.11.8
 -> sealsCheckSchema
 > ++ 2.12.1
