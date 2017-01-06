@@ -42,7 +42,7 @@ object Extractor {
     val main = apply(this.getClass.getClassLoader, new java.io.File(jarOrDir))
     val res = main.extractAllPackages(packs.toVector)
     java.nio.file.Files.write(
-      java.nio.file.Paths.get(target, "models.json"),
+      java.nio.file.Paths.get(target),
       List(res.spaces2).asJava
     )
   }
@@ -73,12 +73,15 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
   def findPack(from: AbstractFile, pack: String): Option[AbstractFile] = {
     val idx = pack.indexWhere(_ === '.')
     if (idx === -1) {
-      Option(from.lookupName(pack, directory = true))
+      lookupSubdir(from, pack)
     } else {
       val (h, t) = (pack.take(idx), pack.drop(idx + 1))
-      Option(from.lookupName(h, directory = true)).flatMap(f => findPack(f, t))
+      lookupSubdir(from, h).flatMap(f => findPack(f, t))
     }
   }
+
+  def lookupSubdir(from: AbstractFile, subdir: String): Option[AbstractFile] =
+    from.iterator.find(f => (f.name === subdir) && f.isDirectory)
 
   def extractAllPackages(packs: Vector[String]): Json = {
     Json.obj(packs.map { pack =>

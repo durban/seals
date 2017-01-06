@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
+name := "test0"
+
+organization := "com.example"
+
+version := "0.1.0-SNAPSHOT"
+
 scalaVersion := "2.11.8"
 
 crossScalaVersions := Seq(scalaVersion.value, "2.12.1")
@@ -24,6 +30,8 @@ libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-SNAPSHOT" // TODO: don
 
 sealsSchemaPackages += "com.example.test0"
 
+mimaPreviousArtifacts := Set(organization.value %% name.value % version.value)
+
 checkExpectedModels := checkExpectedModelsTask.value
 
 lazy val checkExpectedModels = taskKey[Unit]("checkExpectedModels")
@@ -33,13 +41,13 @@ lazy val checkExpectedModelsTask = Def.task {
   log.info("Reading expected models ...")
   val expected = IO.read(file("expected_models.json")).trim
   log.info("Reading actual models ...")
-  val actual = IO.read(sealsSchemaTarget.value / "models.json").trim
+  val actual = IO.read(sealsSchemaTarget.value / "current.json").trim
   if (expected == actual) {
     log.info("OK, models are the same.")
   } else {
     log.warn("Expected and actual models are different!")
     log.warn("Expected:\n" + expected)
     log.warn("Actual:\n" + actual)
-    throw new AssertionError("unexpected models.json contents")
+    throw new AssertionError("unexpected model contents")
   }
 }

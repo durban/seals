@@ -131,6 +131,7 @@ lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
   },
   buildInfoKeys := Seq[BuildInfoKey](version),
   buildInfoPackage := "io.sigs.seals.plugin",
+  addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.1.13"),
   scriptedLaunchOpts += "-Dplugin.version=" + version.value,
   scriptedBufferLog := false
 )

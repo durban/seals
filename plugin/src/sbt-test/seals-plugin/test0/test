@@ -14,11 +14,15 @@
 
 > clean
 > ++ 2.11.8
+> publishLocal
 > sealsCheckSchema
-$ exists target/scala-2.11/seals/models.json
+$ exists target/scala-2.11/seals/current.json
+$ exists target/scala-2.11/seals/previous/com.example:test0_2.11:0.1.0-SNAPSHOT.json
 > checkExpectedModels
 > clean
 > ++ 2.12.1
+> publishLocal
 > sealsCheckSchema
-$ exists target/scala-2.12/seals/models.json
+$ exists target/scala-2.12/seals/current.json
+$ exists target/scala-2.12/seals/previous/com.example:test0_2.12:0.1.0-SNAPSHOT.json
 > checkExpectedModels

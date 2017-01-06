@@ -20,9 +20,11 @@ package plugin
 import sbt._
 import sbt.Keys._
 
-object SealsPlugin extends AutoPlugin {
+import com.typesafe.tools.mima
 
-  override def requires = plugins.JvmPlugin
+object SealsPlugin extends AutoPlugin { self =>
+
+  override def requires = plugins.JvmPlugin && mima.plugin.MimaPlugin
 
   override def trigger = allRequirements
 
@@ -37,18 +39,32 @@ object SealsPlugin extends AutoPlugin {
   )
 
   lazy val checkTask = Def.task {
-    val streams = Keys.streams.value
-    val runner = (Keys.runner in Compile).value
-    val classpath = (fullClasspath in Compile).value
-    val classdir = (classDirectory in Compile).value
-    check(
-      streams,
-      runner,
-      classpath,
-      classdir,
-      sealsSchemaTarget.value,
-      sealsSchemaPackages.value
-    )
+
+    def check(classdir: File, target: File): Unit = {
+      val streams = Keys.streams.value
+      val runner = (Keys.runner in Compile).value
+      // FIXME: This won't work if a previous artifact
+      // FIXME: depends on an incompatible version of us.
+      val classpath = (fullClasspath in Compile).value
+      self.check(
+        streams,
+        runner,
+        classpath,
+        classdir,
+        target,
+        sealsSchemaPackages.value
+      )
+    }
+
+    val targetDir = sealsSchemaTarget.value
+
+    val current: File = mima.plugin.MimaKeys.mimaCurrentClassfiles.value
+    check(current, targetDir / "current.json")
+
+    val previous: Map[ModuleID, File] = mima.plugin.MimaKeys.mimaPreviousClassfiles.value
+    for ((module, prev) <- previous) {
+      check(prev, targetDir / "previous" / s"${module}.json")
+    }
   }
 
   def check(
@@ -56,14 +72,14 @@ object SealsPlugin extends AutoPlugin {
     runner: ScalaRun,
     classpath: Classpath,
     classdir: File,
-    outdir: File,
+    targetFile: File,
     packs: Seq[String]
   ): Unit = {
-    assert(outdir.mkdirs())
+    assert(targetFile.getAbsoluteFile.getParentFile.mkdirs())
     val output = runner.run(
       mainClass = "io.sigs.seals.extractor.Extractor",
       classpath = sbt.Attributed.data(classpath),
-      options = classdir.getAbsolutePath +: outdir.getAbsolutePath +: packs,
+      options = classdir.getAbsolutePath +: targetFile.getAbsolutePath +: packs,
       log = streams.log
     )
     toError(output)
