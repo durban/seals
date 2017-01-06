@@ -49,11 +49,11 @@ object SchemaExtractor {
 }
 
 @compileTimeOnly("enable the Macro Paradise compiler plugin to expand macro annotations")
-final class schema extends StaticAnnotation {
+final class schema extends StaticAnnotation { // scalastyle:ignore class.name
   def macroTransform(annottees: Any*): Any = macro SchemaMacros.schemaImpl
 }
 
-final class schemaMarker extends StaticAnnotation
+final class schemaMarker extends StaticAnnotation // scalastyle:ignore class.name
 
 object SchemaMacros {
 
