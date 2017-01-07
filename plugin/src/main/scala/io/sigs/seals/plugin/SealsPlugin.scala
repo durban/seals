@@ -26,7 +26,7 @@ object SealsPlugin extends AutoPlugin { self =>
 
   final val namespace = "seals"
 
-  def nsScalaVer(ver: String) = s"${namespace}_${ver}"
+  def nsScalaVer(ver: String): String = s"${namespace}_${ver}"
 
   override def requires = plugins.JvmPlugin && mima.plugin.MimaPlugin
 

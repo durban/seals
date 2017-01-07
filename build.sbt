@@ -59,7 +59,7 @@ lazy val scodec = project
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .aggregate(core, laws, tests, extractor, plugin, circe, scodec)
+  .aggregate(core, laws, tests, extractor, circe, scodec) // Note: `plugin` is intentionally missing
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
@@ -129,9 +129,9 @@ lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
     case "-Ywarn-unused-import" => Nil
     case opt => opt :: Nil
   },
+  addSbtPlugin(dependencies.sbtMima),
   buildInfoKeys := Seq[BuildInfoKey](version),
   buildInfoPackage := "io.sigs.seals.plugin",
-  addSbtPlugin("com.typesafe" % "sbt-mima-plugin" % "0.1.13"),
   scriptedLaunchOpts ++= Seq("-Dplugin.version=" + version.value, "-Xmx1024M"),
   scriptedBufferLog := false
 )
@@ -173,11 +173,16 @@ lazy val dependencies = new {
   val test = Seq(
     "org.scalatest" %% "scalatest" % "3.0.1"
   )
+
+  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.13"
 }
 
-addCommandAlias("testAll", ";so test;so examples/test")
-addCommandAlias("scalastyleAll", ";so scalastyle;so test:scalastyle;so examples/scalastyle;so examples/test:scalastyle")
-addCommandAlias("validate", ";clean;testAll;scalastyleAll;so core/tut")
+addCommandAlias("testAll", ";test;examples/test")
+addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
+addCommandAlias("tutAll", "core/tut")
+addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
+
+addCommandAlias("validate", ";clean;++ 2.11.8;doAll;++ 2.12.0;doAll;++ 2.10.6;plugin/scripted;reload")
 
 
 //////////////////////

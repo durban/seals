@@ -44,7 +44,7 @@ object Checker {
     compareModelSet(currModels, prevModels)
 
     // at this point we're OK:
-    Console.println("All models are compatible.")
+    Console.println("All models are compatible.") // scalastyle:ignore regex
   }
 
   def loadModels(path: String): Map[String, Map[String, Model]] = {
