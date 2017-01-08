@@ -1,0 +1,32 @@
+#*  Copyright 2016 Daniel Urban
+#*
+#*  Licensed under the Apache License, Version 2.0 (the "License");
+#*  you may not use this file except in compliance with the License.
+#*  You may obtain a copy of the License at
+#*
+#*      http://www.apache.org/licenses/LICENSE-2.0
+#*
+#*  Unless required by applicable law or agreed to in writing, software
+#*  distributed under the License is distributed on an "AS IS" BASIS,
+#*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#*  See the License for the specific language governing permissions and
+#*  limitations under the License.
+
+> clean
+$ copy-file changes/Test1_original.scala src/main/scala/com/example/test1/Test1.scala
+> + publishLocal
+> + sealsCheckSchema
+
+> reload
+$ copy-file changes/Test1_add_schema.scala src/main/scala/com/example/test1/Test1.scala
+> ++ 2.11.8
+-> sealsCheckSchema
+> ++ 2.12.1
+-> sealsCheckSchema
+
+> reload
+$ copy-file changes/Test1_delete_schema.scala src/main/scala/com/example/test1/Test1.scala
+> ++ 2.11.8
+-> sealsCheckSchema
+> ++ 2.12.1
+-> sealsCheckSchema

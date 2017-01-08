@@ -29,6 +29,10 @@ import java.nio.charset.StandardCharsets
 
 object Checker {
 
+  type ErrorMsg = String
+  type Result = Option[ErrorMsg]
+  type Report = Map[String, Map[String, Result]]
+
   final class Error(msg: String)
     extends Throwable(msg)
     with NoStackTrace
@@ -41,10 +45,12 @@ object Checker {
     val currModels = loadModels(curr)
     val prevModels = loadModels(prev)
 
-    compareModelSet(currModels, prevModels)
+    val r: Report = compareModelSet(currModels, prevModels)
+    assertOk(r)
 
     // at this point we're OK:
-    Console.println("All models are compatible.") // scalastyle:ignore regex
+    val nModels = r.values.map(_.size).sum
+    Console.println(s"All ${nModels} checked models are compatible.") // scalastyle:ignore regex
   }
 
   def loadModels(path: String): Map[String, Map[String, Model]] = {
@@ -55,33 +61,35 @@ object Checker {
     )
   }
 
-  def compareModelSet(currModels: Map[String, Map[String, Model]], prevModels: Map[String, Map[String, Model]]): Unit = {
+  def compareModelSet(currModels: Map[String, Map[String, Model]], prevModels: Map[String, Map[String, Model]]): Report = {
     assertSameKeys("packages", currModels, prevModels)
-    for (pack <- currModels.keySet) {
+    (for (pack <- currModels.keys) yield {
       val curr = currModels(pack)
       val prev = prevModels(pack)
-      comparePackage(curr, prev)
-    }
+      pack -> comparePackage(curr, prev)
+    }).toMap
   }
 
-  def comparePackage(currModels: Map[String, Model], prevModels: Map[String, Model]): Unit = {
+  def comparePackage(currModels: Map[String, Model], prevModels: Map[String, Model]): Map[String, Result] = {
     assertSameKeys("schemata", currModels, prevModels)
-    for (sch <- currModels.keySet) {
+    (for (sch <- currModels.keys) yield {
       val curr = currModels(sch)
       val prev = prevModels(sch)
-      assertCompatible(sch, curr, prev)
-    }
+      sch -> checkCompatible(sch, curr, prev)
+    }).toMap
   }
 
-  def assertCompatible(name: String, curr: Model, prev: Model): Unit = {
+  def checkCompatible(name: String, curr: Model, prev: Model): Result = {
     val ok = curr compatible prev
     if (!ok) {
-      error(mkList(
+      Some(mkList(
         s"Schema '${name}' changed in an incompatible way",
         s"current:  ${curr}" ::
         s"previous: ${prev}" ::
         Nil
       ))
+    } else {
+      None
     }
   }
 
@@ -93,6 +101,16 @@ object Checker {
     val deleted = prev.keySet -- curr.keySet
     if (deleted.nonEmpty) {
       error(mkList(s"Deleted ${label}: ", deleted))
+    }
+  }
+
+  private def assertOk(r: Report): Unit = {
+    for ((pack, schs) <- r) {
+      for ((sch, res) <- schs) {
+        res.foreach { err =>
+          error(err)
+        }
+      }
     }
   }
 
