@@ -15,7 +15,7 @@
  */
 
 package io.sigs.seals
-package extractor
+package checker
 
 @core.schema
 sealed trait Foo

@@ -15,13 +15,13 @@
  */
 
 package io.sigs.seals
-package extractor
+package checker
 
 import org.scalatest.{ FlatSpec, Matchers }
 
 import io.circe.{ Decoder, JsonObject }
 
-import io.sigs.seals.circe.Codecs._
+import circe.Codecs._
 
 class ExtractorSpec extends FlatSpec with Matchers {
 
@@ -43,7 +43,7 @@ class ExtractorSpec extends FlatSpec with Matchers {
   )
 
   "Extractor#allClasses" should "find every class" in {
-    extractor.allClasses("io.sigs.seals.extractor") should contain allOf (
+    extractor.allClasses(pack) should contain allOf (
       "Foo",
       "Foo$",
       "CC",

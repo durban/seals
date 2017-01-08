@@ -15,20 +15,20 @@
  */
 
 package io.sigs.seals
-package extractor
+package checker
+
+import scala.io.Codec
+import scala.collection.JavaConverters._
 
 import scala.reflect.runtime.{ universe => ru }
+import scala.reflect.io.AbstractFile
 import scala.tools.reflect.ToolBox
 
 import cats.implicits._
 
 import io.circe.{ Json, Encoder }
 
-import io.sigs.seals.circe.Codecs._
-import scala.reflect.io.AbstractFile
-import scala.io.Codec
-import scala.collection.JavaConverters._
-import java.lang.IllegalArgumentException
+import circe.Codecs._
 
 object Extractor {
 

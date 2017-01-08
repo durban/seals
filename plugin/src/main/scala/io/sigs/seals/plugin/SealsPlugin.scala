@@ -25,6 +25,8 @@ import com.typesafe.tools.mima
 object SealsPlugin extends AutoPlugin { self =>
 
   final val namespace = "seals"
+  final val extractorFqn = "io.sigs.seals.checker.Extractor"
+  final val checkerFqn = "io.sigs.seals.checker.Checker"
 
   def nsScalaVer(ver: String): String = s"${namespace}_${ver}"
 
@@ -40,7 +42,7 @@ object SealsPlugin extends AutoPlugin { self =>
     sealsSchemaTarget := crossTarget.value / namespace,
     sealsCheckSchema := checkTask.value,
     sealsExtractSchema := extractTask.value,
-    libraryDependencies += "io.sigs" %% "seals-extractor" % BuildInfo.version % "compile-internal"
+    libraryDependencies += "io.sigs" %% "seals-checker" % BuildInfo.version % "compile-internal"
   )
 
   lazy val checkTask = Def.task[Unit] {
@@ -117,7 +119,7 @@ object SealsPlugin extends AutoPlugin { self =>
     streams.log.debug(s"Starting extractor with classpath: ${classpath}")
     targetFile.getAbsoluteFile.getParentFile.mkdirs()
     val res = runner.run(
-      mainClass = "io.sigs.seals.extractor.Extractor",
+      mainClass = extractorFqn,
       classpath = classpath,
       options = classdir.getAbsolutePath +: targetFile.getAbsolutePath +: packs,
       log = streams.log
@@ -136,7 +138,7 @@ object SealsPlugin extends AutoPlugin { self =>
     assert(current.exists)
     assert(previous.exists)
     val res = runner.run(
-      mainClass = "io.sigs.seals.extractor.Checker",
+      mainClass = checkerFqn,
       classpath = sbt.Attributed.data(classpath),
       options = current.getAbsolutePath :: previous.getAbsolutePath :: Nil,
       log = streams.log

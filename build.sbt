@@ -31,10 +31,10 @@ lazy val tests = project
   .settings(commonSettings)
   .dependsOn(core, laws % "test->test;compile->compile")
 
-lazy val extractor = project
-  .settings(name := "seals-extractor")
+lazy val checker = project
+  .settings(name := "seals-checker")
   .settings(commonSettings)
-  .settings(extractorSettings)
+  .settings(checkerSettings)
   .settings(macroParadiseSettings)
   .dependsOn(core, circe)
 
@@ -59,7 +59,7 @@ lazy val scodec = project
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .aggregate(core, laws, tests, extractor, circe, scodec) // Note: `plugin` is intentionally missing
+  .aggregate(core, laws, tests, checker, circe, scodec) // Note: `plugin` is intentionally missing
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
@@ -110,7 +110,8 @@ lazy val lawsSettings = Seq[Setting[_]](
   libraryDependencies ++= dependencies.laws
 )
 
-lazy val extractorSettings = Seq[Setting[_]](
+lazy val checkerSettings = Seq[Setting[_]](
+  // FIXME: use scalaOrganization (?)
   libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
 )
 

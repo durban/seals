@@ -15,17 +15,17 @@
  */
 
 package io.sigs.seals
-package extractor
+package checker
 
 import java.nio.file.{ Files, Paths }
+import java.nio.charset.StandardCharsets
 
 import scala.collection.JavaConverters._
 import scala.util.control.NoStackTrace
 
 import io.circe.parser
 
-import io.sigs.seals.circe.Codecs._
-import java.nio.charset.StandardCharsets
+import circe.Codecs._
 
 object Checker {
 
