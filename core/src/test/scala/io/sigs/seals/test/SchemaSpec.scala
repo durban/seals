@@ -15,7 +15,6 @@
  */
 
 package io.sigs.seals
-package core
 package test
 
 import org.scalatest.{ FlatSpec, Matchers }
@@ -53,8 +52,8 @@ class SchemaSpec extends FlatSpec with Matchers {
 
   "Extract" should "work" in {
     import SchemaExtractor.extract
-    extract("io.sigs.seals.core.test.A.Bar", "constModel") should === ("bar")
-    extract("io.sigs.seals.core.test.A.Baz", "constModel") should === ("baz")
+    extract("io.sigs.seals.test.A.Bar", "constModel") should === ("bar")
+    extract("io.sigs.seals.test.A.Baz", "constModel") should === ("baz")
   }
 
   "@schema" should "put a val and a def into the companion object" in {

@@ -16,7 +16,7 @@
 
 package com.example.test1
 
-import io.sigs.seals.core.schema
+import io.sigs.seals.schema
 
 object Test1 {
 

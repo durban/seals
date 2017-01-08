@@ -16,7 +16,7 @@
 
 package com.example.lib
 
-import io.sigs.seals.core.schema
+import io.sigs.seals.schema
 
 object Protocol {
 

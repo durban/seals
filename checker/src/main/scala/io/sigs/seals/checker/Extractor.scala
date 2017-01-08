@@ -150,14 +150,14 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
     require(sym.isClass && !sym.isModuleClass)
     !sym.name.decodedName.toString.contains('$') && sym.annotations.exists { ann: Annotation =>
       ann.tree match {
-        case q"new $cls" if cls.symbol == symbolOf[core.schemaMarker] => true
+        case q"new $cls" if cls.symbol == symbolOf[schemaMarker] => true
         case _ => false
       }
     }
   }
 
   def extract(cls: Symbol): Json = {
-    val tree = q"""${cls.companion}.${TermName(core.SchemaMacros.defName)}().model"""
+    val tree = q"""${cls.companion}.${TermName(SchemaMacros.defName)}().model"""
     val model = toolbox.eval(tree.duplicate) match {
       case m: Model => m
       case _ => core.impossible("expected a Model")

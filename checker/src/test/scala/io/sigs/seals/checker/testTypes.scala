@@ -17,23 +17,23 @@
 package io.sigs.seals
 package checker
 
-@core.schema
+@schema
 sealed trait Foo
 final case class Bar(i: Int) extends Foo
 final case object Baz extends Foo
 object Foo // SI-7046 workaround
 
-@core.schema
+@schema
 final case class CC(i: Int, s: String)
 
 object Wrap {
 
-  @core.schema
+  @schema
   sealed trait WFoo
   final case class Bar(j: Float) extends WFoo
   final case object Baz extends WFoo
   object WFoo // SI-7046 workaround
 
-  @core.schema
+  @schema
   final case class WCC(s: String)
 }

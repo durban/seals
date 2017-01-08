@@ -15,7 +15,6 @@
  */
 
 package io.sigs.seals
-package core
 
 import scala.language.experimental.macros
 
@@ -23,7 +22,7 @@ import scala.annotation.{ StaticAnnotation, compileTimeOnly }
 import scala.reflect.macros.whitebox.{ Context => WContext }
 import scala.reflect.macros.blackbox.{ Context => BContext }
 
-object SchemaExtractor {
+private[seals] object SchemaExtractor {
 
   import scala.reflect.runtime.universe._
 
@@ -55,7 +54,7 @@ final class schema extends StaticAnnotation { // scalastyle:ignore class.name
 
 final class schemaMarker extends StaticAnnotation // scalastyle:ignore class.name
 
-object SchemaMacros {
+private[seals] object SchemaMacros {
 
   final val valName = "$io$sigs$seals$core$Reified$Instance"
   final val defName = valName + "$Forwarder"
@@ -108,9 +107,9 @@ object SchemaMacros {
 
     def transformAnns(anns: List[c.Tree]): List[c.Tree] = {
       anns.filter {
-        case pq"_root_.io.sigs.seals.core.schema" => false
+        case pq"_root_.io.sigs.seals.schema" => false
         case _ => true
-      } :+ q"new _root_.io.sigs.seals.core.schemaMarker()"
+      } :+ q"new _root_.io.sigs.seals.schemaMarker()"
     }
 
     def injectedDefis(cls: TypeName): List[c.Tree] = List(
