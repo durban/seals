@@ -54,13 +54,30 @@ signed by key `36A8 2002 483A 4CBF A5F8 DF6F 48B2 9573 BF19 7B13`):
 dependsOn(ProjectRef(uri("git://github.com/durban/seals.git#master"), "core"))
 ```
 
+## Features
+
+### Defining schemata
+
 By using `seals-core`, you can define a schema simply by creating an ADT:
 
 ```tut:silent
 final case class User(id: Int, name: String)
 ```
 
-In the next version of the schema, you may want to add a new field
+An abstract representation of this schema can be retrieved by requesting
+an instance of the `Reified` type class.
+
+```tut
+import io.sigs.seals.Reified
+Reified[User]
+```
+
+This abstract representation is used to implement the following features.
+(End users usually don't have to work with `Reified` directly.)
+
+### Compile-time compatibility checking
+
+In the next version of the schema defined above, you may want to add a new field
 (with a default value):
 
 ```tut:silent
@@ -91,8 +108,19 @@ Compat[User, UserV3] // error: could not find implicit value for ...
 ```
 
 For a more detailed introduction to the `Compat` type class,
-see [this example](core/src/main/tut/Compat.md). If you are
-interested in other features (like automatic derivation of
+see [this example](core/src/main/tut/Compat.md).
+
+### Build-time compatibility checking
+
+By using the `seals-plugin` module (which is an sbt plugin), we can
+check in our build whether our current schemata are compatible with
+previously released versions. (Similarly to how [MiMa] checks binary
+compatibility with previous versions.) For how to use the sbt plugin,
+see [this example](plugin/src/sbt-test/seals-plugin/example).
+
+### Other features
+
+If you are interested in other features (like automatic derivation of
 serializers, or runtime compatibility checking), at the moment
 the best way is to look at the [examples](examples) or directly
 at the sources (and Scaladoc comments, and laws/tests).
@@ -107,8 +135,7 @@ The subprojects are as follows:
 - [`scodec`](scodec): automatic derivation of [scodec]
   codecs, encoders and decoders (optional)
 - [`plugin`](plugin): sbt plugin for build-time compatibility
-  checking of schema definitions (basically [MiMa](https://github.com/typesafehub/migration-manager)
-  for schemata)
+  checking of schema definitions (basically [MiMa] for schemata)
 - [`checker`](checker): the schema checker used by the sbt plugin
 - [`laws`](laws): definitions of laws for the type classes in `core` (incomplete, for testing)
 - [`tests`](tests): unittests (don't depend on this)
@@ -149,3 +176,4 @@ For details, see the [LICENSE.txt](LICENSE.txt) and [NOTICE.txt](NOTICE.txt) fil
 
 [circe]: https://github.com/circe/circe
 [scodec]: https://github.com/scodec/scodec
+[MiMa]: https://github.com/typesafehub/migration-manager
