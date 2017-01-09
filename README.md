@@ -76,10 +76,17 @@ Compat[User, UserV2]
 ```
 
 If they wouldn't be compatible, we would get a *compile time* error
-(because there would be no `Compat` instance available). For example:
+(because there would be no `Compat` instance available). For example,
+if we define a new schema like this:
+
+```tut:silent
+final case class UserV3(id: Int, name: String, age: Int) // no default `age`
+```
+
+Then there will be no `Compat` instance available, since the schemata
+are not compatible:
 
 ```tut:fail
-final case class UserV3(id: Int, name: String, age: Int) // no default `age`
 Compat[User, UserV3] // error: could not find implicit value for ...
 ```
 
