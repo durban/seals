@@ -51,14 +51,14 @@ object Server {
     val cg = AsynchronousChannelGroup.withThreadPool(ex)
     val st = Strategy.fromExecutor(ex)
     try {
-      serve(cg, st).run.unsafeRun()
+      serve(port)(cg, st).run.unsafeRun()
     } finally {
       cg.shutdown()
       ex.shutdown()
     }
   }
 
-  def serve(implicit acg: AsynchronousChannelGroup, st: Strategy): Stream[Task, Unit] = {
+  def serve(port: Int)(implicit acg: AsynchronousChannelGroup, st: Strategy): Stream[Task, Unit] = {
     val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr(port)).flatMap { sockets =>
       Stream.emit(sockets.flatMap { socket =>
         val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))

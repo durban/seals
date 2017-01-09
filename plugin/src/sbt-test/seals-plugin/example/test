@@ -18,3 +18,4 @@ $ copy-file changes/v010.sbt build.sbt
 $ copy-file changes/v020.sbt build.sbt
 > reload
 > proto/sealsCheckSchema
+> server/test

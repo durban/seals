@@ -32,7 +32,7 @@ lazy val server = project
     "co.fs2" %% "fs2-io" % "0.9.2"
   ))
 
-lazy val example = project
+lazy val example = project.in(file("."))
   .settings(name := "example")
   .settings(commonSettings)
   .aggregate(proto, server)
@@ -41,8 +41,10 @@ lazy val commonSettings = Seq[Setting[_]](
   organization := "com.example",
   version := "0.1.0",
   scalaVersion := "2.11.8",
-  crossScalaVersions := Seq(scalaVersion.value, "2.12.1"),
-  libraryDependencies += "io.sigs" %% "seals-core" % sealsVersion
+  libraryDependencies ++= Seq(
+    "io.sigs" %% "seals-core" % sealsVersion,
+    "org.scalatest" %% "scalatest" % "3.0.1" % Test
+  )
 )
 
 lazy val sealsVersion = "0.1.0-SNAPSHOT" // TODO: don't hardcode version
