@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016 Daniel Urban
+   Copyright 2016-2017 Daniel Urban
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -99,6 +99,10 @@ The subprojects are as follows:
   encoders and decoders (optional)
 - [`scodec`](scodec): automatic derivation of [scodec]
   codecs, encoders and decoders (optional)
+- [`plugin`](plugin): sbt plugin for build-time compatibility
+  checking of schema definitions (basically [MiMa](https://github.com/typesafehub/migration-manager)
+  for schemata)
+- [`checker`](checker): the schema checker used by the sbt plugin
 - [`laws`](laws): definitions of laws for the type classes in `core` (incomplete, for testing)
 - [`tests`](tests): unittests (don't depend on this)
 - [`examples`](examples): a few examples for using the library
