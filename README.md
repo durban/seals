@@ -140,5 +140,5 @@ in the shapeless documentation.)
 *seals* is open source software under the [Apache License v2.0](https://www.apache.org/licenses/LICENSE-2.0).
 For details, see the [LICENSE.txt](LICENSE.txt) and [NOTICE.txt](NOTICE.txt) files.
 
-[circe]: https://github.com/travisbrown/circe
+[circe]: https://github.com/circe/circe
 [scodec]: https://github.com/scodec/scodec
