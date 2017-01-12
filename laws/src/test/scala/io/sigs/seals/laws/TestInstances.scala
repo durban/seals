@@ -31,7 +31,9 @@ object TestInstances {
     implicit val atomicMyUUID: Atomic[MyUUID] =
       AtomicMyUUID
 
-    private[this] final case object AtomicMyUUID extends Atomic[MyUUID] {
+    private[this] final case object AtomicMyUUID
+        extends Atomic[MyUUID]
+        with Atomic.FallbackBinary[MyUUID] {
 
       def description: String =
         "MyUUID"
@@ -54,7 +56,9 @@ object TestInstances {
     implicit val atomicWhatever: Atomic[Whatever.type] =
       AtomicWhatever
 
-    private[this] object AtomicWhatever extends Atomic[Whatever.type] {
+    private[this] object AtomicWhatever
+        extends Atomic[Whatever.type]
+        with Atomic.FallbackBinary[Whatever.type] {
 
       def description: String =
         "whatever"
@@ -76,7 +80,9 @@ object TestInstances {
       implicit val atomicInt: Atomic[Int] =
         BadAtomicInt
 
-      private[this] final object BadAtomicInt extends Atomic[Int] {
+      private[this] final object BadAtomicInt
+          extends Atomic[Int]
+          with Atomic.FallbackBinary[Int] {
 
         def description: String =
           "MyInt"

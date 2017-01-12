@@ -46,4 +46,8 @@ trait TestEqInstances {
 
   private def testInstances[A](arb: Arbitrary[A]): Stream[A] =
     Stream.continually(arb.arbitrary.sample).flatten.take(sampleSize)
+
+  /** Just forwarding to cats */
+  implicit val symbolEq: Eq[Symbol] =
+    cats.kernel.instances.symbol.catsKernelStdOrderForSymbol
 }

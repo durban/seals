@@ -19,12 +19,22 @@ package laws
 
 import shapeless._
 
+import scodec.bits.ByteVector
+
 import org.scalacheck.{ Arbitrary, Gen, Cogen }
 import org.scalacheck.derive.Recursive
 
 object ArbInstances extends ArbInstances
 
 trait ArbInstances {
+
+  implicit def arbSymbol(implicit arbStr: Arbitrary[String]): Arbitrary[Symbol] = Arbitrary {
+    arbStr.arbitrary.map(Symbol.apply)
+  }
+
+  implicit def arbByteVector(implicit arbArr: Arbitrary[Array[Byte]]): Arbitrary[ByteVector] = Arbitrary {
+    arbArr.arbitrary.map(ByteVector.view)
+  }
 
   implicit def arbEnvelope[A: Reified](implicit A: Arbitrary[A]): Arbitrary[Envelope[A]] = {
     Arbitrary {

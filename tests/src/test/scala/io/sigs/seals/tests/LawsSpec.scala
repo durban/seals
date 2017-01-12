@@ -47,6 +47,21 @@ class LawsSpec extends BaseLawsSpec {
     checkReifiedLaws[UUID, Int, Int]("UUID")
   }
 
+  checkAtomicLaws[Byte]("Byte")
+  checkAtomicLaws[Short]("Short")
+  checkAtomicLaws[Char]("Char")
+  checkAtomicLaws[Int]("Int")
+  checkAtomicLaws[Long]("Long")
+  checkAtomicLaws[Float]("Float")
+  checkAtomicLaws[Double]("Double")
+  checkAtomicLaws[Boolean]("Boolean")
+  checkAtomicLaws[Unit]("Unit")
+  checkAtomicLaws[String]("String")
+  checkAtomicLaws[Symbol]("Symbol")
+  checkAtomicLaws[BigInt]("BigInt")
+  checkAtomicLaws[BigDecimal]("BigDecimal")
+  checkAtomicLaws[UUID]("UUID")
+
   locally {
     import TestInstances.atomic._
     checkAtomicLaws[MyUUID]("MyUUID")

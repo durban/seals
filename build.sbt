@@ -17,6 +17,7 @@
 lazy val core = project
   .settings(name := "seals-core")
   .settings(commonSettings)
+  .settings(coreSettings)
   .settings(tutSettings)
   .settings(macroParadiseSettings)
 
@@ -106,6 +107,10 @@ lazy val commonSettings = Seq[Setting[_]](
   licenses := Seq("Apache 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 ) ++ typelevelDefaultSettings
 
+lazy val coreSettings = Seq[Setting[_]](
+  libraryDependencies += dependencies.scodecBits
+)
+
 lazy val lawsSettings = Seq[Setting[_]](
   libraryDependencies ++= dependencies.laws
 )
@@ -159,14 +164,17 @@ lazy val dependencies = new {
     "io.circe" %% "circe-parser" % circeVersion
   )
 
+  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.2"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "0.2.0"
   val scodec = Seq(
-    "org.scodec" %% "scodec-bits" % "1.1.2",
+    scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
     "org.scodec" %% "scodec-stream" % "1.0.1",
-    "org.scodec" %% "scodec-cats" % "0.2.0"
+    scodecCats
   )
 
   val laws = Seq(
+    scodecCats,
     "org.typelevel" %% "cats-laws" % catsVersion,
     "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.4"
   )

@@ -68,7 +68,7 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     // define an atomic:
     val constUuid = UUID.fromString("3ba1f17e-c0cd-4b17-8cca-771e90b60498")
     val r2 = {
-      object ACC extends Atomic[CaseClass] {
+      object ACC extends Atomic[CaseClass] with Atomic.FallbackBinary[CaseClass] {
 
         def description: String = "CaseClass"
 

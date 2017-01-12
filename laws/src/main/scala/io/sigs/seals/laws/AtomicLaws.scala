@@ -20,10 +20,16 @@ package laws
 import cats.Eq
 import cats.kernel.laws._
 import cats.implicits._
+
+import scodec.bits.ByteVector
+import scodec.interop.cats._
+
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop
 import org.scalacheck.Prop._
+
+import ArbInstances.arbByteVector
 
 object AtomicLaws {
   def apply[A](implicit arb: Arbitrary[A], atc: Atomic[A], equ: Eq[A]): AtomicLaws[A] = new AtomicLaws[A] {
@@ -50,6 +56,15 @@ trait AtomicLaws[A] extends Laws {
         a => {
           Atc.stringRepr(a) ?== s
         }
+      )
+    },
+    "binaryRepr-fromBinary" -> forAll { (a: A) =>
+      Atc.fromBinary(Atc.binaryRepr(a)) ?== Either.right((a, ByteVector.empty))
+    },
+    "fromBinary-binaryRepr" -> forAll { (b: ByteVector) =>
+      Atc.fromBinary(b).fold(
+        err => Prop.proved,
+        { case (a, r) => (Atc.binaryRepr(a) ++ r) ?== b }
       )
     }
   )
