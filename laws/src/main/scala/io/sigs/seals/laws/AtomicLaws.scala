@@ -17,11 +17,13 @@
 package io.sigs.seals
 package laws
 
+import java.util.UUID
+
 import cats.Eq
 import cats.kernel.laws._
 import cats.implicits._
 
-import scodec.bits.ByteVector
+import scodec.bits._
 import scodec.interop.cats._
 
 import org.typelevel.discipline.Laws
@@ -32,10 +34,53 @@ import org.scalacheck.Prop._
 import ArbInstances.arbByteVector
 
 object AtomicLaws {
+
   def apply[A](implicit arb: Arbitrary[A], atc: Atomic[A], equ: Eq[A]): AtomicLaws[A] = new AtomicLaws[A] {
     def Arb = arb
     def Atc = atc
     def Equ = equ
+  }
+
+  object FallbackStringTester
+      extends Atomic[Int]
+      with Atomic.FallbackString[Int] {
+
+    override def binaryRepr(a: Int): ByteVector =
+      ByteVector.fromInt(a, 4, ByteOrdering.LittleEndian)
+
+    override def fromBinary(b: ByteVector): Either[String, (Int, ByteVector)] = {
+      if (b.length < 4L) {
+        Left("I need at least 4 bytes")
+      } else {
+        val (d, r) = b.splitAt(4L)
+        Right((d.toInt(signed = true, ByteOrdering.LittleEndian), r))
+      }
+    }
+
+    override def description: String =
+      "FallbackStringTester"
+
+    override val uuid: UUID =
+      UUID.fromString("cc03cb40-7c79-405d-add3-5bb51542b954")
+  }
+
+  object FallbackBinaryTester
+      extends Atomic[Int]
+      with Atomic.FallbackBinary[Int] {
+
+    override def stringRepr(a: Int): String =
+      a.toString
+
+    override def fromString(s: String): Either[String, Int] = {
+      try { Right(s.toInt) }
+      catch { case ex: NumberFormatException => Left(ex.getMessage) }
+    }
+
+    override def description: String =
+      "FallbackBinaryTester"
+
+    override val uuid: UUID =
+      UUID.fromString("a848f0f6-9586-427f-aa17-d5c34c9cbbb6")
   }
 }
 

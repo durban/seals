@@ -56,6 +56,21 @@ trait Atomic[A] extends Serializable { this: Singleton =>
 
 object Atomic {
 
+  trait FallbackString[A] { this: Atomic[A] with Singleton =>
+
+    final override def stringRepr(a: A): String =
+      binaryRepr(a).toBase64(Bases.Alphabets.Base64Url)
+
+    final override def fromString(s: String): Either[String, A] = for {
+      bv <- ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url)
+      abv <- fromBinary(bv)
+      a <- abv match {
+        case (a, ByteVector.empty) => Right(a)
+        case (_, r) => Left(s"leftover bytes: ${r}")
+      }
+    } yield a
+  }
+
   trait FallbackBinary[A] { this: Atomic[A] with Singleton =>
 
     final override def binaryRepr(a: A): ByteVector = {

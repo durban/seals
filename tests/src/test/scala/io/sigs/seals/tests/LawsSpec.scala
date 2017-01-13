@@ -62,6 +62,9 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[BigDecimal]("BigDecimal")
   checkAtomicLaws[UUID]("UUID")
 
+  checkAtomicLaws[Int]("FallbackStringTester")(implicitly, implicitly, AtomicLaws.FallbackStringTester)
+  checkAtomicLaws[Int]("FallbackBinaryTester")(implicitly, implicitly, AtomicLaws.FallbackBinaryTester)
+
   locally {
     import TestInstances.atomic._
     checkAtomicLaws[MyUUID]("MyUUID")
