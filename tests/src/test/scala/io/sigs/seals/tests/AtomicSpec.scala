@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -72,11 +72,11 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
 
         def description: String = "CaseClass"
 
-        def fromString(s: String): Either[String, CaseClass] = {
+        def fromString(s: String): Either[Atomic.Error, CaseClass] = {
           try {
             Either.right(CaseClass(s.toLong))
           } catch {
-            case ex: IllegalArgumentException => Either.left(ex.getMessage)
+            case ex: IllegalArgumentException => Either.left(Atomic.Error(ex.getMessage))
           }
         }
 
@@ -108,12 +108,17 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
 
   // FIXME: what to do with this?
   "Non-ASCII numerals" ignore {
-    val s = "꩒" // U+AA52 CHAM DIGIT TWO
-    Atomic[Int].fromString(s) match {
-      case Left(err) =>
-        // OK
-      case r @ Right(_) =>
-        fail(s"expected failure to parse, got ${r} as a result")
+    val strings = Vector(
+      "꩒", // U+AA52 CHAM DIGIT TWO
+      "꘢"  // U+A622 VAI DIGIT TWO
+    )
+    for (s <- strings) {
+      Atomic[Int].fromString(s) match {
+        case Left(err) =>
+          // OK
+        case r @ Right(_) =>
+          fail(s"expected failure to parse, got ${r} as a result")
+      }
     }
   }
 }

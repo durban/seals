@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -137,7 +137,7 @@ trait ReifiedLaws[A] extends Laws {
             case t @ Atom(s) => Either.right(Reified.StringResult(s, t))
             case _ => Either.left("not atom")
           },
-          atomErr = t => s"cannot parse $t",
+          atomErr = (t, err) => s"cannot parse ${t}: '${err.msg}'",
           hNil = {
             case PNil => Either.right(PNil)
             case x: Any => Either.left(s"not HNil: $x")

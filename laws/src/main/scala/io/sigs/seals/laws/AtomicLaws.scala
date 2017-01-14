@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -48,9 +48,9 @@ object AtomicLaws {
     override def binaryRepr(a: Int): ByteVector =
       ByteVector.fromInt(a, 4, ByteOrdering.LittleEndian)
 
-    override def fromBinary(b: ByteVector): Either[String, (Int, ByteVector)] = {
+    override def fromBinary(b: ByteVector): Either[Atomic.Error, (Int, ByteVector)] = {
       if (b.length < 4L) {
-        Left("I need at least 4 bytes")
+        Left(Atomic.InsufficientData(4L, b.length))
       } else {
         val (d, r) = b.splitAt(4L)
         Right((d.toInt(signed = true, ByteOrdering.LittleEndian), r))
@@ -71,9 +71,9 @@ object AtomicLaws {
     override def stringRepr(a: Int): String =
       a.toString
 
-    override def fromString(s: String): Either[String, Int] = {
+    override def fromString(s: String): Either[Atomic.Error, Int] = {
       try { Right(s.toInt) }
-      catch { case ex: NumberFormatException => Left(ex.getMessage) }
+      catch { case ex: NumberFormatException => Left(Atomic.Error(ex.getMessage)) }
     }
 
     override def description: String =

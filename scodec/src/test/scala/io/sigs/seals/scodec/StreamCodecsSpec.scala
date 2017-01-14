@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,8 +51,7 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
       ex.err.message should include ("incompatible models")
     }
 
-    // TODO:
-    "pipe" ignore {
+    "pipe" in {
       val bits = StreamCodec[Adt1].encodeAllValid(data1)
       forAll(genStream(bits)) { src: Stream[Pure, BitVector] =>
         src.through(StreamCodecs.pipe[Pure, Adt2]).toVector should === (data2)

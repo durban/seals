@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -188,7 +188,7 @@ object Reified extends LowPrioReified {
 
   trait Unfolder[B, E, S] {
     def atom(b: B): Either[E, AtomResult[B]]
-    def atomErr(b: B): E
+    def atomErr(b: B, err: Atomic.Error): E
     def hNil(b: B): Either[E, B]
     def hCons(b: B, l: Symbol): Either[E, Either[E, (B, B => Either[E, B])]]
     def cNil(b: B): E
@@ -202,7 +202,7 @@ object Reified extends LowPrioReified {
 
     def instance[B, E, S](
       atom: B => Either[E, AtomResult[B]],
-      atomErr: B => E,
+      atomErr: (B, Atomic.Error) => E,
       hNil: B => Either[E, B],
       hCons: (B, Symbol) => Either[E, Either[E, (B, B => Either[E, B])]],
       cNil: B => E,
@@ -224,7 +224,7 @@ object Reified extends LowPrioReified {
 
     private final class UnfolderImpl[B, E, S](
       a: B => Either[E, AtomResult[B]],
-      ae: B => E,
+      ae: (B, Atomic.Error) => E,
       hn: B => Either[E, B],
       hc: (B, Symbol) => Either[E, Either[E, (B, B => Either[E, B])]],
       cn: B => E,
@@ -234,7 +234,7 @@ object Reified extends LowPrioReified {
       ue: String => E
     ) extends Unfolder[B, E, S] {
       override def atom(b: B): Either[E, AtomResult[B]] = a(b)
-      override def atomErr(b: B): E = ae(b)
+      override def atomErr(b: B, err: Atomic.Error): E = ae(b, err)
       override def hNil(b: B): Either[E, B] = hn(b)
       override def hCons(b: B, l: Symbol): Either[E, Either[E, (B, B => Either[E, B])]] = hc(b, l)
       override def cNil(b: B): E = cn(b)
@@ -282,14 +282,13 @@ object Reified extends LowPrioReified {
       x
     override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (A, B)] = {
       u.atom(b).flatMap { res: AtomResult[B] =>
-        val e: Either[String, (A, B)] = res match {
+        val e: Either[Atomic.Error, (A, B)] = res match {
           case StringResult(s, b) =>
             A.fromString(s).map(a => (a, b))
           case BinaryResult(bv, inj) =>
             A.fromBinary(bv).map { case (a, r) => (a, inj(r)) }
         }
-        // TODO: we could use the error message from Atomic here
-        e.leftMap(_ => u.atomErr(b))
+        e.leftMap(err => u.atomErr(b, err))
       }
     }
   }

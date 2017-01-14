@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ trait Atomic[A] extends Serializable { this: Singleton =>
 
   def stringRepr(a: A): String
 
-  def fromString(s: String): Either[String, A]
+  def fromString(s: String): Either[Atomic.Error, A]
 
   def binaryRepr(a: A): ByteVector
 
-  def fromBinary(b: ByteVector): Either[String, (A, ByteVector)]
+  def fromBinary(b: ByteVector): Either[Atomic.Error, (A, ByteVector)]
 
   def description: String
 
@@ -56,19 +56,40 @@ trait Atomic[A] extends Serializable { this: Singleton =>
 
 object Atomic {
 
+  sealed trait Error {
+    def msg: String
+  }
+
+  object Error {
+
+    def apply(msg: String): Error =
+      InvalidData(msg)
+
+    implicit val eqForAtomicError: Eq[Error] =
+      Eq.fromUniversalEquals
+  }
+
+  final case class InsufficientData(expBytes: Long, actBytes: Long) extends Error {
+    override def msg: String = s"insufficient data: expected ${expBytes} bytes, got ${actBytes}"
+  }
+
+  final case class InvalidData(msg: String) extends Error
+
   trait FallbackString[A] { this: Atomic[A] with Singleton =>
 
     final override def stringRepr(a: A): String =
       binaryRepr(a).toBase64(Bases.Alphabets.Base64Url)
 
-    final override def fromString(s: String): Either[String, A] = for {
-      bv <- ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url)
-      abv <- fromBinary(bv)
-      a <- abv match {
-        case (a, ByteVector.empty) => Right(a)
-        case (_, r) => Left(s"leftover bytes: ${r}")
-      }
-    } yield a
+    final override def fromString(s: String): Either[Error, A] = {
+      for {
+        bv <- ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url).leftMap(Error(_))
+        abv <- fromBinary(bv)
+        a <- abv match {
+          case (a, ByteVector.empty) => Right(a)
+          case (_, r) => Left(Error(s"leftover bytes: ${r}"))
+        }
+      } yield a
+    }
   }
 
   trait FallbackBinary[A] { this: Atomic[A] with Singleton =>
@@ -78,21 +99,21 @@ object Atomic {
       encodeLength(arr.length) ++ ByteVector.view(arr)
     }
 
-    final override def fromBinary(b: ByteVector): Either[String, (A, ByteVector)] = {
+    final override def fromBinary(b: ByteVector): Either[Error, (A, ByteVector)] = {
       for {
         lenAndRest <- decodeLength(b)
         (n, rest) = lenAndRest
         bvs <- trySplit(rest, n.toLong)
         (d, r) = bvs
-        s <- d.decodeUtf8.leftMap(ex => s"${ex.getClass.getSimpleName}: ${ex.getMessage}")
+        s <- d.decodeUtf8.leftMap(ex => Error(s"${ex.getClass.getSimpleName}: ${ex.getMessage}"))
         a <- fromString(s)
       } yield (a, r)
     }
   }
 
-  private final def trySplit(b: ByteVector, n: Long): Either[String, (ByteVector, ByteVector)] = {
-    if (n < 0) Left(s"negative length: ${n}")
-    else if (n > b.length) Left(s"insufficient length: cannot get ${n} bytes from a vector of ${b.length}")
+  private final def trySplit(b: ByteVector, n: Long): Either[Error, (ByteVector, ByteVector)] = {
+    if (n < 0) Left(InvalidData(s"negative length: ${n}"))
+    else if (n > b.length) Left(InsufficientData(n, b.length))
     else Right(b.splitAt(n))
   }
 
@@ -101,12 +122,12 @@ object Atomic {
     ByteVector.fromInt(i, 4)
   }
 
-  private final def decodeLength(b: ByteVector): Either[String, (Int, ByteVector)] = {
+  private final def decodeLength(b: ByteVector): Either[Error, (Int, ByteVector)] = {
     for {
       bvs <- trySplit(b, 4)
       (l, r) = bvs
       n <- l.toInt(signed = true) match {
-        case n if n < 0 => Left(s"negative encoded length: $n")
+        case n if n < 0 => Left(Error(s"negative encoded length: $n"))
         case n => Right(n)
       }
     } yield (n, r)
@@ -120,28 +141,28 @@ object Atomic {
 
   // Built-in instances:
 
-  sealed abstract class SimpleAtomic[A](
+  private sealed abstract class SimpleAtomic[A](
     override val description: String,
     idStr: String,
     sr: A => String,
-    fs: String => Either[String, A]
+    fs: String => Either[Error, A]
   ) extends Atomic[A] { this: Singleton =>
 
     final override val uuid: UUID =
       UUID.fromString(idStr)
 
-    final override def fromString(s: String): Either[String, A] =
+    final override def fromString(s: String): Either[Error, A] =
       fs(s)
 
     final override def stringRepr(a: A): String =
       sr(a)
   }
 
-  sealed abstract class ConstLenAtomic[A](
+  private sealed abstract class ConstLenAtomic[A](
     desc: String,
     idStr: String,
     sr: A => String,
-    fs: String => Either[String, A],
+    fs: String => Either[Error, A],
     len: Int,
     br: (ByteBuffer, A) => Unit,
     fb: ByteBuffer => A
@@ -154,7 +175,7 @@ object Atomic {
       ByteVector.view(buf)
     }
 
-    final override def fromBinary(b: ByteVector): Either[String, (A, ByteVector)] = {
+    final override def fromBinary(b: ByteVector): Either[Error, (A, ByteVector)] = {
       for {
         bvs <- trySplit(b, len.toLong)
         (d, r) = bvs
@@ -162,8 +183,8 @@ object Atomic {
     }
   }
 
-  private[this] def fromTry[A](t: Try[A]): Either[String, A] =
-    Either.fromTry(t).leftMap(ex => s"${ex.getClass.getName}: ${ex.getMessage}")
+  private[this] def fromTry[A](t: Try[A]): Either[Error, A] =
+    Either.fromTry(t).leftMap(ex => Error(s"${ex.getClass.getName}: ${ex.getMessage}"))
 
   // Primitives:
 
@@ -204,7 +225,7 @@ object Atomic {
       if (s.length === 1) {
         Right(s(0))
       } else {
-        Left(s"not a single Char: '${s}'")
+        Left(Error(s"not a single Char: '${s}'"))
       }
     },
     2,
@@ -277,7 +298,7 @@ object Atomic {
     s => {
       if (s === true.toString) Right(true)
       else if (s === false.toString) Right(false)
-      else Left(s"Not a Boolean: '${s}'")
+      else Left(Error(s"Not a Boolean: '${s}'"))
     }
   ) {
 
@@ -286,14 +307,14 @@ object Atomic {
       else FalseByte
     }
 
-    final override def fromBinary(b: ByteVector): Either[String, (Boolean, ByteVector)] = {
+    final override def fromBinary(b: ByteVector): Either[Error, (Boolean, ByteVector)] = {
       for {
         bvs <- trySplit(b, 1)
         (d, r) = bvs
         a <- d match {
           case FalseByte => Right(false)
           case TrueByte => Right(true)
-          case _ => Left(s"invalid boolean: ${d}")
+          case _ => Left(Error(s"invalid boolean: ${d}"))
         }
       } yield (a, r)
     }
@@ -306,7 +327,7 @@ object Atomic {
     "Unit",
     "d02152c8-c15b-4c74-9c3e-500af3dce57a",
     _ => "()",
-    s => if (s === "()") Right(()) else Left(s"Not '()': '${s}'"),
+    s => if (s === "()") Right(()) else Left(Error(s"Not '()': '${s}'")),
     0,
     (_, _) => (),
     _ => ()
@@ -349,14 +370,14 @@ object Atomic {
       encodeLength(arr.length) ++ ByteVector.view(arr)
     }
 
-    final override def fromBinary(b: ByteVector): Either[String, (BigInt, ByteVector)] = {
+    final override def fromBinary(b: ByteVector): Either[Error, (BigInt, ByteVector)] = {
       for {
         bvs <- decodeLength(b)
         (n, rest) = bvs
         bvs <- if (n > 0) {
           trySplit(rest, n.toLong)
         } else {
-          Left("zero length prefix for BigInt")
+          Left(Error("zero length prefix for BigInt"))
         }
         (d, r) = bvs
       } yield (BigInt(new java.math.BigInteger(d.toArray)), r)

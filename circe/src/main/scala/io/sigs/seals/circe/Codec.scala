@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,8 +46,8 @@ trait Codecs {
     override def apply(c: HCursor): Decoder.Result[A] = {
       val x = A.unfold(Reified.Unfolder.instance[HCursor, DecodingFailure, (Boolean, HCursor)](
         atom = { cur => cur.as[String](Decoder.decodeString).map(s => Reified.StringResult(s, cur)) },
-        atomErr = { cur =>
-          DecodingFailure(s"cannot decode atom", cur.history)
+        atomErr = { (cur, err) =>
+          DecodingFailure(s"error while decoding atom: '${err.msg}'", cur.history)
         },
         hNil = { cur => cur.as[JsonObject](Decoder.decodeJsonObject).map(_ => cur) },
         hCons = { (cur, sym) =>

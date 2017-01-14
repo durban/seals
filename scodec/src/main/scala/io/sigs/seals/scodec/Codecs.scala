@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -109,7 +109,12 @@ trait Codecs {
           val padding = (bv.length * 8L) - b.length
           Right(Reified.BinaryResult(bv, _.bits.dropRight(padding)))
         },
-        atomErr = { _ => Err("cannot decode atom") },
+        atomErr = {
+          case (_, Atomic.InsufficientData(exp, act)) =>
+            Err.insufficientBits(needed = exp, have = act)
+          case (_, Atomic.InvalidData(msg)) =>
+            Err.apply(s"error while decoding atom: '${msg}'")
+        },
         hNil = { b =>
           // we may have to skip fields:
           Monad[Attempt].tailRecM(b) { b: BitVector =>

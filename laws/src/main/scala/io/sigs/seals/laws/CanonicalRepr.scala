@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ object CanonicalRepr {
       case a @ Atom(r) => Right(Reified.StringResult(r, a))
       case _ => Left("not an atom")
     },
-    atomErr = _ => "cannot decode atom",
+    atomErr = (c, err) => s"cannot decode atom: '${err.msg}'",
     hNil = {
       case hn @ HNil => Right(hn)
       case hc @ HCons(_, _, _) => Right(hc) // ignore unneeded field

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,11 +38,11 @@ object TestInstances {
       def description: String =
         "MyUUID"
 
-      def fromString(s: String): Either[String, MyUUID] = {
+      def fromString(s: String): Either[Atomic.Error, MyUUID] = {
         try {
           Either.right(MyUUID(UUID.fromString(s)))
         } catch {
-          case ex: IllegalArgumentException => Either.left(ex.getMessage)
+          case ex: IllegalArgumentException => Either.left(Atomic.Error(ex.getMessage))
         }
       }
 
@@ -63,9 +63,9 @@ object TestInstances {
       def description: String =
         "whatever"
 
-      def fromString(s: String): Either[String, Whatever.type] = {
+      def fromString(s: String): Either[Atomic.Error, Whatever.type] = {
         if (Whatever.toString.equals(s)) Either.right(Whatever)
-        else Either.left("not Whatever")
+        else Either.left(Atomic.Error("not Whatever"))
       }
 
       def stringRepr(a: Whatever.type): String =
@@ -87,8 +87,8 @@ object TestInstances {
         def description: String =
           "MyInt"
 
-        def fromString(s: String): Either[String, Int] =
-          Either.catchNonFatal(s.toInt).leftMap(_.getMessage)
+        def fromString(s: String): Either[Atomic.Error, Int] =
+          Either.catchNonFatal(s.toInt).leftMap(ex => Atomic.Error(ex.getMessage))
 
         def stringRepr(a: Int): String =
           a.toString

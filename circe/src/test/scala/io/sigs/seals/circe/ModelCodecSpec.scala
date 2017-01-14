@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -413,7 +413,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "optional" -> jfalse,
               "head" -> Json.obj(
                 "Ref" -> Json.obj(
-                  "id" -> Json.fromString("abc") // not an Int.toString
+                  "id" -> Json.fromString("abc") // NumberFormatException
                 )
               ),
               "tail" -> Json.obj(
@@ -422,7 +422,7 @@ class ModelCodecSpec extends BaseJsonSpec {
             )
           )
 
-          bad.as[Model] should failWith(".*cannot decode atom.*")
+          bad.as[Model] should failWith(".*error while decoding atom.*NumberFormatException.*")
         }
 
         "points to nonexistent ID" in {
