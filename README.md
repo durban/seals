@@ -150,6 +150,11 @@ The subprojects are as follows:
   and other type class instances for ADTs.
 - [Cats](https://github.com/typelevel/cats) provides general
   functional programming tools which complement the Scala standard library.
+- [scodec-bits](https://github.com/scodec/scodec-bits) provides an
+  immutable `ByteVector` datatype.
+
+Currently there are interop modules for the following projects:
+
 - [circe] provides the JSON framework for which `seals` derives encoders and decoders.
 - [scodec] provides a binary encoding/serialization framework for which `seals` derives codecs.
 
