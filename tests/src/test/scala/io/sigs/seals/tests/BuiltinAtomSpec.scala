@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.sigs.seals
 package tests
 
 import java.util.UUID
+import java.math.{ MathContext, RoundingMode }
 
 class BuiltinAtomSpec extends BaseSpec {
 
@@ -40,6 +41,8 @@ class BuiltinAtomSpec extends BaseSpec {
       atom[Symbol],
       atom[BigInt],
       atom[BigDecimal],
+      atom[MathContext],
+      atom[RoundingMode],
       atom[UUID]
     )
     atoms.map(_.uuid).toSet should have size atoms.size.toLong

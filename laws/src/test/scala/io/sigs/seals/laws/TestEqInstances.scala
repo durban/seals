@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,9 +23,7 @@ import cats.implicits._
 import org.scalacheck.Arbitrary
 
 /**
- * Test `cats.Eq` instances for types
- * which otherwise doesn't have a proper
- * `Eq` instance.
+ * `cats.Eq` instances which we only need for tests.
  */
 trait TestEqInstances {
 
@@ -50,4 +48,10 @@ trait TestEqInstances {
   /** Just forwarding to cats */
   implicit val symbolEq: Eq[Symbol] =
     cats.kernel.instances.symbol.catsKernelStdOrderForSymbol
+
+  implicit val mathContextEq: Eq[java.math.MathContext] =
+    Eq.fromUniversalEquals
+
+  implicit val roundingModeEq: Eq[java.math.RoundingMode] =
+    referenceEq
 }

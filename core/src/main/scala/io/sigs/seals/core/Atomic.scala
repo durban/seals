@@ -18,6 +18,7 @@ package io.sigs.seals
 package core
 
 import java.util.UUID
+import java.math.{ MathContext, RoundingMode }
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
 
@@ -411,12 +412,109 @@ object Atomic {
   implicit val builtinBigDecimal: Atomic[BigDecimal] =
     SimpleBigDecimal
 
-  private object SimpleBigDecimal extends SimpleAtomic[BigDecimal](
-    "BigDecimal",
-    "46317726-b42f-4147-9f99-fbbac2adce9a",
-    _.toString,
-    s => fromTry(Try(BigDecimal.exact(s)))
-  ) with FallbackBinary[BigDecimal]
+  private object SimpleBigDecimal extends Atomic[BigDecimal] {
+
+    def description: String =
+      "BigDecimal"
+
+    def uuid: UUID =
+      UUID.fromString("46317726-b42f-4147-9f99-fbbac2adce9a")
+
+    def stringRepr(a: BigDecimal): String = {
+      val (intVal, scale, ctx) = unpack(a)
+      val intValRepr = SimpleBigInt.stringRepr(intVal)
+      val scaleRepr = SimpleInt.stringRepr(scale)
+      val ctxRepr = SimpleMathContext.stringRepr(ctx)
+      s"${intValRepr},${scaleRepr},${ctxRepr}"
+    }
+
+    def fromString(s: String): Either[Atomic.Error, BigDecimal] = {
+      s.split(',') match {
+        case Array(intVal, scale, ctx) =>
+          for {
+            intVal <- SimpleBigInt.fromString(intVal)
+            scale <- SimpleInt.fromString(scale)
+            ctx <- SimpleMathContext.fromString(ctx)
+          } yield repack(intVal, scale, ctx)
+        case _ =>
+          Left(Atomic.Error(s"not a BigDecimal representation: '${s}'"))
+      }
+    }
+
+    def binaryRepr(a: BigDecimal): ByteVector = {
+      val (intVal, scale, ctx) = unpack(a)
+      SimpleBigInt.binaryRepr(intVal) ++
+      SimpleInt.binaryRepr(scale) ++
+      SimpleMathContext.binaryRepr(ctx)
+    }
+
+    def fromBinary(b: ByteVector): Either[Atomic.Error, (BigDecimal, ByteVector)] = {
+      for {
+        ir <- SimpleBigInt.fromBinary(b)
+        (intVal, r) = ir
+        sr <- SimpleInt.fromBinary(r)
+        (scale, r) = sr
+        cr <- SimpleMathContext.fromBinary(r)
+        (ctx, r) = cr
+      } yield (repack(intVal, scale, ctx), r)
+    }
+
+    private[this] def unpack(a: BigDecimal): (BigInt, Int, MathContext) =
+      (a.bigDecimal.unscaledValue, a.bigDecimal.scale, a.mc)
+
+    private[this] def repack(intVal: BigInt, scale: Int, ctx: MathContext) =
+      new BigDecimal(new java.math.BigDecimal(intVal.bigInteger, scale, ctx), ctx)
+  }
+
+  implicit val builtinMathContext: Atomic[MathContext] =
+    SimpleMathContext
+
+  private object SimpleMathContext extends
+      Derived[MathContext, Long]()(SimpleLong) {
+
+    def description: String =
+      "MathContext"
+
+    def uuid: UUID =
+      UUID.fromString("6e099f51-bdc0-415b-8f73-bff72cfd47db")
+
+    def to(a: MathContext): Long = {
+      val precision: Int = a.getPrecision
+      val rounding: Int = SimpleRoundingMode.to(a.getRoundingMode)
+      (precision.toLong << 32) | (rounding & 0xffffffffL)
+    }
+
+    def from(b: Long): Either[Error, MathContext] = {
+      val precision: Int = (b >> 32).toInt
+      val rounding: Int = (b & 0xffffffffL).toInt
+      if (precision < 0) Left(Error(s"negative precision: ${precision}"))
+      else SimpleRoundingMode.from(rounding).map(r => new MathContext(precision, r))
+    }
+  }
+
+  implicit val builtinRoundingMode: Atomic[RoundingMode] =
+    SimpleRoundingMode
+
+  private object SimpleRoundingMode extends
+      Derived[RoundingMode, Int]()(SimpleInt) {
+
+    private[this] val values: Vector[RoundingMode] =
+      RoundingMode.values.toVector
+
+    def description: String =
+      "RoundingMode"
+
+    def uuid: UUID =
+      UUID.fromString("ad069397-978d-4436-8728-f2ff795826b6")
+
+    def to(a: RoundingMode): Int =
+      a.ordinal
+
+    def from(b: Int): Either[Error, RoundingMode] = {
+      if ((b >= 0) && (b < values.length)) Right(values(b))
+      else Left(Error(s"not a RoundingMode: ${b}"))
+    }
+  }
 
   implicit val builtinUUID: Atomic[UUID] =
     SimpleUUID
@@ -456,6 +554,8 @@ object Atomic {
     entryOf[Symbol],
     entryOf[BigInt],
     entryOf[BigDecimal],
+    entryOf[MathContext],
+    entryOf[RoundingMode],
     entryOf[UUID]
   )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,10 +120,4 @@ trait TestArbInstances extends ArbInstances {
       )
     )
   }
-
-  implicit def arbUuid(implicit al: Arbitrary[Long]): Arbitrary[UUID] =
-    Arbitrary(Gen.uuid)
-
-  implicit val cogenUuid: Cogen[UUID] =
-    Cogen[String].contramap(_.toString)
 }

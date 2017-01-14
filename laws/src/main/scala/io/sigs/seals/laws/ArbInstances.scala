@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package io.sigs.seals
 package laws
 
+import java.util.UUID
+
 import shapeless._
 
 import scodec.bits.ByteVector
@@ -27,6 +29,21 @@ import org.scalacheck.derive.Recursive
 object ArbInstances extends ArbInstances
 
 trait ArbInstances {
+
+  implicit def arbUuid(implicit al: Arbitrary[Long]): Arbitrary[UUID] =
+    Arbitrary(Gen.uuid)
+
+  implicit val cogenUuid: Cogen[UUID] =
+    Cogen[String].contramap(_.toString)
+
+  implicit val arbMathContext: Arbitrary[java.math.MathContext] = {
+    Arbitrary {
+      for {
+        precision <- Gen.chooseNum(0, Int.MaxValue)
+        rounding <- Gen.oneOf(java.math.RoundingMode.values())
+      } yield new java.math.MathContext(precision, rounding)
+    }
+  }
 
   implicit def arbSymbol(implicit arbStr: Arbitrary[String]): Arbitrary[Symbol] = Arbitrary {
     arbStr.arbitrary.map(Symbol.apply)
