@@ -41,6 +41,24 @@ object AtomicLaws {
     def Equ = equ
   }
 
+  object DerivedAtomicTester
+      extends Atomic.Derived[Byte, Int] {
+
+    def from(b: Int): Either[Atomic.Error, Byte] = {
+      if ((b >= Byte.MinValue) && (b <= Byte.MaxValue)) Right(b.toByte)
+      else Left(Atomic.Error(s"out of range: ${b}"))
+    }
+
+    def to(a: Byte): Int =
+      a.toInt
+
+    def description: String =
+      "DerivedByteFromInt"
+
+    def uuid: UUID =
+      UUID.fromString("b1452721-fe47-4649-aa8b-55205b8e1098")
+  }
+
   object FallbackStringTester
       extends Atomic[Int]
       with Atomic.FallbackString[Int] {

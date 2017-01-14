@@ -62,6 +62,7 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[BigDecimal]("BigDecimal")
   checkAtomicLaws[UUID]("UUID")
 
+  checkAtomicLaws[Byte]("DerivedAtomicTester")(implicitly, implicitly, AtomicLaws.DerivedAtomicTester)
   checkAtomicLaws[Int]("FallbackStringTester")(implicitly, implicitly, AtomicLaws.FallbackStringTester)
   checkAtomicLaws[Int]("FallbackBinaryTester")(implicitly, implicitly, AtomicLaws.FallbackBinaryTester)
 

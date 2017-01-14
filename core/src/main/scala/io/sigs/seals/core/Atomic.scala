@@ -75,6 +75,30 @@ object Atomic {
 
   final case class InvalidData(msg: String) extends Error
 
+  abstract class Derived[A, B]()(implicit base: Atomic[B]) extends Atomic[A] { this: Singleton =>
+
+    protected def from(b: B): Either[Error, A]
+
+    protected def to(a: A): B
+
+    final override def stringRepr(a: A): String =
+      base.stringRepr(to(a))
+
+    final override def fromString(s: String): Either[Error, A] =
+      base.fromString(s) flatMap from
+
+    final override def binaryRepr(a: A): ByteVector =
+      base.binaryRepr(to(a))
+
+    final override def fromBinary(b: ByteVector): Either[Error, (A, ByteVector)] = {
+      for {
+        br <- base.fromBinary(b)
+        (b, r) = br
+        a <- from(b)
+      } yield (a, r)
+    }
+  }
+
   trait FallbackString[A] { this: Atomic[A] with Singleton =>
 
     final override def stringRepr(a: A): String =
