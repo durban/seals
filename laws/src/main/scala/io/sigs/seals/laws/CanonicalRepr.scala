@@ -47,7 +47,7 @@ object CanonicalRepr {
     Eq.fromUniversalEquals
 
   val folder: Reified.Folder[CanonicalRepr, CanonicalRepr] = Reified.Folder.simple(
-    atom = Atom.apply,
+    atom = a => Atom(a.stringRepr),
     hNil = () => HNil,
     hCons = HCons.apply,
     sum = Sum.apply,
@@ -56,7 +56,7 @@ object CanonicalRepr {
 
   val unfolder: Reified.Unfolder[CanonicalRepr, String, Vector[CanonicalRepr]] = Reified.Unfolder.instance(
     atom = {
-      case a @ Atom(r) => Right((r, a))
+      case a @ Atom(r) => Right(Reified.StringResult(r, a))
       case _ => Left("not an atom")
     },
     atomErr = _ => "cannot decode atom",

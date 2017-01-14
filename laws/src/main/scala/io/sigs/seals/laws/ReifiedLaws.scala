@@ -106,7 +106,7 @@ object ReifiedLaws {
 
   def foldToTree[A](r: Reified[A], a: A): Tree = {
     r.foldClose(a)(Reified.Folder.simple[Tree](
-      atom = Atom.apply,
+      atom = a => Atom(a.stringRepr),
       hNil = () => PNil,
       hCons = (s, h, t) => t match {
         case t: Prod => PCons(s, h, t)
@@ -134,7 +134,7 @@ trait ReifiedLaws[A] extends Laws {
       val x: Either[String, (A, Tree)] = Rei.unfold(
         Reified.Unfolder.instance[Tree, String, Vector[Tree]](
           atom = {
-            case t @ Atom(s) => Either.right((s, t))
+            case t @ Atom(s) => Either.right(Reified.StringResult(s, t))
             case _ => Either.left("not atom")
           },
           atomErr = t => s"cannot parse $t",

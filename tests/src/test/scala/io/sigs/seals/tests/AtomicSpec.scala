@@ -105,4 +105,15 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
         a.uuid should === (constUuid)
     }
   }
+
+  // FIXME: what to do with this?
+  "Non-ASCII numerals" ignore {
+    val s = "꩒" // U+AA52 CHAM DIGIT TWO
+    Atomic[Int].fromString(s) match {
+      case Left(err) =>
+        // OK
+      case r @ Right(_) =>
+        fail(s"expected failure to parse, got ${r} as a result")
+    }
+  }
 }

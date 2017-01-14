@@ -28,7 +28,6 @@ import _root_.scodec.codecs.{
   uint8,
   vlong,
   vint,
-  utf8_32,
   bits,
   constant,
   string,
@@ -79,7 +78,7 @@ trait Codecs {
 
     override def encode(value: A): Attempt[BitVector] = {
       A.foldClose(value)(Reified.Folder.simple[Attempt[BitVector]](
-        atom = utf8_32.encode,
+        atom = a => Attempt.successful(a.binaryRepr.bits),
         hNil = () => fieldOrEnd.encode(End),
         hCons = (_, h, t) => for {
           fv <- fieldOrEnd.encode(Field)
@@ -105,7 +104,11 @@ trait Codecs {
   def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def decode(bits: BitVector): Attempt[DecodeResult[A]] = {
       val x = A.unfold(Reified.Unfolder.instance[BitVector, Err, Int](
-        atom = { b => utf8_32.decode(b).map(x => (x.value, x.remainder)).toEither },
+        atom = { b =>
+          val bv = b.bytes
+          val padding = (bv.length * 8L) - b.length
+          Right(Reified.BinaryResult(bv, _.bits.dropRight(padding)))
+        },
         atomErr = { _ => Err("cannot decode atom") },
         hNil = { b =>
           // we may have to skip fields:

@@ -31,7 +31,7 @@ trait Codecs {
   implicit def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
     override def apply(a: A): Json = {
       val obj = A.fold(a)(Reified.Folder.instance[Json, JsonObject](
-        atom = a => Json.fromString(a),
+        atom = a => Json.fromString(a.stringRepr),
         hNil = () => JsonObject.empty,
         hCons = (l, h, t) => (l.name, h) +: t,
         prod = Json.fromJsonObject,
@@ -45,7 +45,7 @@ trait Codecs {
   implicit def decoderFromReified[A](implicit A: Reified[A]): Decoder[A] = new Decoder[A] {
     override def apply(c: HCursor): Decoder.Result[A] = {
       val x = A.unfold(Reified.Unfolder.instance[HCursor, DecodingFailure, (Boolean, HCursor)](
-        atom = { cur => cur.as[String](Decoder.decodeString).map(s => (s, cur)) },
+        atom = { cur => cur.as[String](Decoder.decodeString).map(s => Reified.StringResult(s, cur)) },
         atomErr = { cur =>
           DecodingFailure(s"cannot decode atom", cur.history)
         },

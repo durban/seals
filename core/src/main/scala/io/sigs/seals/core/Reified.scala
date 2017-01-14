@@ -26,6 +26,8 @@ import shapeless.record._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
 
+import scodec.bits.ByteVector
+
 import Reified.{ Folder, Unfolder }
 
 sealed trait Reified[A] extends Serializable { self =>
@@ -120,8 +122,21 @@ object Reified extends LowPrioReified {
   type FFirst[B, T] = B
   type FSecond[B, T] = T
 
+  sealed abstract class AtomRepr {
+    def stringRepr: String
+    def binaryRepr: ByteVector
+  }
+
+  private final class AtomReprImpl[A](atom: A, atomic: Atomic[A])
+      extends AtomRepr {
+    final override def stringRepr: String =
+      atomic.stringRepr(atom)
+    final override def binaryRepr: ByteVector =
+      atomic.binaryRepr(atom)
+  }
+
   trait Folder[B, T] {
-    def atom(repr: String): B
+    def atom(repr: AtomRepr): B
     def hNil: T
     def hCons(l: Symbol, b: B, t: T): T
     def prod(t: T): B
@@ -132,7 +147,7 @@ object Reified extends LowPrioReified {
   object Folder {
 
     def instance[B, T](
-      atom: String => B,
+      atom: AtomRepr => B,
       hNil: () => T,
       hCons: (Symbol, B, T) => T,
       prod: T => B,
@@ -141,7 +156,7 @@ object Reified extends LowPrioReified {
     ): Folder[B, T] = new FolderImpl[B, T](atom, hNil, hCons, prod, sum, vector)
 
     def simple[B](
-      atom: String => B,
+      atom: AtomRepr => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
       sum: (Symbol, B) => B,
@@ -149,14 +164,14 @@ object Reified extends LowPrioReified {
     ): Folder[B, B] = instance[B, B](atom, hNil, hCons, identity, sum, vector)
 
     private final class FolderImpl[B, T](
-        a: String => B,
+        a: AtomRepr => B,
         hn: () => T,
         hc: (Symbol, B, T) => T,
         p: T => B,
         s: (Symbol, B) => B,
         vec: Vector[B] => B
     ) extends Folder[B, T] {
-      override def atom(repr: String): B = a(repr)
+      override def atom(repr: AtomRepr): B = a(repr)
       override def hNil: T = hn()
       override def hCons(l: Symbol, b: B, t: T): T = hc(l, b, t)
       override def prod(t: T): B = p(t)
@@ -165,8 +180,14 @@ object Reified extends LowPrioReified {
     }
   }
 
+  sealed trait AtomResult[B]
+  final case class StringResult[B](repr: String, rest: B)
+    extends AtomResult[B]
+  final case class BinaryResult[B](repr: ByteVector, inject: ByteVector => B)
+    extends AtomResult[B]
+
   trait Unfolder[B, E, S] {
-    def atom(b: B): Either[E, (String, B)]
+    def atom(b: B): Either[E, AtomResult[B]]
     def atomErr(b: B): E
     def hNil(b: B): Either[E, B]
     def hCons(b: B, l: Symbol): Either[E, Either[E, (B, B => Either[E, B])]]
@@ -180,7 +201,7 @@ object Reified extends LowPrioReified {
   object Unfolder {
 
     def instance[B, E, S](
-      atom: B => Either[E, (String, B)],
+      atom: B => Either[E, AtomResult[B]],
       atomErr: B => E,
       hNil: B => Either[E, B],
       hCons: (B, Symbol) => Either[E, Either[E, (B, B => Either[E, B])]],
@@ -202,7 +223,7 @@ object Reified extends LowPrioReified {
     )
 
     private final class UnfolderImpl[B, E, S](
-      a: B => Either[E, (String, B)],
+      a: B => Either[E, AtomResult[B]],
       ae: B => E,
       hn: B => Either[E, B],
       hc: (B, Symbol) => Either[E, Either[E, (B, B => Either[E, B])]],
@@ -212,7 +233,7 @@ object Reified extends LowPrioReified {
       vf: (B, S) => Either[E, Option[(B, S)]],
       ue: String => E
     ) extends Unfolder[B, E, S] {
-      override def atom(b: B): Either[E, (String, B)] = a(b)
+      override def atom(b: B): Either[E, AtomResult[B]] = a(b)
       override def atomErr(b: B): E = ae(b)
       override def hNil(b: B): Either[E, B] = hn(b)
       override def hCons(b: B, l: Symbol): Either[E, Either[E, (B, B => Either[E, B])]] = hc(b, l)
@@ -256,13 +277,19 @@ object Reified extends LowPrioReified {
     override type Fold[B, T] = B
     private[core] override val modelComponent = A.atom
     override def fold[B, T](a: A)(f: Folder[B, T]): B =
-      f.atom(A.stringRepr(a))
+      f.atom(new AtomReprImpl(a, A))
     override def close[B, T](x: Fold[B, T], f: T => B): B =
       x
     override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (A, B)] = {
-      u.atom(b).flatMap { case (str, b) =>
+      u.atom(b).flatMap { res: AtomResult[B] =>
+        val e: Either[String, (A, B)] = res match {
+          case StringResult(s, b) =>
+            A.fromString(s).map(a => (a, b))
+          case BinaryResult(bv, inj) =>
+            A.fromBinary(bv).map { case (a, r) => (a, inj(r)) }
+        }
         // TODO: we could use the error message from Atomic here
-        A.fromString(str).map(a => (a, b)).leftMap(_ => u.atomErr(b))
+        e.leftMap(_ => u.atomErr(b))
       }
     }
   }
