@@ -63,7 +63,6 @@ object Envelope {
       EqA.eqv(x.value, y.value)
   }
 
-  // TODO: test laws
   implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
     Reified[EnvelopeRepr[A]].pimap[Envelope[A]] { repr =>
       if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
