@@ -208,6 +208,21 @@ object Atomic {
     }
   }
 
+  private[this] val isAscii: java.util.function.IntPredicate = {
+    new java.util.function.IntPredicate with Serializable {
+      final override def test(value: Int): Boolean =
+        value < 128
+    }
+  }
+
+  private[this] def tryParseAscii[A](parse: String => A): String => Either[Error, A] = { s =>
+    if (s.codePoints.allMatch(isAscii)) {
+      Either.catchNonFatal(parse(s)).leftMap(ex => Error(s"${ex.getClass.getName}: ${ex.getMessage}"))
+    } else {
+      Left(InvalidData(s"string contains non-ASCII character: '${s}'"))
+    }
+  }
+
   private[this] def fromTry[A](t: Try[A]): Either[Error, A] =
     Either.fromTry(t).leftMap(ex => Error(s"${ex.getClass.getName}: ${ex.getMessage}"))
 
@@ -220,7 +235,7 @@ object Atomic {
     "Byte",
     "0a2d603f-b8fd-4f73-a102-3bd958d4ee22",
     _.toString,
-    s => fromTry(Try(s.toByte)),
+    tryParseAscii(_.toByte),
     1,
     _ put _,
     _.get
@@ -233,7 +248,7 @@ object Atomic {
     "Short",
     "00d9c457-b71a-45d5-8ee8-1ecfc6af2111",
     _.toString,
-    s => fromTry(Try(s.toShort)),
+    tryParseAscii(_.toShort),
     2,
     _ putShort _,
     _.getShort
@@ -265,7 +280,7 @@ object Atomic {
     "Int",
     "d9bfd653-c875-4dd0-8287-b806ee6eb85b",
     _.toString,
-    s => fromTry(Try(s.toInt)),
+    tryParseAscii(_.toInt),
     4,
     _ putInt _,
     _.getInt
@@ -278,7 +293,7 @@ object Atomic {
     "Long",
     "44e10ec2-ef7a-47b8-9851-7a5fe18a056a",
     _.toString,
-    s => fromTry(Try(s.toLong)),
+    tryParseAscii(_.toLong),
     8,
     _ putLong _,
     _.getLong
@@ -291,7 +306,7 @@ object Atomic {
     "Float",
     "13663ca9-1652-4e4b-8c88-f7a137773b75",
     _.toString,
-    s => fromTry(Try(s.toFloat)),
+    tryParseAscii(_.toFloat),
     4,
     _ putFloat _,
     _.getFloat
@@ -304,7 +319,7 @@ object Atomic {
     "Double",
     "18c48a4d-48fd-4755-99c8-1b545e25edda",
     _.toString,
-    s => fromTry(Try(s.toDouble)),
+    tryParseAscii(_.toDouble),
     8,
     _ putDouble _,
     _.getDouble
@@ -387,7 +402,7 @@ object Atomic {
     "BigInt",
     "98ed3f70-7d50-4c18-9a07-caf57cfabced",
     _.toString,
-    s => fromTry(Try(BigInt(s)))
+    tryParseAscii(BigInt(_))
   ) {
 
     final override def binaryRepr(a: BigInt): ByteVector = {

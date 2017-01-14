@@ -19,8 +19,8 @@ package tests
 
 import java.util.UUID
 
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
 import org.scalatest.Inside
+import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import cats.implicits._
 
@@ -106,19 +106,29 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     }
   }
 
-  // FIXME: what to do with this?
-  "Non-ASCII numerals" ignore {
+  "Non-ASCII digits" in {
     val strings = Vector(
       "꩒", // U+AA52 CHAM DIGIT TWO
       "꘢"  // U+A622 VAI DIGIT TWO
     )
     for (s <- strings) {
-      Atomic[Int].fromString(s) match {
-        case Left(err) =>
-          // OK
-        case r @ Right(_) =>
-          fail(s"expected failure to parse, got ${r} as a result")
-      }
+      checkFail[Byte](s)
+      checkFail[Short](s)
+      checkFail[Int](s)
+      checkFail[Long](s)
+      checkFail[Float](s)
+      checkFail[Double](s)
+      checkFail[BigInt](s)
+      checkFail[BigDecimal](s"${s},0,146028888070")
+    }
+  }
+
+  private[this] val pat = ".*non-ASCII character.*".r
+
+  private[this] def checkFail[A: Atomic](s: String): Unit = {
+    val res = Atomic[A].fromString(s)
+    inside(res) {
+      case Left(Atomic.InvalidData(pat())) => // OK
     }
   }
 }
