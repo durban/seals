@@ -25,6 +25,9 @@ import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
 import cats.instances.all._
 
+import scodec.bits._
+import scodec.interop.cats._
+
 import org.scalacheck.{ Arbitrary, Cogen }
 
 import io.sigs.seals.laws._
@@ -64,6 +67,8 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[MathContext]("MathContext")
   checkAtomicLaws[RoundingMode]("RoundingMode")
   checkAtomicLaws[UUID]("UUID")
+  checkAtomicLaws[ByteVector]("ByteVector")
+  checkAtomicLaws[BitVector]("BitVector")
 
   checkAtomicLaws[Byte]("DerivedAtomicTester")(implicitly, implicitly, AtomicLaws.DerivedAtomicTester)
   checkAtomicLaws[Int]("FallbackStringTester")(implicitly, implicitly, AtomicLaws.FallbackStringTester)

@@ -21,7 +21,7 @@ import java.util.UUID
 
 import shapeless._
 
-import scodec.bits.ByteVector
+import scodec.bits.{ ByteVector, BitVector }
 
 import org.scalacheck.{ Arbitrary, Gen, Cogen }
 import org.scalacheck.derive.Recursive
@@ -51,6 +51,17 @@ trait ArbInstances {
 
   implicit def arbByteVector(implicit arbArr: Arbitrary[Array[Byte]]): Arbitrary[ByteVector] = Arbitrary {
     arbArr.arbitrary.map(ByteVector.view)
+  }
+
+  implicit def arbBitVector(implicit arbBytes: Arbitrary[ByteVector], arbByte: Arbitrary[Byte]): Arbitrary[BitVector] = Arbitrary {
+    Gen.oneOf(
+      arbBytes.arbitrary.map(_.bits),
+      for {
+        bytes <- arbBytes.arbitrary
+        byte <- arbByte.arbitrary
+        slice <- Gen.choose(1L, 7L)
+      } yield bytes.bits ++ BitVector.fromByte(byte, 8).take(slice)
+    )
   }
 
   implicit def arbEnvelope[A: Reified](implicit A: Arbitrary[A]): Arbitrary[Envelope[A]] = {

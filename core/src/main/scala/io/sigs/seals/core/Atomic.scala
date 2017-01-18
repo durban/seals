@@ -121,12 +121,12 @@ object Atomic {
 
     final override def binaryRepr(a: A): ByteVector = {
       val arr = stringRepr(a).getBytes(UTF_8)
-      encodeLength(arr.length) ++ ByteVector.view(arr)
+      encodeLength32(arr.length) ++ ByteVector.view(arr)
     }
 
     final override def fromBinary(b: ByteVector): Either[Error, (A, ByteVector)] = {
       for {
-        lenAndRest <- decodeLength(b)
+        lenAndRest <- decodeLength32(b)
         (n, rest) = lenAndRest
         bvs <- trySplit(rest, n.toLong)
         (d, r) = bvs
@@ -142,16 +142,32 @@ object Atomic {
     else Right(b.splitAt(n))
   }
 
-  private final def encodeLength(i: Int): ByteVector = {
-    require(i >= 0, "negative length")
-    ByteVector.fromInt(i, 4)
+  private final def encodeLength32(n: Int): ByteVector = {
+    require(n >= 0, "negative length")
+    ByteVector.fromInt(n, 4)
   }
 
-  private final def decodeLength(b: ByteVector): Either[Error, (Int, ByteVector)] = {
+  private final def encodeLength64(n: Long): ByteVector = {
+    require(n >= 0L, "negative length")
+    ByteVector.fromLong(n, 8)
+  }
+
+  private final def decodeLength32(b: ByteVector): Either[Error, (Int, ByteVector)] = {
     for {
       bvs <- trySplit(b, 4)
       (l, r) = bvs
       n <- l.toInt(signed = true) match {
+        case n if n < 0 => Left(Error(s"negative encoded length: $n"))
+        case n => Right(n)
+      }
+    } yield (n, r)
+  }
+
+  private final def decodeLength64(b: ByteVector): Either[Error, (Long, ByteVector)] = {
+    for {
+      bvs <- trySplit(b, 8)
+      (l, r) = bvs
+      n <- l.toLong(signed = true) match {
         case n if n < 0 => Left(Error(s"negative encoded length: $n"))
         case n => Right(n)
       }
@@ -407,12 +423,12 @@ object Atomic {
 
     final override def binaryRepr(a: BigInt): ByteVector = {
       val arr = a.underlying.toByteArray
-      encodeLength(arr.length) ++ ByteVector.view(arr)
+      encodeLength32(arr.length) ++ ByteVector.view(arr)
     }
 
     final override def fromBinary(b: ByteVector): Either[Error, (BigInt, ByteVector)] = {
       for {
-        bvs <- decodeLength(b)
+        bvs <- decodeLength32(b)
         (n, rest) = bvs
         bvs <- if (n > 0) {
           trySplit(rest, n.toLong)
@@ -551,6 +567,58 @@ object Atomic {
     }
   )
 
+  // Types from scodec-bits:
+
+  implicit val builtinByteVector: Atomic[ByteVector] =
+    SimpleByteVector
+
+  private object SimpleByteVector extends SimpleAtomic[ByteVector](
+    "ByteVector",
+    "98d436cc-3421-4bff-a575-28c1952b976a",
+    _.toBase64(Bases.Alphabets.Base64Url),
+    s => ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url).leftMap(Error(_))
+  ) {
+
+    override def binaryRepr(a: ByteVector): ByteVector =
+      encodeLength64(a.length) ++ a
+
+    override def fromBinary(b: ByteVector): Either[Error, (ByteVector, ByteVector)] = {
+      for {
+        lr <- decodeLength64(b)
+        (l, r) = lr
+        dr <- trySplit(r, l)
+      } yield dr
+    }
+  }
+
+  implicit val builtinBitVector: Atomic[BitVector] =
+    SimpleBitVector
+
+  private object SimpleBitVector extends SimpleAtomic[BitVector](
+    "BitVector",
+    "a533de88-6ebc-45c4-a40c-29588a1a1ef1",
+    _.toBin(Bases.Alphabets.Binary),
+    s => BitVector.fromBinDescriptive(s, Bases.Alphabets.Binary).leftMap(Error(_))
+  ) {
+
+    override def binaryRepr(a: BitVector): ByteVector =
+      encodeLength64(a.length) ++ a.bytes
+
+    override def fromBinary(b: ByteVector): Either[Error, (BitVector, ByteVector)] = {
+      for {
+        lr <- decodeLength64(b)
+        (l, r) = lr
+        bytes = if ((l % 8L) > 0L) {
+          (l / 8L) + 1
+        } else {
+          l / 8L
+        }
+        dr <- trySplit(r, bytes)
+        (d, r) = dr
+      } yield (d.bits.take(l), r)
+    }
+  }
+
   // Registry:
 
   private[seals] val registry: Map[UUID, Model.Atom] = Map(
@@ -571,7 +639,10 @@ object Atomic {
     entryOf[BigDecimal],
     entryOf[MathContext],
     entryOf[RoundingMode],
-    entryOf[UUID]
+    entryOf[UUID],
+    // scodec-bits:
+    entryOf[ByteVector],
+    entryOf[BitVector]
   )
 
   private def entryOf[A](implicit a: Atomic[A]): (UUID, Model.Atom) =

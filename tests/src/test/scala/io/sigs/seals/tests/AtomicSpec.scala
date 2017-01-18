@@ -24,6 +24,8 @@ import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import cats.implicits._
 
+import scodec.bits._
+
 import laws.MyUUID
 import laws.TestArbInstances.arbUuid
 import laws.TestInstances.atomic._
@@ -129,6 +131,22 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     val res = Atomic[A].fromString(s)
     inside(res) {
       case Left(Atomic.InvalidData(pat())) => // OK
+    }
+  }
+
+  "BitVector" in {
+    val a = Atomic[BitVector]
+    val bits = Vector(
+      BitVector.zero,
+      BitVector.one,
+      bin"11",
+      bin"11001",
+      bin"000001110000",
+      bin"1010101010111110101100011"
+    )
+    for (bv <- bits) {
+      a.fromString(a.stringRepr(bv)).getOrElse(fail) should === (bv)
+      a.fromBinary(a.binaryRepr(bv)).map(_._1).getOrElse(fail) should === (bv)
     }
   }
 }

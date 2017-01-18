@@ -20,6 +20,8 @@ package tests
 import java.util.UUID
 import java.math.{ MathContext, RoundingMode }
 
+import scodec.bits.{ ByteVector, BitVector }
+
 class BuiltinAtomSpec extends BaseSpec {
 
   import Model.Atom.atom
@@ -43,7 +45,10 @@ class BuiltinAtomSpec extends BaseSpec {
       atom[BigDecimal],
       atom[MathContext],
       atom[RoundingMode],
-      atom[UUID]
+      atom[UUID],
+      // scodec-bits:
+      atom[ByteVector],
+      atom[BitVector]
     )
     atoms.map(_.uuid).toSet should have size atoms.size.toLong
     atoms.foreach { a =>
