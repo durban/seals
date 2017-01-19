@@ -68,7 +68,8 @@ trait Codecs {
         },
         vectorInit = { cur =>
           for {
-            // just to make sure it's an array:
+            // make sure it's an array (we depend
+            // on this in `vectorFold`):
             _ <- cur.as[Vector[HCursor]].leftMap { cur =>
               DecodingFailure("not an array", cur.history)
             }
@@ -83,12 +84,15 @@ trait Codecs {
           }
         },
         vectorFold = { case (_, (first, cur)) =>
-          val cur2 = if (first) cur.downArray else cur.right
-          cur2.either.map(x => Option((x, (false, x)))).recover {
-            case _ => None
-          }.leftMap { cur =>
-            DecodingFailure("not an array", cur.history)
+          val cur2 = if (first) {
+            // always succeeds, since we
+            // checked it in `vectorInit`
+            cur.downArray
+          } else {
+            // fails at the end of the array
+            cur.right
           }
+          Right(cur2.success.map(x => (x, (false, x))))
         },
         unknownError = { msg => DecodingFailure(msg, Nil) }
       ))(c)

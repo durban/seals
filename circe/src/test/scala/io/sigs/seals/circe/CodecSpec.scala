@@ -166,6 +166,14 @@ class CodecSpec extends BaseJsonSpec {
         )
       )
       json2.as[FooBarHolder] should === (Either.right(FooBarHolder(Vector(Foo(1), Bar, Bar))))
+
+      val jsonBad = Json.obj("0" -> Json.fromInt(5))
+      jsonBad.as[Vector[Int]] match {
+        case Left(err) =>
+          err.message should include ("not an array")
+        case Right(r) =>
+          fail(s"unexpected success: ${r}")
+      }
     }
   }
 
