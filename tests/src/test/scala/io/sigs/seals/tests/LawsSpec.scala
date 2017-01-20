@@ -32,10 +32,9 @@ import org.scalacheck.{ Arbitrary, Cogen }
 
 import io.sigs.seals.laws._
 
-import TestArbInstances._
-import TestArbInstances.forTestData._
-
 class LawsSpec extends BaseLawsSpec {
+
+  import forTestData._
 
   checkEnvelopeLaws[TestTypes.adts.defs.Adt1]("Adt1")
   checkEnvelopeLaws[TestTypes.adts.recursive.IntList]("IntList")
@@ -149,14 +148,6 @@ class LawsSpec extends BaseLawsSpec {
         testEqForReified
       )
     )
-  }
-
-  def checkAtomicLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], at: Atomic[A]): Unit = {
-    checkAll(s"Atomic[$name].AnyLaws.any", AnyLaws[Atomic[A]].any)
-    checkAll(s"Atomic[$name].AnyLaws.equalitySerializability", AnyLaws[Atomic[A]].equalitySerializability)
-    checkAll(s"Atomic[$name].AnyLaws.referenceEquality", AnyLaws[Atomic[A]].referenceEquality)
-    checkAll(s"Atomic[$name].OrderLaws.eqv", OrderLaws[Atomic[A]].eqv)
-    checkAll(s"Atomic[$name].AtomicLaws.roundtrip", AtomicLaws[A].roundtrip)
   }
 
   def checkKleeneLaws[F[_], A](name: String)(

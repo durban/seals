@@ -20,19 +20,31 @@ package tests
 import java.util.UUID
 
 import cats.Eq
+import cats.kernel.laws._
 
 import org.scalatest.FunSuite
 import org.scalacheck.{ Arbitrary, Gen }
 import org.scalacheck.util.Buildable
 import org.typelevel.discipline.scalatest.Discipline
 
+import laws.{ AnyLaws, AtomicLaws }
+
 trait BaseLawsSpec
   extends FunSuite
   with Discipline
-  with laws.TestEqInstances {
+  with laws.TestEqInstances
+  with laws.TestArbInstances {
 
   implicit val eqForUuid: Eq[UUID] =
     Eq.fromUniversalEquals
+
+  def checkAtomicLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], at: Atomic[A]): Unit = {
+    checkAll(s"Atomic[$name].AnyLaws.any", AnyLaws[Atomic[A]].any)
+    checkAll(s"Atomic[$name].AnyLaws.equalitySerializability", AnyLaws[Atomic[A]].equalitySerializability)
+    checkAll(s"Atomic[$name].AnyLaws.referenceEquality", AnyLaws[Atomic[A]].referenceEquality)
+    checkAll(s"Atomic[$name].OrderLaws.eqv", OrderLaws[Atomic[A]].eqv)
+    checkAll(s"Atomic[$name].AtomicLaws.roundtrip", AtomicLaws[A].roundtrip)
+  }
 
   /**
    * Some generators fail to produce
