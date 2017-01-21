@@ -451,6 +451,7 @@ object Atomic {
     def uuid: UUID =
       UUID.fromString("46317726-b42f-4147-9f99-fbbac2adce9a")
 
+    // FIXME: intVal and scale could be merged in the stringRepr
     def stringRepr(a: BigDecimal): String = {
       val (intVal, scale, ctx) = unpack(a)
       val intValRepr = SimpleBigInt.stringRepr(intVal)
@@ -508,6 +509,9 @@ object Atomic {
 
     def uuid: UUID =
       UUID.fromString("6e099f51-bdc0-415b-8f73-bff72cfd47db")
+
+    // FIXME: For stringRepr we could use the
+    // FIXME: toString of MathContext.
 
     def to(a: MathContext): Long = {
       val precision: Int = a.getPrecision

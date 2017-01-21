@@ -31,8 +31,16 @@ class AtomsSpec extends BaseJsonSpec {
       // this is too big for a BigDecimal:
       BiggerDecimal.parseBiggerDecimal(s"9999e${Int.MaxValue.toLong * 2}").getOrElse(fail)
     )
+    val abd = Atomic[BiggerDecimal]
     for (bd <- bds) {
-      checkJson(bd)
+      val bd2 = checkJson(bd)
+      bd2.isNegativeZero should === (bd.isNegativeZero)
+      val bd3 = abd.fromBinary(abd.binaryRepr(bd)) match {
+        case Right((d, _)) => d
+        case x => fail(s"unexpected: ${x}")
+      }
+      bd3 should === (bd)
+      bd3.isNegativeZero should === (bd.isNegativeZero)
     }
   }
 }

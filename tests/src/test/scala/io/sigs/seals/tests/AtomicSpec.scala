@@ -18,6 +18,7 @@ package io.sigs.seals
 package tests
 
 import java.util.UUID
+import java.math.{ MathContext, RoundingMode }
 
 import org.scalatest.Inside
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
@@ -52,9 +53,10 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     checkSer(whatever)
   }
 
-  "stringRepr/fromString" in {
+  "stringRepr/fromString and binaryRepr/fromBinary" in {
     forAll { u: MyUUID =>
-      atomic.fromString(atomic.stringRepr(u)) should === (Right(u))
+      roundtripStr(u)(atomic) should === (u)
+      roundtripBin(u)(atomic) should === (u)
     }
   }
 
@@ -145,8 +147,125 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
       bin"1010101010111110101100011"
     )
     for (bv <- bits) {
-      a.fromString(a.stringRepr(bv)).getOrElse(fail) should === (bv)
-      a.fromBinary(a.binaryRepr(bv)).map(_._1).getOrElse(fail) should === (bv)
+      roundtripStr(bv)(a) should === (bv)
+      roundtripBin(bv)(a) should === (bv)
     }
+  }
+
+  "Negative zero" - {
+
+    "Float" in {
+      val af = Atomic[Float]
+      val nzf: Float = -0.0f
+      // string:
+      val s = af.stringRepr(nzf)
+      s should === ("-0.0")
+      val r = af.fromString(s).getOrElse(fail)
+      r should === (nzf)
+      assert(isNegZeroF(r))
+      // binary:
+      val b = af.binaryRepr(nzf)
+      val r2 = af.fromBinary(b).getOrElse(fail)._1
+      r2 should === (nzf)
+      assert(isNegZeroF(r2))
+    }
+
+    "Double" in {
+      val ad = Atomic[Double]
+      val nzd: Double = -0.0d
+      // string:
+      val s = ad.stringRepr(nzd)
+      s should === ("-0.0")
+      val r = ad.fromString(s).getOrElse(fail)
+      r should === (nzd)
+      assert(isNegZeroD(r))
+      // binary:
+      val b = ad.binaryRepr(nzd)
+      val r2 = ad.fromBinary(b).getOrElse(fail)._1
+      r2 should === (nzd)
+      assert(isNegZeroD(r2))
+    }
+
+    "Sanity check" in {
+      assert(isNegZeroF(-0.0f))
+      assert(!isNegZeroF(0.0f))
+      assert(!isNegZeroF(-1.0f))
+      assert(isNegZeroD(-0.0d))
+      assert(!isNegZeroD(0.0d))
+      assert(!isNegZeroD(-1.0d))
+    }
+
+    def isNegZeroF(f: Float): Boolean =
+      (f == -0.0f) && (StrictMath.copySign(1.0f, f) == -1.0f)
+
+    def isNegZeroD(d: Double): Boolean =
+      (d == -0.0d) && (StrictMath.copySign(1.0d, d) == -1.0d)
+  }
+
+  // TODO: this is a can of worms ...
+  // See java.lang.Double#doubleToLongBits,
+  // doubleToRawLongBits, longBitsToDouble,
+  // and the corresponding methods for Float.
+  // "NaN and -NaN" - {
+  // }
+
+  "Infinity and -Infinity" - {
+
+    "Float" in {
+      val pInf1 = roundtripStr(Float.PositiveInfinity)
+      pInf1 should === (Float.PositiveInfinity)
+      assert(pInf1.isPosInfinity)
+      val pInf2 = roundtripBin(Float.PositiveInfinity)
+      pInf2 should === (Float.PositiveInfinity)
+      assert(pInf2.isPosInfinity)
+      val nInf1 = roundtripStr(Float.NegativeInfinity)
+      nInf1 should === (Float.NegativeInfinity)
+      assert(nInf1.isNegInfinity)
+      val nInf2 = roundtripBin(Float.NegativeInfinity)
+      nInf2 should === (Float.NegativeInfinity)
+      assert(nInf2.isNegInfinity)
+    }
+
+    "Double" in {
+      val pInf1 = roundtripStr(Double.PositiveInfinity)
+      pInf1 should === (Double.PositiveInfinity)
+      assert(pInf1.isPosInfinity)
+      val pInf2 = roundtripBin(Double.PositiveInfinity)
+      pInf2 should === (Double.PositiveInfinity)
+      assert(pInf2.isPosInfinity)
+      val nInf1 = roundtripStr(Double.NegativeInfinity)
+      nInf1 should === (Double.NegativeInfinity)
+      assert(nInf1.isNegInfinity)
+      val nInf2 = roundtripBin(Double.NegativeInfinity)
+      nInf2 should === (Double.NegativeInfinity)
+      assert(nInf2.isNegInfinity)
+    }
+  }
+
+  "BigDecimal with custom MathContext" in {
+    val atc = Atomic[BigDecimal]
+    val precision = 23
+    val rounding = RoundingMode.UP
+    val mc = new MathContext(precision, rounding)
+    val bd = BigDecimal("123.456", mc)
+    // string:
+    val r1 = roundtripStr(bd)
+    r1 should === (bd)
+    r1.bigDecimal should === (bd.bigDecimal)
+    r1.mc should === (bd.mc)
+    // binary:
+    val r2 = roundtripBin(bd)
+    r2 should === (bd)
+    r2.bigDecimal should === (bd.bigDecimal)
+    r2.mc should === (bd.mc)
+  }
+
+  def roundtripStr[A](a: A)(implicit A: Atomic[A]): A =
+    A.fromString(A.stringRepr(a)).getOrElse(fail)
+
+  def roundtripBin[A](a: A)(implicit A: Atomic[A]): A = {
+    val (a2, r) = A.fromBinary(A.binaryRepr(a)).getOrElse(fail)
+    r.length should === (0L)
+    a2
   }
 }
