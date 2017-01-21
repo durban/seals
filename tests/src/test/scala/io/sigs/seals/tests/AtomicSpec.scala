@@ -17,10 +17,13 @@
 package io.sigs.seals
 package tests
 
+import java.{ lang => jl }
 import java.util.UUID
+import java.nio.ByteBuffer
 import java.math.{ MathContext, RoundingMode }
 
 import org.scalatest.Inside
+import org.scalatest.compatible.Assertion
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
 
 import cats.implicits._
@@ -202,12 +205,76 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
       (d == -0.0d) && (StrictMath.copySign(1.0d, d) == -1.0d)
   }
 
-  // TODO: this is a can of worms ...
-  // See java.lang.Double#doubleToLongBits,
-  // doubleToRawLongBits, longBitsToDouble,
-  // and the corresponding methods for Float.
-  // "NaN and -NaN" - {
-  // }
+  "NaN should be canonicalized" - {
+
+    "Float" in {
+      val af = Atomic[Float]
+      // make sure, that we're testing the
+      // right thing: let's have 2 different NaNs:
+      val cNan: Float = Float.NaN // the canonical one
+      assert(cNan.isNaN)
+      val oNan: Float = StrictMath.sqrt(-1.0).toFloat // a different one
+      assert(oNan.isNaN)
+      // make sure they're different:
+      jl.Float.floatToRawIntBits(cNan) should !== (jl.Float.floatToRawIntBits(oNan))
+      // string
+      af.stringRepr(cNan) should === ("NaN")
+      af.stringRepr(oNan) should === ("NaN")
+      sameBitsF(roundtripStr(cNan), cNan)
+      sameBitsF(roundtripStr(oNan), cNan) // canonicalized
+      // binary
+      sameBitsF(roundtripBin(cNan), cNan)
+      sameBitsF(roundtripBin(oNan), cNan) // canonicalized
+      // non-canonical NaN-s should be rejected:
+      val buf = ByteBuffer.allocate(4).putFloat(oNan)
+      buf.rewind()
+      val oBin = ByteVector.view(buf)
+      val expMsg = "-*non-canonical Float NaN.*".r
+      inside(af.fromBinary(oBin)) {
+        case Left(Atomic.InvalidData(expMsg())) => // OK
+      }
+    }
+
+    "Double" in {
+      val ad = Atomic[Double]
+      // make sure, that we're testing the
+      // right thing: let's have 2 different NaNs:
+      val cNan: Double = Double.NaN // the canonical one
+      assert(cNan.isNaN)
+      val oNan: Double = StrictMath.sqrt(-1.0) // a different one
+      assert(oNan.isNaN)
+      // make sure they're different:
+      jl.Double.doubleToRawLongBits(cNan) should !== (jl.Double.doubleToRawLongBits(oNan))
+      // string
+      ad.stringRepr(cNan) should === ("NaN")
+      ad.stringRepr(oNan) should === ("NaN")
+      sameBitsD(roundtripStr(cNan), cNan)
+      sameBitsD(roundtripStr(oNan), cNan) // canonicalized
+      // binary
+      sameBitsD(roundtripBin(cNan), cNan)
+      sameBitsD(roundtripBin(oNan), cNan) // canonicalized
+      // non-canonical NaN-s should be rejected:
+      val buf = ByteBuffer.allocate(8).putDouble(oNan)
+      buf.rewind()
+      val oBin = ByteVector.view(buf)
+      val expMsg = "-*non-canonical Double NaN.*".r
+      inside(ad.fromBinary(oBin)) {
+        case Left(Atomic.InvalidData(expMsg())) => // OK
+      }
+    }
+
+    def sameBitsF(a: Float, b: Float): Assertion = {
+      assert(a.isNaN)
+      assert(b.isNaN)
+      jl.Float.floatToRawIntBits(a) should === (jl.Float.floatToRawIntBits(b))
+    }
+
+    def sameBitsD(a: Double, b: Double): Assertion = {
+      assert(a.isNaN)
+      assert(b.isNaN)
+      jl.Double.doubleToRawLongBits(a) should === (jl.Double.doubleToRawLongBits(b))
+    }
+  }
 
   "Infinity and -Infinity" - {
 

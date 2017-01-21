@@ -318,28 +318,86 @@ object Atomic {
   implicit val builtinFloat: Atomic[Float] =
     SimpleFloat
 
-  private object SimpleFloat extends ConstLenAtomic[Float](
+  private object SimpleFloat extends SimpleAtomic[Float](
     "Float",
     "13663ca9-1652-4e4b-8c88-f7a137773b75",
     _.toString,
-    tryParseAscii(_.toFloat),
-    4,
-    _ putFloat _,
-    _.getFloat
-  )
+    tryParseAscii(_.toFloat)
+  ) {
+
+    private[this] final val len = 4
+
+    private[this] final val canonicalNanBits =
+      java.lang.Float.floatToRawIntBits(Float.NaN)
+
+    override def binaryRepr(a: Float): ByteVector = {
+      val buf = ByteBuffer.allocate(len)
+      // canonicalize NaNs:
+      buf.putFloat(if (a.isNaN) Float.NaN else a)
+      buf.rewind()
+      ByteVector.view(buf)
+    }
+
+    override def fromBinary(b: ByteVector): Either[Error, (Float, ByteVector)] = {
+      for {
+        bvs <- trySplit(b, len.toLong)
+        (d, r) = bvs
+        a <- {
+          val a = d.toByteBuffer.getFloat
+          if (a.isNaN) {
+            // must be the canonical NaN:
+            val bits = java.lang.Float.floatToRawIntBits(a)
+            if (bits === canonicalNanBits) Right(a)
+            else Left(InvalidData(s"non-canonical Float NaN: ${bits}"))
+          } else {
+            Right(a)
+          }
+        }
+      } yield (a, r)
+    }
+  }
 
   implicit val builtinDouble: Atomic[Double] =
     SimpleDouble
 
-  private object SimpleDouble extends ConstLenAtomic[Double](
+  private object SimpleDouble extends SimpleAtomic[Double](
     "Double",
     "18c48a4d-48fd-4755-99c8-1b545e25edda",
     _.toString,
-    tryParseAscii(_.toDouble),
-    8,
-    _ putDouble _,
-    _.getDouble
-  )
+    tryParseAscii(_.toDouble)
+  ) {
+
+    private[this] final val len = 8
+
+    private[this] final val canonicalNanBits =
+      java.lang.Double.doubleToRawLongBits(Double.NaN)
+
+    override def binaryRepr(a: Double): ByteVector = {
+      val buf = ByteBuffer.allocate(len)
+      // canonicalize NaNs:
+      buf.putDouble(if (a.isNaN) Double.NaN else a)
+      buf.rewind()
+      ByteVector.view(buf)
+    }
+
+    override def fromBinary(b: ByteVector): Either[Error, (Double, ByteVector)] = {
+      for {
+        bvs <- trySplit(b, len.toLong)
+        (d, r) = bvs
+        a <- {
+          val a = d.toByteBuffer.getDouble
+          if (a.isNaN) {
+            // must be the canonical NaN:
+            val bits = java.lang.Double.doubleToRawLongBits(a)
+            if (bits === canonicalNanBits) Right(a)
+            else Left(InvalidData(s"non-canonical Double NaN: ${bits}"))
+          } else {
+            Right(a)
+          }
+        }
+      } yield (a, r)
+    }
+  }
 
   implicit val builtinBoolean: Atomic[Boolean] =
     SimpleBoolean
