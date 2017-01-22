@@ -61,20 +61,27 @@ object Server {
     }
   }
 
-  def serve(port: Int)(implicit acg: ACG, st: Strategy): Stream[Task, Unit] = {
-    val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr(port)).flatMap { sockets =>
-      Stream.emit(sockets.flatMap { socket =>
-        val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
-        val requests: Stream[Task, Request] = bvs.through(decPipe[Task, Request])
-        val responses: Stream[Task, Response] = requests.flatMap(req => Stream.eval(logic(req)))
-        val encoded: Stream[Task, Byte] = resCodec.encode(responses).mapChunks { ch =>
-          Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
-        }
+  def serve(port: Int)(implicit acg: ACG, st: Strategy): Stream[Task, Unit] =
+    serveAddr(port)(acg, st).collect { case Right(u) => u }
 
-        encoded.to(socket.writes(timeout)).onFinalize(socket.endOfOutput)
-      })
+  def serveAddr(port: Int)(implicit acg: ACG, st: Strategy): Stream[Task, Either[InetSocketAddress, Unit]] = {
+    val v: Stream[Task, Stream[Task, Either[InetSocketAddress, Unit]]] = tcp.serverWithLocalAddress[Task](addr(port)).flatMap {
+      case Left(localAddr) =>
+        Stream.emit(Stream(Left(localAddr)))
+      case Right(sockets) =>
+        Stream.emit(sockets.flatMap { socket =>
+          val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
+          val requests: Stream[Task, Request] = bvs.through(decPipe[Task, Request])
+          val responses: Stream[Task, Response] = requests.flatMap(req => Stream.eval(logic(req)))
+          val encoded: Stream[Task, Byte] = resCodec.encode(responses).mapChunks { ch =>
+            Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
+          }
+
+          encoded.to(socket.writes(timeout)).map(Right(_)).onFinalize(socket.endOfOutput)
+        })
     }
-    fs2.concurrent.join(maxClients)(s)
+
+    fs2.concurrent.join(maxClients)(v)
   }
 
   def logic(req: Request): Task[Response] = req match {

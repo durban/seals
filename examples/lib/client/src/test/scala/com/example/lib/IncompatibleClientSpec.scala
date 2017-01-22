@@ -51,9 +51,15 @@ class IncompatibleClientSpec
   }
 
   "Client with incompatible schema" should "be rejected" in {
-    val resp: Either[Throwable, Vector[v2.Response]] = fs2.concurrent.join(Int.MaxValue)(
-      Stream(Server.serve(1236).drain, incompatibleClient(1236))
-    ).take(1L).runLog.unsafeAttemptRun()
+    val resp: Either[Throwable, Vector[v2.Response]] = fs2.concurrent.join(Int.MaxValue) {
+      Server.serveAddr(0).map {
+        case Left(localAddr) =>
+          incompatibleClient(localAddr.getPort)
+        case Right(_) =>
+          Stream.empty[Task, v2.Response]
+      }
+    }.take(1L).runLog.unsafeAttemptRun()
+
     inside(resp) {
       case Left(ex) => ex.getMessage should include ("incompatible models")
     }
