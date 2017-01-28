@@ -113,6 +113,13 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     }
   }
 
+  "Atomic.ForEnum have higher priority than Reified#reifiedForEnumLike" in {
+    val inst = Atomic[RoundingMode]
+    val fromReified = Reified.reifiedForEnumLike[RoundingMode]
+    inst shouldBe theSameInstanceAs (Atomic.builtinRoundingMode)
+    inst should not be theSameInstanceAs (fromReified)
+  }
+
   "Non-ASCII digits" in {
     val strings = Vector(
       "꩒", // U+AA52 CHAM DIGIT TWO

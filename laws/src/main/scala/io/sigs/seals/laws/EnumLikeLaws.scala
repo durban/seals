@@ -48,14 +48,13 @@ trait EnumLikeLaws[A] extends Laws {
     "name",
     parent = None,
     "name-fromName" -> forAll { a: A =>
-      Enu.fromName(Enu.name(a)) ?== Some(a)
+      Enu.fromName(Enu.name(a)) ?== Right(a)
     },
     "fromName-name" -> forAll { s: String =>
-      Enu.fromName(s).fold {
-        Prop.proved
-      } { a =>
-        Enu.name(a) ?== s
-      }
+      Enu.fromName(s).fold(
+        _ => Prop.proved,
+        a => Enu.name(a) ?== s
+      )
     }
   )
 
@@ -63,14 +62,13 @@ trait EnumLikeLaws[A] extends Laws {
     "index",
     parent = Some(name),
     "index-fromIndex" -> forAll { a: A =>
-      Enu.fromIndex(Enu.index(a)) ?== Some(a)
+      Enu.fromIndex(Enu.index(a)) ?== Right(a)
     },
     "fromIndex-index" -> forAll { i: Int =>
-      Enu.fromIndex(i).fold {
-        Prop.proved
-      } { a =>
-        Enu.index(a) ?== i
-      }
+      Enu.fromIndex(i).fold(
+        _ => Prop.proved,
+        a => Enu.index(a) ?== i
+      )
     }
   )
 

@@ -353,11 +353,8 @@ object Reified extends LowPrioReified {
     }
   }
 
-  implicit def reifiedForEnumLike[A](implicit A: EnumLike[A]): Reified.Aux[A, Model.Atom, FFirst] = {
-    Reified.reifiedFromAtomic[Int](Atomic.builtinInt).pimap(
-      idx => Either.fromOption(A.fromIndex(idx), ifNone = A.fromIndexError(idx))
-    )(A.index)
-  }
+  implicit def reifiedForEnumLike[A](implicit A: EnumLike[A]): Reified.Aux[A, Model.Atom, FFirst] =
+    Reified.reifiedFromAtomic[Int](Atomic.builtinInt).pimap(A.fromIndex)(A.index)
 }
 
 private[core] sealed trait LowPrioReified {

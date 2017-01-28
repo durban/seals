@@ -20,21 +20,44 @@ package core
 import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 
-// TODO: change to fromName(name: String): Either[String, A] (and fromIndex too)
-// TODO: could cache the result of .values()
+import cats.implicits._
+
 trait EnumLike[A] extends Serializable {
+
   def typeName: String
+
   def name(a: A): String
-  def index(a: A): Int
-  def fromName(name: String): Option[A]
-  def fromIndex(index: Int): Option[A]
+
+  def fromNameOpt(name: String): Option[A]
+
+  def fromName(name: String): Either[String, A] =
+    Either.fromOption(fromNameOpt(name), ifNone = fromNameError(name))
+
   def fromNameError(s: String): String =
     s"'${s}' is not a(n) ${typeName} value"
+
+  def index(a: A): Int
+
+  def fromIndexOpt(index: Int): Option[A]
+
+  def fromIndex(index: Int): Either[String, A] =
+    Either.fromOption(fromIndexOpt(index), ifNone = fromIndexError(index))
+
   def fromIndexError(i: Int): String =
     s"${i} is not a(n) ${typeName} value"
 }
 
 object EnumLike {
+
+  abstract class JavaEnum[A <: java.lang.Enum[A]]()
+      extends EnumLike[A] {
+
+    final override def name(a: A): String =
+      a.name
+
+    final override def index(a: A): Int =
+      a.ordinal
+  }
 
   def apply[A](implicit inst: EnumLike[A]): EnumLike[A] =
     inst
@@ -42,31 +65,28 @@ object EnumLike {
   implicit def enumLikeJavaEnum[A <: java.lang.Enum[A]]: EnumLike[A] =
     macro enumLikeJavaEnumImpl[A]
 
-  // TODO: add abstract class to generate less code
   def enumLikeJavaEnumImpl[A](c: Context)(implicit A: c.WeakTypeTag[A]): c.Expr[EnumLike[A]] = {
     import c.universe._
     val companion = weakTypeOf[A].typeSymbol.companion.asTerm
     val tree = q"""
-      (new _root_.io.sigs.seals.core.EnumLike[${A}] {
+      (new _root_.io.sigs.seals.core.EnumLike.JavaEnum[${A}] {
+
+        private[this] final val values: _root_.scala.Array[${A}] =
+          ${companion}.values()
 
         final override def typeName: _root_.scala.Predef.String =
           ${A.tpe.toString}
 
-        final override def name(a: ${A}): _root_.scala.Predef.String =
-          a.name()
-
-        final override def index(a: ${A}): _root_.scala.Int =
-          a.ordinal()
-
-        final override def fromName(name: _root_.scala.Predef.String): _root_.scala.Option[${A}] = {
+        final override def fromNameOpt(name: _root_.scala.Predef.String): _root_.scala.Option[${A}] = {
           try {
             _root_.scala.Some[${A}](${companion}.valueOf(name))
-          } catch { case _: _root_.scala.IllegalArgumentException => _root_.scala.None }
+          } catch {
+            case _: _root_.scala.IllegalArgumentException => _root_.scala.None
+          }
         }
 
-        final override def fromIndex(index: _root_.scala.Int): _root_.scala.Option[${A}] = {
-          val arr: _root_.scala.Array[${A}] = ${companion}.values()
-          if ((index >= 0) && (index < arr.length)) _root_.scala.Some[${A}](arr(index))
+        final override def fromIndexOpt(index: _root_.scala.Int): _root_.scala.Option[${A}] = {
+          if ((index >= 0) && (index < values.length)) _root_.scala.Some[${A}](values(index))
           else _root_.scala.None
         }
       }) : _root_.io.sigs.seals.core.EnumLike[${A}]

@@ -142,7 +142,7 @@ object Atomic {
       A.name(a)
 
     final override def fromString(s: String): Either[Error, A] =
-      Either.fromOption(A.fromName(s), ifNone = Error(A.fromNameError(s)))
+      A.fromName(s).leftMap(Error(_))
 
     final override def binaryRepr(a: A): ByteVector =
       encodeLength32(A.index(a))
@@ -151,10 +151,7 @@ object Atomic {
       for {
         ir <- decodeLength32(b)
         (idx, rest) = ir
-        value <- Either.fromOption(
-          A.fromIndex(idx),
-          ifNone = Error(A.fromIndexError(idx))
-        )
+        value <- A.fromIndex(idx).leftMap(Error(_))
       } yield (value, rest)
     }
   }
@@ -596,39 +593,56 @@ object Atomic {
 
     def to(a: MathContext): Long = {
       val precision: Int = a.getPrecision
-      val rounding: Int = SimpleRoundingMode.to(a.getRoundingMode)
+      val rounding: Int = RoundingModeEnumLike.index(a.getRoundingMode)
       (precision.toLong << 32) | (rounding & 0xffffffffL)
     }
 
     def from(b: Long): Either[Error, MathContext] = {
       val precision: Int = (b >> 32).toInt
       val rounding: Int = (b & 0xffffffffL).toInt
-      if (precision < 0) Left(Error(s"negative precision: ${precision}"))
-      else SimpleRoundingMode.from(rounding).map(r => new MathContext(precision, r))
+      if (precision < 0) {
+        Left(Error(s"negative precision: ${precision}"))
+      } else {
+        RoundingModeEnumLike
+          .fromIndex(rounding)
+          .map(r => new MathContext(precision, r))
+          .leftMap(Error(_))
+      }
     }
   }
 
   implicit val builtinRoundingMode: Atomic[RoundingMode] =
     SimpleRoundingMode
 
-  private object SimpleRoundingMode extends
-      Derived[RoundingMode, Int]()(SimpleInt) {
-
-    private[this] val values: Vector[RoundingMode] =
-      RoundingMode.values.toVector
+  private object SimpleRoundingMode
+      extends ForEnum[RoundingMode]()(RoundingModeEnumLike) {
 
     def description: String =
       "RoundingMode"
 
     def uuid: UUID =
       UUID.fromString("ad069397-978d-4436-8728-f2ff795826b6")
+  }
 
-    def to(a: RoundingMode): Int =
-      a.ordinal
+  private object RoundingModeEnumLike extends EnumLike.JavaEnum[RoundingMode] {
 
-    def from(b: Int): Either[Error, RoundingMode] = {
-      if ((b >= 0) && (b < values.length)) Right(values(b))
-      else Left(Error(s"not a RoundingMode: ${b}"))
+    private[this] final val values: Array[RoundingMode] =
+      RoundingMode.values
+
+    final override def typeName: String =
+      classOf[RoundingMode].getName
+
+    final override def fromNameOpt(name: String): Option[RoundingMode] = {
+      try {
+        Some(RoundingMode.valueOf(name))
+      } catch {
+        case _: IllegalArgumentException => None
+      }
+    }
+
+    final override def fromIndexOpt(index: Int): Option[RoundingMode] = {
+      if ((index >= 0) && (index < values.length)) Some(values(index))
+      else None
     }
   }
 
