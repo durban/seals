@@ -38,6 +38,9 @@ trait BaseLawsSpec
   implicit val eqForUuid: Eq[UUID] =
     Eq.fromUniversalEquals
 
+  implicit def eqForJavaEnums[A <: java.lang.Enum[A]]: Eq[A] =
+    referenceEq[A]
+
   def checkAtomicLaws[A](name: String)(implicit a: Arbitrary[A], e: Eq[A], at: Atomic[A]): Unit = {
     checkAll(s"Atomic[$name].AnyLaws.any", AnyLaws[Atomic[A]].any)
     checkAll(s"Atomic[$name].AnyLaws.equalitySerializability", AnyLaws[Atomic[A]].equalitySerializability)

@@ -51,7 +51,4 @@ trait TestEqInstances {
 
   implicit val mathContextEq: Eq[java.math.MathContext] =
     Eq.fromUniversalEquals
-
-  implicit val roundingModeEq: Eq[java.math.RoundingMode] =
-    referenceEq
 }

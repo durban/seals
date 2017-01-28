@@ -18,6 +18,7 @@ package io.sigs.seals
 package laws
 
 import java.util.UUID
+import java.time.DayOfWeek
 
 import cats.Eq
 import cats.kernel.laws._
@@ -99,6 +100,16 @@ object AtomicLaws {
 
     override val uuid: UUID =
       UUID.fromString("a848f0f6-9586-427f-aa17-d5c34c9cbbb6")
+  }
+
+  object ForEnumTester
+      extends Atomic.ForEnum[DayOfWeek] {
+
+    override def description: String =
+      "ForEnumTester"
+
+    override val uuid: UUID =
+      UUID.fromString("090c78d0-86a4-4b32-9556-26b3a124354a")
   }
 }
 

@@ -19,6 +19,7 @@ package tests
 
 import java.util.UUID
 import java.math.{ MathContext, RoundingMode }
+import java.time.{ DayOfWeek, Month }
 
 import cats.kernel.laws._
 import cats.laws.discipline.InvariantMonoidalTests
@@ -30,6 +31,7 @@ import scodec.interop.cats._
 
 import org.scalacheck.{ Arbitrary, Cogen }
 
+import io.sigs.seals.core.EnumLike
 import io.sigs.seals.laws._
 
 class LawsSpec extends BaseLawsSpec {
@@ -44,6 +46,8 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[TestTypes.adts.recursive.IntList, Int, Int]("IntList")
   checkReifiedLaws[Envelope[TestTypes.adts.defs.Adt1], Int, Int]("Envelope[Adt1]")
   checkReifiedLaws[Envelope[TestTypes.adts.recursive.IntList], Int, Int]("Envelope[IntList]")
+  checkReifiedLaws[Option[Int], String, Float]("Option[Int]")
+  checkReifiedLaws[Month, String, Float]("java.time.Month")
 
   locally {
     import TestInstances.reified._
@@ -72,6 +76,7 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[Byte]("DerivedAtomicTester")(implicitly, implicitly, AtomicLaws.DerivedAtomicTester)
   checkAtomicLaws[Int]("FallbackStringTester")(implicitly, implicitly, AtomicLaws.FallbackStringTester)
   checkAtomicLaws[Int]("FallbackBinaryTester")(implicitly, implicitly, AtomicLaws.FallbackBinaryTester)
+  checkAtomicLaws[DayOfWeek]("ForEnumTester")(implicitly, implicitly, AtomicLaws.ForEnumTester)
 
   locally {
     import TestInstances.atomic._
@@ -92,6 +97,12 @@ class LawsSpec extends BaseLawsSpec {
       checkKleeneLaws[Stream, TestTypes.adts.recursive.IntList]("Stream, IntList")
     }
   }
+
+  checkEnumLikeLaws[java.math.RoundingMode]("RoundingMode")
+  checkEnumLikeLaws[MyTestEnum]("MyTestEnum")
+  checkEnumLikeLaws[MyTestEnumWithArgs]("MyTestEnumWithArgs")
+  checkEnumLikeLaws[MyTestEnumWithOverloads]("MyTestEnumWithOverloads")
+  checkEnumLikeLaws[MyTestEnumWithToString]("MyTestEnumWithToString")
 
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)
@@ -160,5 +171,15 @@ class LawsSpec extends BaseLawsSpec {
   ): Unit = {
     checkAll(s"Kleene[$name].AnyLaws.serializability", AnyLaws[Kleene[F]].serializability)
     checkAll(s"Kleene[$name].KleeneLaws.roundtrip", KleeneLaws[F, A].roundtrip)
+  }
+
+  def checkEnumLikeLaws[A](name: String)(
+    implicit
+    arb: Arbitrary[A],
+    enu: EnumLike[A],
+    equ: Eq[A]
+  ): Unit = {
+    checkAll(s"EnumLike[$name].AnyLaws.serializability", AnyLaws[EnumLike[A]].serializability)
+    checkAll(s"EnumLike[$name].all", EnumLikeLaws[A].all)
   }
 }

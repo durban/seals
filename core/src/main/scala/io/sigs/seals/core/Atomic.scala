@@ -136,6 +136,29 @@ object Atomic {
     }
   }
 
+  abstract class ForEnum[A](implicit A: EnumLike[A]) extends Atomic[A] { this: Singleton =>
+
+    final override def stringRepr(a: A): String =
+      A.name(a)
+
+    final override def fromString(s: String): Either[Error, A] =
+      Either.fromOption(A.fromName(s), ifNone = Error(A.fromNameError(s)))
+
+    final override def binaryRepr(a: A): ByteVector =
+      encodeLength32(A.index(a))
+
+    final override def fromBinary(b: ByteVector): Either[Error, (A, ByteVector)] = {
+      for {
+        ir <- decodeLength32(b)
+        (idx, rest) = ir
+        value <- Either.fromOption(
+          A.fromIndex(idx),
+          ifNone = Error(A.fromIndexError(idx))
+        )
+      } yield (value, rest)
+    }
+  }
+
   private final def trySplit(b: ByteVector, n: Long): Either[Error, (ByteVector, ByteVector)] = {
     if (n < 0) Left(InvalidData(s"negative length: ${n}"))
     else if (n > b.length) Left(InsufficientData(n, b.length))
@@ -143,12 +166,12 @@ object Atomic {
   }
 
   private final def encodeLength32(n: Int): ByteVector = {
-    require(n >= 0, "negative length")
+    require(n >= 0, "negative length or index")
     ByteVector.fromInt(n, 4)
   }
 
   private final def encodeLength64(n: Long): ByteVector = {
-    require(n >= 0L, "negative length")
+    require(n >= 0L, "negative length or index")
     ByteVector.fromLong(n, 8)
   }
 
@@ -157,7 +180,7 @@ object Atomic {
       bvs <- trySplit(b, 4)
       (l, r) = bvs
       n <- l.toInt(signed = true) match {
-        case n if n < 0 => Left(Error(s"negative encoded length: $n"))
+        case n if n < 0 => Left(Error(s"negative encoded length or index: $n"))
         case n => Right(n)
       }
     } yield (n, r)
@@ -168,7 +191,7 @@ object Atomic {
       bvs <- trySplit(b, 8)
       (l, r) = bvs
       n <- l.toLong(signed = true) match {
-        case n if n < 0 => Left(Error(s"negative encoded length: $n"))
+        case n if n < 0 => Left(Error(s"negative encoded length or index: $n"))
         case n => Right(n)
       }
     } yield (n, r)

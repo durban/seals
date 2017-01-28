@@ -96,6 +96,13 @@ trait ArbInstances {
     Gen.const(k)
   }
 
+  implicit def arbEnumLike[A](implicit enu: core.EnumLike[A]): Arbitrary[core.EnumLike[A]] = Arbitrary {
+    Gen.const(enu)
+  }
+
+  implicit def cogenEnumLike[A](implicit enu: core.EnumLike[A]): Cogen[A] =
+    Cogen[Int].contramap(a => enu.index(a))
+
   implicit def arbModelHlist(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HList] = Arbitrary {
     Gen.oneOf(arbModelHnil.arbitrary, Gen.lzy(arbModelHcons(arbM).arbitrary))
   }
