@@ -279,4 +279,118 @@ class BuiltinAtomSpec extends BaseSpec {
     r2.bigDecimal should === (bd.bigDecimal)
     r2.mc should === (bd.mc)
   }
+
+  "Primitive representations" - {
+
+    def str[A](a: A)(implicit A: Atomic[A]): String =
+      A.stringRepr(a)
+
+    def bin[A](a: A)(implicit A: Atomic[A]): ByteVector =
+      A.binaryRepr(a)
+
+    def check[A: Atomic](as: Vector[A], strs: Vector[String], bins: Vector[ByteVector]): Unit = {
+      as.length should === (strs.length)
+      as.length should === (bins.length)
+      for ((a, s, b) <- (as, strs, bins).zipped) {
+        str(a) should === (s)
+        bin(a) should === (b)
+      }
+    }
+
+    "Byte" in {
+      check[Byte](
+        Vector(Byte.MinValue, -1.toByte, 0.toByte, 1.toByte, Byte.MaxValue),
+        Vector("-128", "-1", "0", "1", "127"),
+        Vector(hex"80", hex"ff", hex"00", hex"01", hex"7f")
+      )
+    }
+
+    "Short" in {
+      check[Short](
+        Vector(Short.MinValue, -1.toShort, 0.toShort, 1.toShort, Short.MaxValue),
+        Vector("-32768", "-1", "0", "1", "32767"),
+        Vector(hex"8000", hex"ffff", hex"0000", hex"0001", hex"7fff")
+      )
+    }
+
+    "Char" in {
+      check[Char](
+        Vector(Char.MinValue, 1.toChar, Char.MaxValue, 'a', 'z', 'A', 'Z'),
+        Vector(Character.toString(Char.MinValue), Character.toString(1.toChar), Character.toString(Char.MaxValue), "a", "z", "A", "Z"),
+        Vector(hex"0000", hex"0001", hex"ffff", hex"0061", hex"007a", hex"0041", hex"005a")
+      )
+    }
+
+    "Int" in {
+      check[Int](
+        Vector(Int.MinValue, -1, 0, 1, Int.MaxValue),
+        Vector("-2147483648", "-1", "0", "1", "2147483647"),
+        Vector(hex"8000 0000", hex"ffff ffff", hex"0000 0000", hex"0000 0001", hex"7fff ffff")
+      )
+    }
+
+    "Long" in {
+      check[Long](
+        Vector(Long.MinValue, -1L, 0L, 1L, Long.MaxValue),
+        Vector("-9223372036854775808", "-1", "0", "1", "9223372036854775807"),
+        Vector(hex"8000 0000 0000 0000", hex"ffff ffff ffff ffff", hex"0000 0000 0000 0000", hex"0000 0000 0000 0001", hex"7fff ffff ffff ffff")
+      )
+    }
+
+    "Float" in {
+      check[Float](
+        Vector(
+          Float.MinValue, -123.456f, -1.0f, 0.0f, Float.MinPositiveValue,
+          1.0f, 999.999f, Float.MaxValue, Float.NaN, Float.NegativeInfinity,
+          Float.PositiveInfinity, java.lang.Float.MIN_NORMAL
+        ),
+        Vector(
+          "-3.4028235E38", "-123.456", "-1.0", "0.0", "1.4E-45",
+          "1.0", "999.999", "3.4028235E38", "NaN", "-Infinity",
+          "Infinity", "1.17549435E-38"
+        ),
+        Vector(
+          hex"ff7f ffff", hex"c2f6 e979", hex"bf80 0000", hex"0000 0000", hex"0000 0001",
+          hex"3f80 0000", hex"4479 fff0", hex"7f7fffff", hex"7fc0 0000", hex"ff80 0000",
+          hex"7f80 0000", hex"0080 0000"
+        )
+      )
+    }
+
+    "Double" in {
+      check[Double](
+        Vector(
+          Double.MinValue, -123.456d, -1.0d, 0.0d, Double.MinPositiveValue,
+          1.0d, 999.999d, Double.MaxValue, Double.NaN, Double.NegativeInfinity,
+          Double.PositiveInfinity, java.lang.Double.MIN_NORMAL, 1.111111111111111d, scala.math.Pi, scala.math.E
+        ),
+        Vector(
+          "-1.7976931348623157E308", "-123.456", "-1.0", "0.0", "4.9E-324",
+          "1.0", "999.999", "1.7976931348623157E308", "NaN", "-Infinity",
+          "Infinity", "2.2250738585072014E-308", "1.111111111111111", "3.141592653589793", "2.718281828459045"
+        ),
+        Vector(
+          hex"ffef ffff ffff ffff", hex"c05e dd2f 1a9f be77", hex"bff0 0000 0000 0000", hex"0000 0000 0000 0000", hex"0000 0000 0000 0001",
+          hex"3ff0 0000 0000 0000", hex"408f 3ffd f3b6 45a2", hex"7fef ffff ffff ffff", hex"7ff8 0000 0000 0000", hex"fff0 0000 0000 0000",
+          hex"7ff0 0000 0000 0000", hex"0010 0000 0000 0000", hex"3ff1 c71c 71c7 1c71", hex"4009 21fb 5444 2d18", hex"4005 bf0a 8b14 5769"
+        )
+      )
+    }
+
+    "Boolean" in {
+      check[Boolean](
+        Vector(true, false),
+        Vector("true", "false"),
+        Vector(hex"01", hex"00")
+      )
+    }
+
+    "Unit" in {
+      check[Unit](
+        Vector(()),
+        Vector("()"),
+        Vector(ByteVector.empty)
+      )
+    }
+  }
 }
