@@ -17,6 +17,8 @@
 package io.sigs.seals
 package tests
 
+import cats.implicits._
+
 import org.scalatest.Matchers
 import org.scalatest.FreeSpecLike
 import org.scalatest.Inside
@@ -93,5 +95,14 @@ trait BaseSpec
     val res = checkSer(a)
     res shouldBe theSameInstanceAs (a)
     res
+  }
+
+  def roundtripStr[A](a: A)(implicit A: Atomic[A]): A =
+    A.fromString(A.stringRepr(a)).getOrElse(fail)
+
+  def roundtripBin[A](a: A)(implicit A: Atomic[A]): A = {
+    val (a2, r) = A.fromBinary(A.binaryRepr(a)).getOrElse(fail)
+    r.length should === (0L)
+    a2
   }
 }
