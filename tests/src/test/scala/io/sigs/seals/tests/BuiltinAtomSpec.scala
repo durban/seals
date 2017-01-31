@@ -22,8 +22,6 @@ import java.util.UUID
 import java.math.{ MathContext, RoundingMode }
 import java.nio.ByteBuffer
 
-import cats.implicits._
-
 import scodec.bits._
 
 import org.scalatest.compatible.Assertion
@@ -116,12 +114,12 @@ class BuiltinAtomSpec extends BaseSpec {
       // string:
       val s = af.stringRepr(nzf)
       s should === ("-0.0")
-      val r = af.fromString(s).getOrElse(fail)
+      val r = af.fromString(s).fold(err => fail(err.msg), a => a)
       r should === (nzf)
       assert(isNegZeroF(r))
       // binary:
       val b = af.binaryRepr(nzf)
-      val r2 = af.fromBinary(b).getOrElse(fail)._1
+      val r2 = af.fromBinary(b).fold(err => fail(err.msg), a => a._1)
       r2 should === (nzf)
       assert(isNegZeroF(r2))
     }
@@ -132,12 +130,12 @@ class BuiltinAtomSpec extends BaseSpec {
       // string:
       val s = ad.stringRepr(nzd)
       s should === ("-0.0")
-      val r = ad.fromString(s).getOrElse(fail)
+      val r = ad.fromString(s).fold(err => fail(err.msg), a => a)
       r should === (nzd)
       assert(isNegZeroD(r))
       // binary:
       val b = ad.binaryRepr(nzd)
-      val r2 = ad.fromBinary(b).getOrElse(fail)._1
+      val r2 = ad.fromBinary(b).fold(err => fail(err.msg), a => a._1)
       r2 should === (nzd)
       assert(isNegZeroD(r2))
     }

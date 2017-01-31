@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,6 @@
 
 package io.sigs.seals
 package tests
-
-import cats.implicits._
 
 import org.scalatest.Matchers
 import org.scalatest.FreeSpecLike
@@ -98,10 +96,10 @@ trait BaseSpec
   }
 
   def roundtripStr[A](a: A)(implicit A: Atomic[A]): A =
-    A.fromString(A.stringRepr(a)).getOrElse(fail)
+    A.fromString(A.stringRepr(a)).fold(err => fail(err.msg), a => a)
 
   def roundtripBin[A](a: A)(implicit A: Atomic[A]): A = {
-    val (a2, r) = A.fromBinary(A.binaryRepr(a)).getOrElse(fail)
+    val (a2, r) = A.fromBinary(A.binaryRepr(a)).fold(err => fail(err.msg), ar => ar)
     r.length should === (0L)
     a2
   }
