@@ -27,34 +27,39 @@ object Rules extends Serialization {
 
   def serializable[A: Arbitrary]: (String, Prop) = {
     "serializable" -> forAll { (a: A) =>
-      try {
+      withCatchNonFatal {
         val r: A = roundtripSer(a)
         Prop(Result(status = True))
-      } catch { case NonFatal(ex) =>
-        Prop(Result(status = Exception(ex)))
       }
     }
   }
 
   def equalitySerializable[A : Arbitrary : Eq]: (String, Prop) = {
     "serialize-roundtrip-Eq" -> forAll { (a: A) =>
-      try {
+      withCatchNonFatal {
         val r: A = roundtripSer(a)
         r ?== a
-      } catch { case NonFatal(ex) =>
-        Prop(Result(status = Exception(ex)))
       }
     }
   }
 
   def identitySerializable[A <: AnyRef : Arbitrary](a: A): (String, Prop) = {
     "serializable-roundtrip-identity" -> forAll { (a: A) =>
-      try {
+      withCatchNonFatal {
         val r: A = roundtripSer(a)
         Prop(Result(status = if (r eq a) True else False))
-      } catch { case NonFatal(ex) =>
-        Prop(Result(status = Exception(ex)))
       }
+    }
+  }
+
+  private def withCatchNonFatal(block: => Prop): Prop = {
+    try {
+      block
+    } catch {
+      case NonFatal(ex) =>
+        Prop(Result(status = Exception(ex)))
+      case ex: Throwable =>
+        throw ex // workaround for -Xstrict-patmat-analysis problem
     }
   }
 }

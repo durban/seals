@@ -168,7 +168,7 @@ For testing, it also uses:
 
 For compilation, it uses the [Typelevel Scala compiler](https://github.com/typelevel/scala).
 (This should have no effect on software using the library, since TLS is binary compatible with
-Scala 2.11.8/2.12.0. However, as TLS contains a partial fix for
+Scala 2.11/2.12. However, as TLS contains a partial fix for
 [SI-7046](https://issues.scala-lang.org/browse/SI-7046), it might be beneficial to use it
 in cases where type class materialization fails for subclasses of a sealed trait. For more
 information, see [this section](https://github.com/milessabin/shapeless#shapeless-and-typelevel-scala)

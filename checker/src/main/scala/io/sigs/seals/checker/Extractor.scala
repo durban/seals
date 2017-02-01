@@ -106,7 +106,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
         val mods = try {
           Vector(mirror.staticModule(s"${pack}.${modName}"))
         } catch {
-          case ScalaReflectionException(_) =>
+          case _: ScalaReflectionException =>
             // probably a nested module,
             // we'll get it through its parent
             Vector.empty
@@ -117,7 +117,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
         val clss = try {
           Vector(mirror.staticClass(s"${pack}.${clsName}"))
         } catch {
-          case ScalaReflectionException(_) =>
+          case _: ScalaReflectionException =>
             // probably an anonymous or otherwise,
             // tricky class, we can ignore it
             Vector.empty

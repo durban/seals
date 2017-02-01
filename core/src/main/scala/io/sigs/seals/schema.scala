@@ -41,8 +41,13 @@ private[seals] object SchemaExtractor {
           case ct: ConstantTypeApi =>
             ct.value.value match {
               case s: String => s
+              case _ => throw new IllegalArgumentException("not a String")
             }
+          case _ =>
+            throw new IllegalArgumentException("not a ConstantType")
         }
+      case _ =>
+        throw new IllegalArgumentException(s"${field} is not a field accessor")
     }
   }
 }

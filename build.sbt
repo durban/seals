@@ -64,7 +64,7 @@ lazy val seals = project.in(file("."))
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
-  crossScalaVersions := Seq(scalaVersion.value, "2.12.0"),
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.1"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
@@ -75,12 +75,20 @@ lazy val commonSettings = Seq[Setting[_]](
     "-Xlint:_",
     "-Xfuture",
     "-Xfatal-warnings",
+    "-Xstrict-patmat-analysis",
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
     "-Ypartial-unification",
     "-Ywarn-unused-import"
   ),
+  scalacOptions := scalacOptions.value.flatMap {
+    case opt @ "-Xstrict-patmat-analysis" =>
+      if (scalaVersion.value.startsWith("2.12")) opt :: Nil
+      else Nil
+    case opt =>
+      opt :: Nil
+  },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary),
@@ -131,6 +139,7 @@ lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
   scalaOrganization := "org.scala-lang",
   scalacOptions := scalacOptions.value.flatMap {
     case "-Xlint:_" => "-Xlint" :: Nil
+    case "-Xstrict-patmat-analysis" => Nil
     case "-Ypartial-unification" => Nil
     case "-Ywarn-unused-import" => Nil
     case opt => opt :: Nil
@@ -191,7 +200,7 @@ addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyl
 addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
 
-addCommandAlias("validate", ";clean;++ 2.11.8;doAll;++ 2.12.0;doAll;++ 2.10.6;plugin/scripted;reload")
+addCommandAlias("validate", ";clean;++ 2.11.8;doAll;++ 2.12.1;doAll;++ 2.10.6;plugin/scripted;reload")
 
 
 //////////////////////
