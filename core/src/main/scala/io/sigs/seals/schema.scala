@@ -52,20 +52,35 @@ private[seals] object SchemaExtractor {
   }
 }
 
+/**
+ * Macro annotation to designate a type as a schema.
+ *
+ * When used on a class or trait, it
+ *  - marks the class or trait as a schema (with `schemaMarker`);
+ *  - and injects a cached implicit into the companion
+ *    object which can retrieve a `Reified` instance
+ *    for the class or trait.
+ */
 @compileTimeOnly("enable the Macro Paradise compiler plugin to expand macro annotations")
 final class schema extends StaticAnnotation { // scalastyle:ignore class.name
   def macroTransform(annottees: Any*): Any = macro SchemaMacros.schemaImpl
 }
 
+/**
+ * Don't use this directly.
+ *
+ * @see `schema` for marking schemata
+ */
 final class schemaMarker extends StaticAnnotation // scalastyle:ignore class.name
 
 private[seals] object SchemaMacros {
 
-  final val valName = "$io$sigs$seals$core$Reified$Instance"
-  final val defName = valName + "$Forwarder"
+  final val defName = "$io$sigs$seals$core$Reified$Instance$Forwarder"
 
+  // TODO: make this work or remove
   def constModel[A]: String = macro constModelImpl[A]
 
+  // TODO: make this work or remove
   def constModelImpl[A: c.WeakTypeTag](c: WContext): c.Expr[String] = {
     import c.universe._
     val reiTpe: Type = typeOf[Reified[_]].typeConstructor
@@ -117,16 +132,19 @@ private[seals] object SchemaMacros {
       } :+ q"new _root_.io.sigs.seals.schemaMarker()"
     }
 
-    def injectedDefis(cls: TypeName): List[c.Tree] = List(
-      q"""
-        final lazy val ${TermName(valName)}: _root_.io.sigs.seals.core.Reified[${cls}] =
-          _root_.shapeless.cachedImplicit[_root_.io.sigs.seals.core.Reified[${cls}]]
-      """,
-      q"""
-        final def ${TermName(defName)}() =
-          this.${TermName(valName)}
-      """
-    )
+    def injectedDefis(cls: TypeName): List[c.Tree] = {
+      val valName = TermName("reified" + cls.decodedName)
+      List(
+        q"""
+          implicit final lazy val ${valName}: _root_.io.sigs.seals.core.Reified[${cls}] =
+            _root_.shapeless.cachedImplicit[_root_.io.sigs.seals.core.Reified[${cls}]]
+        """,
+        q"""
+          final def ${TermName(defName)}() =
+            this.${valName}
+        """
+      )
+    }
 
     val tree = annottees.map(_.tree) match {
 

@@ -59,10 +59,10 @@ class ExtractorSpec extends FlatSpec with Matchers {
       .toMap
       .mapValues(j => decoder.decodeJson(j).fold(err => fail(err.toString), identity))
     val expected = Map(
-      fooName -> Foo.$io$sigs$seals$core$Reified$Instance.model,
-      ccName -> CC.$io$sigs$seals$core$Reified$Instance.model,
-      wfooName -> Wrap.WFoo.$io$sigs$seals$core$Reified$Instance.model,
-      wccName -> Wrap.WCC.$io$sigs$seals$core$Reified$Instance.model
+      fooName -> Foo.reifiedFoo.model,
+      ccName -> CC.reifiedCC.model,
+      wfooName -> Wrap.WFoo.reifiedWFoo.model,
+      wccName -> Wrap.WCC.reifiedWCC.model
     )
     models should === (expected)
   }
