@@ -106,7 +106,7 @@ sealed trait Reified[A] extends Serializable { self =>
     this
 }
 
-object Reified extends LowPrioReified {
+object Reified extends LowPrioReified1 {
 
   final val hashSeed = 0xf2fe2bb5
 
@@ -245,8 +245,8 @@ object Reified extends LowPrioReified {
     }
   }
 
-  def apply[A](implicit d: Reified[A]): Aux[A, d.Mod, d.Fold] =
-    d
+  def apply[A](implicit d: Lazy[Reified[A]]): Aux[A, d.value.Mod, d.value.Fold] =
+    d.value
 
   implicit val reifiedInvariantMonoidalFunctor: InvariantMonoidal[Reified] = new InvariantMonoidal[Reified] {
 
@@ -357,7 +357,7 @@ object Reified extends LowPrioReified {
     Reified.reifiedFromAtomic[Int](Atomic.builtinInt).pimap(A.fromIndex)(A.index)
 }
 
-private[core] sealed trait LowPrioReified {
+private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
 
   import Reified.{ FFirst, FSecond }
 
@@ -487,8 +487,78 @@ private[core] sealed trait LowPrioReified {
       Either.left(u.cNil(b))
   }
 
-  // TODO: maybe do this with imap (?)
+  // FIXME: This is really similar to `reifiedFromGenericProductWithDefaults`,
+  // FIXME: but doesn't seem to cause the same implicit ambiguities. Why?
+  implicit def reifiedFromGenericCoproduct[A, GA <: Coproduct, MA <: Model, FA[_, _]](
+    implicit
+    A: LabelledGeneric.Aux[A, GA],
+    RA: Lazy[Reified.Aux[GA, MA, FA]]
+  ): Reified.Aux[A, MA, FA] = new WithLazy[Reified[GA] { type Mod = MA; type Fold[X, Y] = FA[X, Y] }, None.type](
+      () => RA,
+      () => None
+  ) with Reified[A] {
+    override type Mod = MA
+    override type Fold[B, U] = FA[B, U]
+    lazy private[core] override val modelComponent: Mod = head.modelComponent
+    override def fold[B, U](a: A)(f: Folder[B, U]): Fold[B, U] = {
+      head.fold(A.to(a))(f)
+    }
+    override def close[B, U](x: Fold[B, U], f: U => B): B =
+      RA.value.close(x, f)
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (A, B)] =
+      head.unfold(u)(b).map { case (ga, b) => (A.from(ga), b) }
+  }
+}
+
+/** A trivial wrapper for `Reified` instances of case classes */
+final case class Derived[A, M <: Model, FA[_, _]](instance: Reified.Aux[A, M, FA]) extends AnyVal
+
+object Derived {
+
+  /**
+   * Provides a `Derived` instance for case classes
+   *
+   * A `Reified` instgance will be provided based on
+   * this by `LowPrioReified2#fromDerived`.
+   */
   implicit def reifiedFromGenericProductWithDefaults[A, GA <: HList, DA <: HList, MA <: Model.HList, FA[_, _]](
+    implicit
+    A: LabelledGeneric.Aux[A, GA],
+    D: Default.Aux[A, DA],
+    DL: ToTraversable.Aux[DA, List, Option[Any]],
+    WD: Model.WithDefaults[DA],
+    RA: Lazy[Reified.Aux[GA, MA, FA]]
+  ): Derived[A, Model.HList, FA] = {
+    Derived[A, Model.HList, FA](Reified.reifiedFromGenericProductWithDefaults[A, GA, DA, MA, FA])
+  }
+}
+
+private[core] sealed trait LowPrioReified2 {
+
+  /**
+   * Provide a `Reified` instance from a `Derived` instance
+   *
+   * This is to allow lowering the priority of instances
+   * derived through `Generic` for case classes.
+   *
+   * @see `Derived`
+   */
+  implicit def fromDerived[A, M <: Model, FA[_, _]](implicit d: Derived[A, M, FA]): Reified.Aux[A, M, FA] =
+    d.instance
+
+  /**
+   * This is only invoked through `Derived`
+   *
+   * The reason for not making this implicit is that apparently that
+   * would make it's priority the same as a `cachedImplicit` in a
+   * companion object (thus causing ambiguous implicit errors).
+   * This way, `Derived` has a lower priority, but still found if
+   * needed.
+   *
+   * @see `Derived`
+   * @see `LowPrioReified2#fromDerived`
+   */
+  def reifiedFromGenericProductWithDefaults[A, GA <: HList, DA <: HList, MA <: Model.HList, FA[_, _]](
     implicit
     A: LabelledGeneric.Aux[A, GA],
     D: Default.Aux[A, DA],
@@ -504,27 +574,6 @@ private[core] sealed trait LowPrioReified {
     lazy private[core] override val modelComponent: Mod = {
       WD.unsafeWithDefaults(head.modelComponent)(D())
     }
-    override def fold[B, U](a: A)(f: Folder[B, U]): Fold[B, U] = {
-      head.fold(A.to(a))(f)
-    }
-    override def close[B, U](x: Fold[B, U], f: U => B): B =
-      RA.value.close(x, f)
-    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (A, B)] =
-      head.unfold(u)(b).map { case (ga, b) => (A.from(ga), b) }
-  }
-
-  // TODO: maybe do this with imap (?)
-  implicit def reifiedFromGenericCoproduct[A, GA <: Coproduct, MA <: Model, FA[_, _]](
-    implicit
-    A: LabelledGeneric.Aux[A, GA],
-    RA: Lazy[Reified.Aux[GA, MA, FA]]
-  ): Reified.Aux[A, MA, FA] = new WithLazy[Reified[GA] { type Mod = MA; type Fold[X, Y] = FA[X, Y] }, None.type](
-      () => RA,
-      () => None
-  ) with Reified[A] {
-    override type Mod = MA
-    override type Fold[B, U] = FA[B, U]
-    lazy private[core] override val modelComponent: Mod = head.modelComponent
     override def fold[B, U](a: A)(f: Folder[B, U]): Fold[B, U] = {
       head.fold(A.to(a))(f)
     }

@@ -170,6 +170,29 @@ class ReifiedSpec extends BaseSpec {
         Reified[Adt].model should === (Adt.expModel)
       }
     }
+
+    "cached in companion object" - {
+
+      import TestTypes.caching._
+
+      "sealed trait" in {
+        val inst = implicitly[Reified[STr]]
+        inst shouldBe theSameInstanceAs (STr.r)
+        inst.model should === (STr.expModel)
+      }
+
+      "case class" in {
+        val inst = implicitly[Reified[Jack]]
+        inst shouldBe theSameInstanceAs (Jack.r)
+        inst.model should === (Jack.expModel)
+      }
+
+      "recursive ADT" in {
+        val inst = implicitly[Reified[StrList]]
+        inst shouldBe theSameInstanceAs (StrList.r)
+        inst.model should === (StrList.expModel)
+      }
+    }
   }
 
   "Reified.toString" - {

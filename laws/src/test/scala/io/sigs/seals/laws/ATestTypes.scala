@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -282,5 +282,36 @@ object TestTypes {
     }
     final case class CyA(i: Int, cs: Vector[Cyclic]) extends Cyclic
     final case object CyB extends Cyclic
+  }
+
+  object caching {
+
+    sealed trait STr
+    final case object Boo extends STr
+    object STr {
+      implicit val r: Reified[STr] =
+        shapeless.cachedImplicit
+      val expModel = 'Boo -> Model.HNil :+: Model.CNil
+    }
+
+    final case class Jack(i: Int)
+    object Jack {
+      implicit val r: Reified[Jack] =
+        shapeless.cachedImplicit
+      val expModel = 'i -> atom[Int] :: Model.HNil
+    }
+
+    sealed trait StrList
+    final case object StrNil extends StrList
+    final case class StrCons(h: String, t: StrList) extends StrList
+    object StrList {
+      implicit val r: Reified[StrList] =
+        shapeless.cachedImplicit
+      lazy val expModel: Model = Model.CCons(
+        'StrCons,
+        Model.HCons('h, atom[String], Model.HCons('t, expModel, Model.HNil)),
+        Model.CCons('StrNil, Model.HNil, Model.CNil)
+      )
+    }
   }
 }
