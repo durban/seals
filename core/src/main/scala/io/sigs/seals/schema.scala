@@ -75,7 +75,7 @@ final class schemaMarker extends StaticAnnotation // scalastyle:ignore class.nam
 
 private[seals] object SchemaMacros {
 
-  final val defName = "$io$sigs$seals$core$Reified$Instance$Forwarder"
+  final val reifiedPrefix = "reified"
 
   // TODO: make this work or remove
   def constModel[A]: String = macro constModelImpl[A]
@@ -121,6 +121,9 @@ private[seals] object SchemaMacros {
     c.Expr[String](q"$s")
   }
 
+  def synthName[U <: scala.reflect.api.Universe](u: U)(tn: u.TypeName, prefix: String): u.TermName =
+    u.TermName(prefix + tn.decodedName.toString)
+
   def schemaImpl(c: BContext)(annottees: c.Expr[Any]*): c.Expr[Any] = {
 
     import c.universe._
@@ -133,15 +136,11 @@ private[seals] object SchemaMacros {
     }
 
     def injectedDefis(cls: TypeName): List[c.Tree] = {
-      val valName = TermName("reified" + cls.decodedName)
+      val valName = synthName(c.universe)(cls, reifiedPrefix)
       List(
         q"""
           implicit final lazy val ${valName}: _root_.io.sigs.seals.core.Reified[${cls}] =
             _root_.shapeless.cachedImplicit[_root_.io.sigs.seals.core.Reified[${cls}]]
-        """,
-        q"""
-          final def ${TermName(defName)}() =
-            this.${valName}
         """
       )
     }

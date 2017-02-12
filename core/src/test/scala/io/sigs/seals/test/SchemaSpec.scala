@@ -56,20 +56,15 @@ class SchemaSpec extends FlatSpec with Matchers {
     extract("io.sigs.seals.test.A.Baz", "constModel") should === ("baz")
   }
 
-  "@schema" should "put a val and a def into the companion object" in {
+  "@schema" should "put a cached implicit val into the companion object" in {
     val inst = Foo.reifiedFoo
-    inst shouldBe theSameInstanceAs (
-      Foo.$io$sigs$seals$core$Reified$Instance$Forwarder()
-    )
+    inst shouldBe theSameInstanceAs (implicitly[Reified[Foo]])
     inst.model should === (Reified[Foo].model)
+
     ST.reifiedST.model should === (Reified[ST].model)
+    ST.reifiedST shouldBe theSameInstanceAs (implicitly[Reified[ST]])
 
     A.Foo.reifiedFoo.model should === (Reified[A.Foo].model)
     A.ST.reifiedST.model should === (Reified[A.ST].model)
-  }
-
-  it should "put a cached implicit val into the companion object" in {
-    Foo.reifiedFoo shouldBe theSameInstanceAs (implicitly[Reified[Foo]])
-    ST.reifiedST shouldBe theSameInstanceAs (implicitly[Reified[ST]])
   }
 }

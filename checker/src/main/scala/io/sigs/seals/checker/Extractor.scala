@@ -22,7 +22,6 @@ import scala.collection.JavaConverters._
 
 import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.io.AbstractFile
-import scala.tools.reflect.ToolBox
 
 import cats.implicits._
 
@@ -54,7 +53,6 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
   import Extractor._
 
   val mirror = runtimeMirror(classloader)
-  val toolbox = ToolBox(mirror).mkToolBox(options = "-Xlog-implicits")
   val root = AbstractFile.getDirectory(new scala.reflect.io.File(jarOrDir)(Codec.UTF8))
 
   val encoder = Encoder[Model]
@@ -157,10 +155,36 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
   }
 
   def extract(cls: Symbol): Json = {
-    val tree = q"""${cls.companion}.${TermName(SchemaMacros.defName)}().model"""
-    val model = toolbox.eval(tree.duplicate) match {
-      case m: Model => m
-      case _ => core.impossible("expected a Model")
+    require(cls.isType)
+    val compSym = cls.companion
+    val reified = if (compSym.isModule) {
+      val compObj = mirror.reflectModule(compSym.asModule).instance match {
+        case null => // scalastyle:ignore null
+          core.impossible(s"${compSym} is not a companion object")
+        case x: Any =>
+          x
+      }
+      val companion = mirror.reflect(compObj)
+      val valName = SchemaMacros.synthName(ru)(cls.asType.name, SchemaMacros.reifiedPrefix)
+      val field = companion.symbol.info.member(valName)
+      if (field.isTerm) {
+        val getterSym = field.asTerm.getter match {
+          case NoSymbol => core.impossible(s"no getter found for field ${field}")
+          case getter: Any if getter.isMethod => getter.asMethod
+          case x: Any => core.impossible(s"getter is not a method: ${x}")
+        }
+        companion.reflectMethod(getterSym).apply()
+      } else {
+        core.impossible(s"${field} is not a term symbol")
+      }
+    } else {
+      core.impossible(s"${cls} has no companion object")
+    }
+    val model = reified match {
+      case reified: Reified[_] =>
+        reified.model
+      case x: Any =>
+        core.impossible(s"expected a Reified instance, got a(n) '${x.getClass}'")
     }
     encoder.apply(model)
   }
