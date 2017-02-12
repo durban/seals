@@ -653,7 +653,7 @@ object Atomic {
     "UUID",
     "7eba2d39-7f93-4600-8901-1e4e5ec5e7ed",
     _.toString,
-    s => fromTry(Try(UUID.fromString(s))),
+    s => fromTry(Try(UUID.fromString(s))), // TODO: reject extra leading zeros
     16,
     (buf, u) => {
       buf.putLong(u.getMostSignificantBits)

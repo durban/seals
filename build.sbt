@@ -102,7 +102,7 @@ lazy val commonSettings = Seq[Setting[_]](
       dependencies.cats,
       dependencies.shapeless
     ),
-    dependencies.test.map(_ % "test-internal")
+    (dependencies.test ++ dependencies.circe).map(_ % "test-internal")
   ).flatten,
   organization := "io.sigs",
   publishMavenStyle := true,
