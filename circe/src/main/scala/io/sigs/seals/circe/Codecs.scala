@@ -51,20 +51,22 @@ trait Codecs {
         },
         hNil = { cur => cur.as[JsonObject](Decoder.decodeJsonObject).map(_ => cur) },
         hCons = { (cur, sym) =>
-          cur.downField(sym.name).either.leftMap { fc =>
-            DecodingFailure(s"missing key: '${sym.name}'", fc.history)
-          }.map { hc =>
-            Either.right((hc, (_: HCursor) => Either.right(cur)))
-          }
+          val c2 = cur.downField(sym.name)
+          c2.success
+            .toRight(left = DecodingFailure(s"missing key: '${sym.name}'", c2.history))
+            .map { hc =>
+              Either.right((hc, (_: HCursor) => Either.right(cur)))
+            }
         },
         cNil = { cur =>
           DecodingFailure("no variant matched (CNil reached)", cur.history)
         },
         cCons = { (cur, sym) =>
-          cur.downField(sym.name).either.fold(
-            fc => Either.right(Right(cur)),
-            sc => Either.right(Left(sc))
-          )
+          cur.downField(sym.name).success.fold {
+            Either.right(Either.right[HCursor, HCursor](cur))
+          } { hc =>
+            Either.right(Either.left(hc))
+          }
         },
         vectorInit = { cur =>
           for {

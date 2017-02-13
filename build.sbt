@@ -161,8 +161,8 @@ lazy val scodecSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "0.8.1"
-  val circeVersion = "0.6.1"
+  val catsVersion = "0.9.0"
+  val circeVersion = "0.7.0"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -173,8 +173,8 @@ lazy val dependencies = new {
     "io.circe" %% "circe-parser" % circeVersion
   )
 
-  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.2"
-  val scodecCats = "org.scodec" %% "scodec-cats" % "0.2.0"
+  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.4"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "0.3.0"
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
