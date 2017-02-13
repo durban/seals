@@ -282,25 +282,25 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.15.0a"
+  val http4sVersion = "0.15.4a"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
     "org.http4s" %% "http4s-circe" % http4sVersion,
     "org.http4s" %% "http4s-blaze-server" % http4sVersion,
     "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-    "org.slf4j" % "slf4j-simple" % "1.7.21"
+    "org.slf4j" % "slf4j-simple" % "1.7.22"
   )
 
   val spire = "org.spire-math" %% "spire" % "0.13.0"
 
   val fs2 = Seq(
-    "co.fs2" %% "fs2-core" % "0.9.2",
-    "co.fs2" %% "fs2-io" % "0.9.2"
+    "co.fs2" %% "fs2-core" % "0.9.3",
+    "co.fs2" %% "fs2-io" % "0.9.3"
   )
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.4.14",
+    "com.typesafe.akka" %% "akka-stream" % "2.4.17",
     "org.scodec" %% "scodec-akka" % "0.3.0"
   )
 
