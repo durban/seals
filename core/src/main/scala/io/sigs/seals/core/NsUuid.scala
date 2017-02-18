@@ -22,10 +22,23 @@ import java.security.MessageDigest
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 
-private object NsUuid {
+import scodec.bits.ByteVector
+
+private[seals] final case class UUIDBuilder(namespace: UUID, name: Vector[ByteVector]) {
+  def / (sub: UUID): UUIDBuilder = copy(name = core.NsUuid.bvFromUUID(sub) +: name)
+  def / (sub: ByteVector): UUIDBuilder = copy(name = sub +: name)
+  def uuid: UUID = NsUuid.uuid5nestedBv(namespace, name: _*)
+}
+
+// TODO: rename to NsUUID
+// TODO: compile-time checked UUID const syntax
+private[seals] object NsUuid {
 
   def uuid5(ns: UUID, name: String): UUID =
     uuid5bytes(ns, ByteBuffer.wrap(name.getBytes(StandardCharsets.UTF_8)))
+
+  def uuid5bv(ns: UUID, name: ByteVector): UUID =
+    uuid5bytes(ns, name.toByteBuffer)
 
   private def uuid5bytes(ns: UUID, name: ByteBuffer): UUID = {
     val buf = ByteBuffer.allocate(16) // network byte order by default
@@ -50,6 +63,11 @@ private object NsUuid {
   def uuid5nested(root: UUID, names: String*): UUID =
     names.foldLeft(root)(uuid5)
 
+  def uuid5nestedBv(root: UUID, names: ByteVector*): UUID = {
+    val buf = ByteVector.concat(names).toByteBuffer
+    uuid5bytes(root, buf)
+  }
+
   def uuid5nestedNsNm(name: String, ns1: UUID, nss: UUID*): UUID =
     uuid5(uuid5nestedNs(ns1, nss: _*), name)
 
@@ -67,6 +85,12 @@ private object NsUuid {
   private def uuidToBuf(u: UUID, buf: ByteBuffer): Unit = {
     buf.putLong(u.getMostSignificantBits)
     buf.putLong(u.getLeastSignificantBits)
+  }
+
+  def bvFromUUID(u: UUID): ByteVector = {
+    val buf = ByteBuffer.allocate(16)
+    uuidToBuf(u, buf)
+    ByteVector.view(buf)
   }
 
   private def sha1(): MessageDigest =

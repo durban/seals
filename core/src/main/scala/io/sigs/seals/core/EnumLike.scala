@@ -26,6 +26,8 @@ trait EnumLike[A] extends Serializable {
 
   def typeName: String
 
+  def maxIndex: Int
+
   def name(a: A): String
 
   def fromNameOpt(name: String): Option[A]
@@ -74,6 +76,9 @@ object EnumLike {
         private[this] final val values: _root_.scala.Array[${A}] =
           ${companion}.values()
 
+        final override val maxIndex: _root_.scala.Int =
+          values.length - 1
+
         final override def typeName: _root_.scala.Predef.String =
           ${A.tpe.toString}
 
@@ -86,7 +91,7 @@ object EnumLike {
         }
 
         final override def fromIndexOpt(index: _root_.scala.Int): _root_.scala.Option[${A}] = {
-          if ((index >= 0) && (index < values.length)) _root_.scala.Some[${A}](values(index))
+          if ((index >= 0) && (index <= maxIndex)) _root_.scala.Some[${A}](values(index))
           else _root_.scala.None
         }
       }) : _root_.io.sigs.seals.core.EnumLike[${A}]

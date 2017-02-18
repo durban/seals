@@ -190,6 +190,24 @@ sealed trait Model extends Serializable {
 
 object Model {
 
+  sealed trait CanBeRefined[M <: Model] extends Serializable {
+    def refine(m: M, r: UUID): M
+  }
+
+  object CanBeRefined {
+
+    def apply[M <: Model](implicit cbr: CanBeRefined[M]): CanBeRefined[M] =
+      cbr
+
+    def combine(r1: UUID, r2: UUID): UUID =
+      NsUuid.uuid5nestedNs(r1, r2) // FIXME
+
+    implicit val atomCanBeRefined: CanBeRefined[Model.Atom] = new CanBeRefined[Model.Atom] {
+      override def refine(m: Model.Atom, r: UUID) =
+        m.refined(r)
+    }
+  }
+
   final case class Ctx(m: Model, p: Path)
 
   type Path = scala.Vector[String]
@@ -206,7 +224,7 @@ object Model {
    * Reified instance for Model
    */
   implicit val reifiedForModel: Reified.Aux[Model, Model.CCons, Reified.FFirst] =
-    ModelRepr.reifiedForModelRepr.pimap[Model](_.toModel)(ModelRepr.fromModel)
+    ModelRepr.reifiedForModelRepr.pimapOld[Model](_.toModel)(ModelRepr.fromModel)
 
   private object hash {
 
@@ -592,6 +610,9 @@ object Model {
       private[seals] val uuid: UUID,
       private[core] val atomDesc: String
   ) extends Model {
+
+    private[core] def refined(r: UUID): Atom =
+      new Atom(CanBeRefined.combine(uuid, r), atomDesc)
 
     private[core] def atomHash: Int =
       this.uuid.##

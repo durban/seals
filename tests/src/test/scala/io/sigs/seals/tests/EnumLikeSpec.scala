@@ -96,4 +96,37 @@ class EnumLikeSpec extends BaseSpec {
       inst.fromIndexError(-1) should === ("-1 is not a(n) io.sigs.seals.tests.MyTestEnumWithToString value")
     }
   }
+
+  "Custom instance" in {
+    import EnumLikeSpec._
+    val inst = EnumLike[Switch]
+    inst.index(Switch(0).fold(fail())(sw => sw)) should === (0)
+    inst shouldBe theSameInstanceAs (Switch.switchEnum)
+  }
+}
+
+object EnumLikeSpec {
+
+  sealed abstract case class Switch(v: Int, s: String)
+  object Switch {
+
+    def apply(v: Int): Option[Switch] = v match {
+      case 0 => Some(new Switch(0, "OFF") {})
+      case 1 => Some(new Switch(1, "ON") {})
+      case _ => None
+    }
+
+    implicit val switchEnum: EnumLike[Switch] = new EnumLike[Switch] {
+      def typeName: String = "Switch"
+      def maxIndex: Int = 1
+      def name(a: Switch): String = a.s
+      def fromNameOpt(name: String): Option[Switch] = name match {
+        case "ON" => Switch(1)
+        case "OFF" => Switch(2)
+        case _ => None
+      }
+      def index(a: Switch): Int = a.v
+      def fromIndexOpt(index: Int): Option[Switch] = Switch(index)
+    }
+  }
 }

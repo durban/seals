@@ -16,6 +16,12 @@
 
 package io.sigs
 
+import java.util.UUID
+
+import scodec.bits.ByteVector
+
+import io.sigs.seals.core.{ UUIDBuilder, NsUuid }
+
 package object seals {
 
   type Reified[A] = core.Reified[A]
@@ -38,4 +44,9 @@ package object seals {
 
   type Wire[A] = core.Wire[A]
   val Wire = core.Wire
+
+  private[seals] implicit final class UUIDSyntax(private val self: UUID) extends AnyVal {
+    def / (sub: UUID): UUIDBuilder = UUIDBuilder(self, Vector(NsUuid.bvFromUUID(sub)))
+    def / (sub: ByteVector): UUIDBuilder = UUIDBuilder(self, Vector(sub))
+  }
 }

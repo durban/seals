@@ -629,6 +629,9 @@ object Atomic {
     private[this] final val values: Array[RoundingMode] =
       RoundingMode.values
 
+    final override val maxIndex =
+      values.length - 1
+
     final override def typeName: String =
       classOf[RoundingMode].getName
 

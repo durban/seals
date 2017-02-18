@@ -63,8 +63,24 @@ object Envelope {
       EqA.eqv(x.value, y.value)
   }
 
+  private def refinement[A](implicit r: Reified[A]): Refinement.Aux[Envelope[A], EnvelopeRepr[A]] = {
+    new Refinement[Envelope[A]] {
+      override type Repr = EnvelopeRepr[A]
+      // TODO:
+      override val uuid = null // scalastyle:ignore null
+      override def from(repr: Repr) = {
+        if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
+        else Either.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
+      }
+      override def to(env: Envelope[A]) = {
+        EnvelopeRepr[A](env.model, env.value)
+      }
+    }
+  }
+
+  // TODO: Reified[EnvelopeRepr[A]].refined(refinement)(null : Model.CanBeRefined[Model.HList])
   implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
-    Reified[EnvelopeRepr[A]].pimap[Envelope[A]] { repr =>
+    Reified[EnvelopeRepr[A]].pimapOld[Envelope[A]] { repr =>
       if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
       else Either.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
     } { env =>

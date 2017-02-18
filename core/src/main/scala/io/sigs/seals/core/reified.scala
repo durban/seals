@@ -17,6 +17,8 @@
 package io.sigs.seals
 package core
 
+import java.util.UUID
+
 import cats.{ Monad, InvariantMonoidal }
 import cats.implicits._
 
@@ -81,7 +83,34 @@ sealed trait Reified[A] extends Serializable { self =>
       self.unfold[C, E, S](u)(c).map { case (a, c) => (f(a), c) }
   }
 
-  final def pimap[B](f: A => Either[String, B])(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
+  final def refined[B](r: Refinement.Aux[B, A])(implicit ev: Model.CanBeRefined[self.Mod]): Reified.Aux[B, self.Mod, self.Fold] =
+    pimap[B](r.uuid)(r.from)(r.to)(ev)
+
+  final def pimap[B](uuid: UUID)(f: A => Either[String, B])(g: B => A)(
+    implicit ev: Model.CanBeRefined[self.Mod]
+  ): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
+
+    override type Mod = self.Mod
+    override type Fold[C, T] = self.Fold[C, T]
+
+    override private[core] def modelComponent: Mod =
+      ev.refine(self.modelComponent, uuid)
+
+    override def fold[C, T](b: B)(f: Folder[C, T]): Fold[C, T] =
+      self.fold[C, T](g(b))(f)
+
+    override def close[C, T](x: Fold[C, T], f: T => C): C =
+      self.close(x, f)
+
+    override def unfold[C, E, S](u: Unfolder[C, E, S])(c: C): Either[E, (B, C)] = {
+      self.unfold[C, E, S](u)(c).flatMap { case (a, c) =>
+        f(a).map(a => (a, c)).leftMap(u.unknownError)
+      }
+    }
+  }
+
+  // TODO: remove this
+  final def pimapOld[B](f: A => Either[String, B])(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
 
     override type Mod = self.Mod
     override type Fold[C, T] = self.Fold[C, T]
@@ -353,8 +382,11 @@ object Reified extends LowPrioReified1 {
     }
   }
 
-  implicit def reifiedForEnumLike[A](implicit A: EnumLike[A]): Reified.Aux[A, Model.Atom, FFirst] =
-    Reified.reifiedFromAtomic[Int](Atomic.builtinInt).pimap(A.fromIndex)(A.index)
+  implicit def reifiedForEnumLike[A](implicit A: EnumLike[A]): Reified.Aux[A, Model.Atom, FFirst] = {
+    Reified
+      .reifiedFromAtomic[Int](Atomic.builtinInt)
+      .refined(Refinement.enum[A](A))
+  }
 }
 
 private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
@@ -510,6 +542,17 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
   }
 }
 
+private[core] sealed trait LowPrioReified2 extends LowPrioReified3 {
+
+  // TODO: if this is implicit, it causes problems (probably cycles)
+  def reifiedFromRefinement[A, R, M <: Model, F[_, _]](
+    implicit
+    repr: Reified.Aux[R, M, F],
+    refine: Refinement.Aux[A, R],
+    ev: Model.CanBeRefined[M]
+  ): Reified.Aux[A, M, F] = repr.refined[A](refine)(ev)
+}
+
 /** A trivial wrapper for `Reified` instances of case classes */
 final case class Derived[A, M <: Model, FA[_, _]](instance: Reified.Aux[A, M, FA]) extends AnyVal
 
@@ -533,7 +576,7 @@ object Derived {
   }
 }
 
-private[core] sealed trait LowPrioReified2 {
+private[core] sealed trait LowPrioReified3 {
 
   /**
    * Provide a `Reified` instance from a `Derived` instance

@@ -89,6 +89,10 @@ class SerializableSpec extends BaseSpec {
       checkSer(y)
       checkSer(mod2)
     }
+
+    "CanBeRefined" in {
+      roundtripSer(Model.CanBeRefined[Model.Atom])
+    }
   }
 
   "Reified" - {
@@ -132,6 +136,12 @@ class SerializableSpec extends BaseSpec {
     }
   }
 
+  "Refinement" - {
+    "enum" in {
+      checkSer(core.Refinement.enum[java.time.Month])
+    }
+  }
+
   "Envelope" - {
 
     "of Atoms" in {
@@ -142,6 +152,17 @@ class SerializableSpec extends BaseSpec {
     "of ADTs" in {
       import TestTypes.adts.iso.Adt1
       checkSer(Envelope[Adt1](Adt1.Foo("ert", 42)))
+    }
+  }
+
+  "EnumLike" - {
+
+    "for Java enums" in {
+      roundtripSer(core.EnumLike[java.time.Month])
+    }
+
+    "custom" in {
+      roundtripSer(core.EnumLike[EnumLikeSpec.Switch])
     }
   }
 
