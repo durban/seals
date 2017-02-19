@@ -23,6 +23,8 @@ import shapeless._
 import shapeless.record._
 import shapeless.union._
 
+import scodec.bits._
+
 import core.Refinement
 import laws.{ TestInstances, TestTypes }
 
@@ -250,6 +252,37 @@ class ReifiedSpec extends BaseSpec {
       assert(!r3.model.compatible(r2.model))
       assert(r1.model.compatible(r2.model))
       assert(r2.model.compatible(r1.model))
+    }
+
+    "Successive refinements" in {
+      val r0 = Reified[Int]
+      val r1 = r0.refined(Refinement.enum[MyTestEnum]) // 3 elements
+      val r2 = r1.refined(ReifiedSpec.refineEnumToBool)
+      // sanity-check types:
+      locally { r1 : Reified[MyTestEnum] }
+      locally { r2 : Reified[Boolean] }
+      // check models:
+      assert(!r0.model.compatible(r1.model))
+      assert(!r0.model.compatible(r2.model))
+      assert(!r1.model.compatible(r2.model))
+    }
+  }
+}
+
+object ReifiedSpec {
+
+  val refineEnumToBool: Refinement.Aux[Boolean, MyTestEnum] = new Refinement[Boolean] {
+    override type Repr = MyTestEnum
+    override val uuid = (Refinement.root / hex"deadbeef").uuid
+    def from(e: MyTestEnum) = e match {
+      case MyTestEnum.FOO => Right(true)
+      case MyTestEnum.BAR => Right(false)
+      case MyTestEnum.BAZ => Left("error")
+    }
+    def to(a: Boolean) = if (a) {
+      MyTestEnum.FOO
+    } else {
+      MyTestEnum.BAR
     }
   }
 }
