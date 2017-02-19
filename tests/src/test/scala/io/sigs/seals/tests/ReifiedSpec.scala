@@ -23,6 +23,7 @@ import shapeless._
 import shapeless.record._
 import shapeless.union._
 
+import core.Refinement
 import laws.{ TestInstances, TestTypes }
 
 class ReifiedSpec extends BaseSpec {
@@ -227,6 +228,28 @@ class ReifiedSpec extends BaseSpec {
       val rC = Reified[C]
       val rD = Reified[D]
       rC.model should === (rD.model)
+    }
+  }
+
+  "Refinements" - {
+
+    "Atoms" in {
+      val int = Reified[Int]
+      val r1 = int.refined(Refinement.enum[MyTestEnumWithArgs]) // 2 elements
+      val r2 = int.refined(Refinement.enum[MyTestEnumWithToString]) // 2 elements
+      val r3 = int.refined(Refinement.enum[MyTestEnum]) // 3 elements
+      assert(!int.model.compatible(r1.model))
+      assert(!int.model.compatible(r2.model))
+      assert(!int.model.compatible(r3.model))
+      assert(!r1.model.compatible(int.model))
+      assert(!r2.model.compatible(int.model))
+      assert(!r3.model.compatible(int.model))
+      assert(!r1.model.compatible(r3.model))
+      assert(!r2.model.compatible(r3.model))
+      assert(!r3.model.compatible(r1.model))
+      assert(!r3.model.compatible(r2.model))
+      assert(r1.model.compatible(r2.model))
+      assert(r2.model.compatible(r1.model))
     }
   }
 }
