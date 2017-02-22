@@ -28,6 +28,8 @@ trait Refinement[A] extends Serializable {
 
   def uuid: UUID
 
+  def desc(r: String): String = s"${r}{?}"
+
   def from(a: Repr): Either[String, A]
 
   def to(a: A): Repr
@@ -58,6 +60,7 @@ object Refinement {
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int
     override val uuid = (root / en / Atomic[Int].binaryRepr(A.maxIndex)).uuid
+    override def desc(r: String) = s"0 ≤ ${r} ≤ ${A.maxIndex}"
     def from(idx: Int) = A.fromIndex(idx)
     def to(a: A) = A.index(a)
   }
@@ -65,14 +68,16 @@ object Refinement {
   def greaterEqual[A](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
     override type Repr = A
     override val uuid = (root / ge / atc.binaryRepr(than)).uuid
-    def from(a: A) = if (A.gteqv(a, than)) Right(a) else Left(s"!(${a} >= ${than})")
+    override def desc(r: String) = s"${r} ≥ ${than}"
+    def from(a: A) = if (A.gteqv(a, than)) Right(a) else Left(s"${a} ≱ ${than}")
     def to(a: A) = a
   }
 
   def lessEqual[A](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
     override type Repr = A
     override val uuid = (root / le / atc.binaryRepr(than)).uuid
-    def from(a: A) = if (A.lteqv(a, than)) Right(a) else Left(s"!(${a} <= ${than})")
+    override def desc(r: String) = s"${r} ≤ ${than}"
+    def from(a: A) = if (A.lteqv(a, than)) Right(a) else Left(s"${a} ≰ ${than}")
     def to(a: A) = a
   }
 }

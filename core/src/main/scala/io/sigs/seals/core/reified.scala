@@ -83,10 +83,13 @@ sealed trait Reified[A] extends Serializable { self =>
       self.unfold[C, E, S](u)(c).map { case (a, c) => (f(a), c) }
   }
 
-  final def refined[B](r: Refinement.Aux[B, A])(implicit ev: Model.CanBeRefined[self.Mod]): Reified.Aux[B, self.Mod, self.Fold] =
-    pimap[B](r.uuid)(r.from)(r.to)(ev)
-
-  final def pimap[B](uuid: UUID)(f: A => Either[String, B])(g: B => A)(
+  /**
+   * Refine this `Reified` by restricting its domain
+   *
+   * @param r The representation of the refinement.
+   * @param ev Evidence that the model type allows refining.
+   */
+  final def refined[B](r: Refinement.Aux[B, A])(
     implicit ev: Model.CanBeRefined[self.Mod]
   ): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
 
@@ -94,19 +97,36 @@ sealed trait Reified[A] extends Serializable { self =>
     override type Fold[C, T] = self.Fold[C, T]
 
     override private[core] def modelComponent: Mod =
-      ev.refine(self.modelComponent, uuid)
+      ev.refine(self.modelComponent, r)
 
     override def fold[C, T](b: B)(f: Folder[C, T]): Fold[C, T] =
-      self.fold[C, T](g(b))(f)
+      self.fold[C, T](r.to(b))(f)
 
     override def close[C, T](x: Fold[C, T], f: T => C): C =
       self.close(x, f)
 
     override def unfold[C, E, S](u: Unfolder[C, E, S])(c: C): Either[E, (B, C)] = {
-      self.unfold[C, E, S](u)(c).flatMap { case (a, c) =>
-        f(a).map(a => (a, c)).leftMap(u.unknownError)
+      self.unfold[C, E, S](u)(c).flatMap {
+        case (a, c) =>
+          r.from(a).map(a => (a, c)).leftMap(u.unknownError)
       }
     }
+  }
+
+  /**
+   * Refine with only a UUID
+   *
+   * @see `refined`
+   */
+  final def pimap[B](id: UUID)(f: A => Either[String, B])(g: B => A)(
+    implicit ev: Model.CanBeRefined[self.Mod]
+  ): Reified.Aux[B, self.Mod, self.Fold] = {
+    refined[B](new Refinement[B] {
+      override type Repr = A
+      override val uuid = id
+      def from(r: Repr) = f(r)
+      def to(b: B) = g(b)
+    })(ev)
   }
 
   // TODO: remove this

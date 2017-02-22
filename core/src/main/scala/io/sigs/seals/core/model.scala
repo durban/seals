@@ -191,7 +191,7 @@ sealed trait Model extends Serializable {
 object Model {
 
   sealed trait CanBeRefined[M <: Model] extends Serializable {
-    def refine(m: M, r: UUID): M
+    def refine(m: M, r: Refinement[_]): M
   }
 
   object CanBeRefined {
@@ -203,7 +203,7 @@ object Model {
       NsUuid.uuid5nestedNs(r1, r2) // FIXME
 
     implicit val atomCanBeRefined: CanBeRefined[Model.Atom] = new CanBeRefined[Model.Atom] {
-      override def refine(m: Model.Atom, r: UUID) =
+      override def refine(m: Model.Atom, r: Refinement[_]) =
         m.refined(r)
     }
   }
@@ -611,8 +611,8 @@ object Model {
       private[core] val atomDesc: String
   ) extends Model {
 
-    private[core] def refined(r: UUID): Atom =
-      new Atom(CanBeRefined.combine(uuid, r), atomDesc)
+    private[core] def refined(r: Refinement[_]): Atom =
+      new Atom(CanBeRefined.combine(uuid, r.uuid), r.desc(atomDesc))
 
     private[core] def atomHash: Int =
       this.uuid.##

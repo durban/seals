@@ -19,8 +19,11 @@ package tests
 
 import scala.util.hashing.MurmurHash3
 
+import cats.implicits._
+
 import shapeless.test.illTyped
 
+import core.Refinement
 import laws.MyUUID
 import laws.TestInstances.atomic.atomicMyUUID
 
@@ -39,6 +42,18 @@ class ModelSpec extends BaseSpec {
   val a1b = atom[Int]
   val a2 = atom[String]
   val ac = atom[MyUUID]
+  val refinedAtom1 = Model.CanBeRefined[Model.Atom].refine(
+    a1a,
+    Refinement.greaterEqual(3)
+  )
+  val refinedAtom1b = Model.CanBeRefined[Model.Atom].refine(
+    a1b,
+    Refinement.greaterEqual(3)
+  )
+  val refinedAtom2 = Model.CanBeRefined[Model.Atom].refine(
+    a1a,
+    Refinement.greaterEqual(4)
+  )
 
   val p1a = l -> a2 :: m -> a1b :: Model.HNil
   val p1b = l -> atom[String] :: m -> a1a :: Model.HNil
@@ -94,7 +109,7 @@ class ModelSpec extends BaseSpec {
     Model.HCons(l, atom[MyUUID], Model.HNil)
   )
 
-  "equals + hashCode" - {
+  "equals + hashCode + compatibility" - {
 
     "atom" in {
       checkEqHashCompat(a1a, a1a)
@@ -258,6 +273,13 @@ class ModelSpec extends BaseSpec {
       checkNotEqHashCompat(p1, q)
       checkNotEqHashCompat(q, p1)
     }
+
+    "refinement should matter" in {
+      checkNotEqHashCompat(a1a, refinedAtom1)
+      checkNotEqHashCompat(a1a, refinedAtom2)
+      checkNotEqHashCompat(refinedAtom1, refinedAtom2)
+      checkEqHashCompat(refinedAtom1, refinedAtom1b)
+    }
   }
 
   "compatible" in {
@@ -290,6 +312,9 @@ class ModelSpec extends BaseSpec {
 
     k1a.desc should === ("Int*")
     k2a.desc should === (s"(${pc1aExp})*")
+
+    refinedAtom1.desc should === ("Int ≥ 3")
+    refinedAtom1.toString should === ("Model[Int ≥ 3]")
   }
 
   "cats.Eq" in {

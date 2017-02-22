@@ -68,6 +68,7 @@ object Envelope {
       override type Repr = EnvelopeRepr[A]
       // TODO:
       override val uuid = null // scalastyle:ignore null
+      override def desc(r: String) = "✉"
       override def from(repr: Repr) = {
         if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
         else Either.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")

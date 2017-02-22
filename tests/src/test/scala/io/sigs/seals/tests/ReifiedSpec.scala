@@ -266,6 +266,35 @@ class ReifiedSpec extends BaseSpec {
       assert(!r0.model.compatible(r2.model))
       assert(!r1.model.compatible(r2.model))
     }
+
+    "Descriptions" in {
+      val r0 = Reified[Int]
+      val r1 = r0.refined(Refinement.enum[MyTestEnum])
+      r1.toString should === ("Reified[0 ≤ Int ≤ 2]")
+
+      val r3 = r0.refined(new Refinement[Boolean] {
+        override type Repr = Int
+        override val uuid = UUID.fromString("c935143b-64fe-4c2b-8912-09af5a88c734")
+        override def desc(r: String) = s"Flag(${r})"
+        override def from(i: Int) = i match {
+          case 0 => Right(false)
+          case 1 => Right(true)
+          case _ => Left("bad")
+        }
+        override def to(b: Boolean) = if (b) 1 else 0
+      })
+      r3.toString should === ("Reified[Flag(Int)]")
+    }
+
+    "Refining with UUID only" in {
+      val r0 = Reified[Int]
+      val r1 = r0.pimap[Int](UUID.fromString("6445fb0b-1814-4e2d-bd8b-750f6e906a28")) { i =>
+        if ((i >= 0) && (i <= 15)) Right(i)
+        else Left("out of range")
+      } { i => i }
+      r1.model.compatible(r0.model) should === (false)
+      r1.toString should === ("Reified[Int{?}]")
+    }
   }
 }
 
@@ -274,12 +303,12 @@ object ReifiedSpec {
   val refineEnumToBool: Refinement.Aux[Boolean, MyTestEnum] = new Refinement[Boolean] {
     override type Repr = MyTestEnum
     override val uuid = (Refinement.root / hex"deadbeef").uuid
-    def from(e: MyTestEnum) = e match {
+    override def from(e: MyTestEnum) = e match {
       case MyTestEnum.FOO => Right(true)
       case MyTestEnum.BAR => Right(false)
       case MyTestEnum.BAZ => Left("error")
     }
-    def to(a: Boolean) = if (a) {
+    override def to(a: Boolean) = if (a) {
       MyTestEnum.FOO
     } else {
       MyTestEnum.BAR
