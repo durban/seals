@@ -124,12 +124,11 @@ lazy val lawsSettings = Seq[Setting[_]](
 )
 
 lazy val checkerSettings = Seq[Setting[_]](
-  // FIXME: use scalaOrganization (?)
-  libraryDependencies += "org.scala-lang" % "scala-compiler" % scalaVersion.value
+  libraryDependencies += scalaOrganization.value % "scala-compiler" % scalaVersion.value
 )
 
 lazy val macroParadiseSettings = Seq[Setting[_]](
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 )
 
 lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
