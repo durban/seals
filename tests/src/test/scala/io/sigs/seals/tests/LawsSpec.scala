@@ -48,6 +48,7 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[Envelope[TestTypes.adts.recursive.IntList], Int, Int]("Envelope[IntList]")
   checkReifiedLaws[Option[Int], String, Float]("Option[Int]")
   checkReifiedLaws[Month, String, Float]("java.time.Month")
+  checkReifiedLaws[Symbol, Float, Option[Int]]("scala.Symbol")
 
   locally {
     import TestInstances.reified._
@@ -64,7 +65,6 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[Boolean]("Boolean")
   checkAtomicLaws[Unit]("Unit")
   checkAtomicLaws[String]("String")
-  checkAtomicLaws[Symbol]("Symbol")
   checkAtomicLaws[BigInt]("BigInt")
   checkAtomicLaws[BigDecimal]("BigDecimal")
   checkAtomicLaws[MathContext]("MathContext")

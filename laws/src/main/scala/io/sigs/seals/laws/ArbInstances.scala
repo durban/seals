@@ -49,6 +49,9 @@ trait ArbInstances {
     arbStr.arbitrary.map(Symbol.apply)
   }
 
+  implicit def cogenSymbol(implicit cgStr: Cogen[String]): Cogen[Symbol] =
+    cgStr.contramap(_.name)
+
   implicit def arbByteVector(implicit arbArr: Arbitrary[Array[Byte]]): Arbitrary[ByteVector] = Arbitrary {
     arbArr.arbitrary.map(ByteVector.view)
   }

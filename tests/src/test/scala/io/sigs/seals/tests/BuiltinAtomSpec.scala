@@ -44,7 +44,6 @@ class BuiltinAtomSpec extends BaseSpec {
       atom[Unit],
       // std types:
       atom[String],
-      atom[Symbol],
       atom[BigInt],
       atom[BigDecimal],
       atom[MathContext],

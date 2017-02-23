@@ -479,16 +479,6 @@ object Atomic {
     Right(_)
   ) with FallbackBinary[String]
 
-  implicit val builtinSymbol: Atomic[Symbol] =
-    SimpleSymbol
-
-  private object SimpleSymbol extends SimpleAtomic[Symbol](
-    "Symbol",
-    uuid"8c750487-1a6b-4c99-b01a-f1392b8177ed",
-    _.name,
-    s => Right(Symbol(s))
-  ) with FallbackBinary[Symbol]
-
   implicit val builtinBigInt: Atomic[BigInt] =
     SimpleBigInt
 
@@ -714,7 +704,6 @@ object Atomic {
     entryOf[Unit],
     // other standard types:
     entryOf[String],
-    entryOf[Symbol],
     entryOf[BigInt],
     entryOf[BigDecimal],
     entryOf[MathContext],

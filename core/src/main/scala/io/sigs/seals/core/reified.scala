@@ -409,7 +409,25 @@ object Reified extends LowPrioReified1 {
   }
 }
 
+/** Standard refinements */
 private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
+
+  import Reified.FFirst
+
+  implicit val reifiedForSymbol: Reified.Aux[Symbol, Model.Atom, FFirst] = {
+    Reified
+      .reifiedFromAtomic[String](Atomic.builtinString)
+      .refined(new Refinement[Symbol]{
+        override type Repr = String
+        override val uuid = uuid"8c750487-1a6b-4c99-b01a-f1392b8177ed"
+        override def desc(r: String) = "Symbol"
+        override def from(s: String) = Right(Symbol(s))
+        override def to(sym: Symbol) = sym.name
+      })
+  }
+}
+
+private[core] sealed trait LowPrioReified2 extends LowPrioReified3 {
 
   import Reified.{ FFirst, FSecond }
 
@@ -562,7 +580,7 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
   }
 }
 
-private[core] sealed trait LowPrioReified2 extends LowPrioReified3 {
+private[core] sealed trait LowPrioReified3 extends LowPrioReified4 {
 
   // TODO: if this is implicit, it causes problems (probably cycles)
   def reifiedFromRefinement[A, R, M <: Model, F[_, _]](
@@ -596,7 +614,7 @@ object Derived {
   }
 }
 
-private[core] sealed trait LowPrioReified3 {
+private[core] sealed trait LowPrioReified4 {
 
   /**
    * Provide a `Reified` instance from a `Derived` instance
