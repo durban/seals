@@ -41,7 +41,7 @@ object Atoms extends Atoms {
       "BiggerDecimal"
 
     val uuid: UUID =
-      UUID.fromString("5c3d07fd-2f45-4f7b-af52-eeba62b95aa1")
+      uuid"5c3d07fd-2f45-4f7b-af52-eeba62b95aa1"
 
     def stringRepr(a: BiggerDecimal): String =
       a.toString

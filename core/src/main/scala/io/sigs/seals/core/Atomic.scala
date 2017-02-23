@@ -204,13 +204,13 @@ object Atomic {
 
   private sealed abstract class SimpleAtomic[A](
     override val description: String,
-    idStr: String,
+    id: UUID,
     sr: A => String,
     fs: String => Either[Error, A]
   ) extends Atomic[A] { this: Singleton =>
 
     final override val uuid: UUID =
-      UUID.fromString(idStr)
+      id
 
     final override def fromString(s: String): Either[Error, A] =
       fs(s)
@@ -221,7 +221,7 @@ object Atomic {
 
   private sealed abstract class ConstLenAtomic[A](
     desc: String,
-    idStr: String,
+    idStr: UUID,
     sr: A => String,
     fs: String => Either[Error, A],
     len: Int,
@@ -269,7 +269,7 @@ object Atomic {
 
   private object SimpleByte extends ConstLenAtomic[Byte](
     "Byte",
-    "0a2d603f-b8fd-4f73-a102-3bd958d4ee22",
+    uuid"0a2d603f-b8fd-4f73-a102-3bd958d4ee22",
     _.toString,
     tryParseAscii(_.toByte),
     1,
@@ -282,7 +282,7 @@ object Atomic {
 
   private object SimpleShort extends ConstLenAtomic[Short](
     "Short",
-    "00d9c457-b71a-45d5-8ee8-1ecfc6af2111",
+    uuid"00d9c457-b71a-45d5-8ee8-1ecfc6af2111",
     _.toString,
     tryParseAscii(_.toShort),
     2,
@@ -295,7 +295,7 @@ object Atomic {
 
   private object SimpleChar extends ConstLenAtomic[Char](
     "Char",
-    "9d28d655-b16d-475d-87ac-295852deb4bc",
+    uuid"9d28d655-b16d-475d-87ac-295852deb4bc",
     String.valueOf(_),
     s => {
       if (s.length === 1) {
@@ -314,7 +314,7 @@ object Atomic {
 
   private object SimpleInt extends ConstLenAtomic[Int](
     "Int",
-    "d9bfd653-c875-4dd0-8287-b806ee6eb85b",
+    uuid"d9bfd653-c875-4dd0-8287-b806ee6eb85b",
     _.toString,
     tryParseAscii(_.toInt),
     4,
@@ -327,7 +327,7 @@ object Atomic {
 
   private object SimpleLong extends ConstLenAtomic[Long](
     "Long",
-    "44e10ec2-ef7a-47b8-9851-7a5fe18a056a",
+    uuid"44e10ec2-ef7a-47b8-9851-7a5fe18a056a",
     _.toString,
     tryParseAscii(_.toLong),
     8,
@@ -340,7 +340,7 @@ object Atomic {
 
   private object SimpleFloat extends SimpleAtomic[Float](
     "Float",
-    "13663ca9-1652-4e4b-8c88-f7a137773b75",
+    uuid"13663ca9-1652-4e4b-8c88-f7a137773b75",
     _.toString,
     tryParseAscii(_.toFloat)
   ) {
@@ -382,7 +382,7 @@ object Atomic {
 
   private object SimpleDouble extends SimpleAtomic[Double](
     "Double",
-    "18c48a4d-48fd-4755-99c8-1b545e25edda",
+    uuid"18c48a4d-48fd-4755-99c8-1b545e25edda",
     _.toString,
     tryParseAscii(_.toDouble)
   ) {
@@ -427,7 +427,7 @@ object Atomic {
 
   private object SimpleBoolean extends SimpleAtomic[Boolean](
     "Boolean",
-    "88211913-75f1-4908-8cca-d78b5cca6f58",
+    uuid"88211913-75f1-4908-8cca-d78b5cca6f58",
     _.toString,
     s => {
       if (s === true.toString) Right(true)
@@ -459,7 +459,7 @@ object Atomic {
 
   private object SimpleUnit extends ConstLenAtomic[Unit](
     "Unit",
-    "d02152c8-c15b-4c74-9c3e-500af3dce57a",
+    uuid"d02152c8-c15b-4c74-9c3e-500af3dce57a",
     _ => "()",
     s => if (s === "()") Right(()) else Left(Error(s"Not '()': '${s}'")),
     0,
@@ -474,7 +474,7 @@ object Atomic {
 
   private object SimpleString extends SimpleAtomic[String](
     "String",
-    "8cd4c733-4392-4a8c-9014-8decf160fffe",
+    uuid"8cd4c733-4392-4a8c-9014-8decf160fffe",
     identity,
     Right(_)
   ) with FallbackBinary[String]
@@ -484,7 +484,7 @@ object Atomic {
 
   private object SimpleSymbol extends SimpleAtomic[Symbol](
     "Symbol",
-    "8c750487-1a6b-4c99-b01a-f1392b8177ed",
+    uuid"8c750487-1a6b-4c99-b01a-f1392b8177ed",
     _.name,
     s => Right(Symbol(s))
   ) with FallbackBinary[Symbol]
@@ -494,7 +494,7 @@ object Atomic {
 
   private object SimpleBigInt extends SimpleAtomic[BigInt](
     "BigInt",
-    "98ed3f70-7d50-4c18-9a07-caf57cfabced",
+    uuid"98ed3f70-7d50-4c18-9a07-caf57cfabced",
     _.toString,
     tryParseAscii(BigInt(_))
   ) {
@@ -527,7 +527,7 @@ object Atomic {
       "BigDecimal"
 
     def uuid: UUID =
-      UUID.fromString("46317726-b42f-4147-9f99-fbbac2adce9a")
+      uuid"46317726-b42f-4147-9f99-fbbac2adce9a"
 
     // FIXME: intVal and scale could be merged in the stringRepr
     def stringRepr(a: BigDecimal): String = {
@@ -586,7 +586,7 @@ object Atomic {
       "MathContext"
 
     def uuid: UUID =
-      UUID.fromString("6e099f51-bdc0-415b-8f73-bff72cfd47db")
+      uuid"6e099f51-bdc0-415b-8f73-bff72cfd47db"
 
     // FIXME: For stringRepr we could use the
     // FIXME: toString of MathContext.
@@ -624,7 +624,7 @@ object Atomic {
       "RoundingMode"
 
     def uuid: UUID =
-      UUID.fromString("ad069397-978d-4436-8728-f2ff795826b6")
+      uuid"ad069397-978d-4436-8728-f2ff795826b6"
   }
 
   implicit val builtinUUID: Atomic[UUID] =
@@ -632,7 +632,7 @@ object Atomic {
 
   private object SimpleUUID extends ConstLenAtomic[UUID](
     "UUID",
-    "7eba2d39-7f93-4600-8901-1e4e5ec5e7ed",
+    uuid"7eba2d39-7f93-4600-8901-1e4e5ec5e7ed",
     _.toString,
     s => fromTry(Try(UUID.fromString(s))), // TODO: reject extra leading zeros
     16,
@@ -654,7 +654,7 @@ object Atomic {
 
   private object SimpleByteVector extends SimpleAtomic[ByteVector](
     "ByteVector",
-    "98d436cc-3421-4bff-a575-28c1952b976a",
+    uuid"98d436cc-3421-4bff-a575-28c1952b976a",
     _.toBase64(Bases.Alphabets.Base64Url),
     s => ByteVector.fromBase64Descriptive(s, Bases.Alphabets.Base64Url).leftMap(Error(_))
   ) {
@@ -676,7 +676,7 @@ object Atomic {
 
   private object SimpleBitVector extends SimpleAtomic[BitVector](
     "BitVector",
-    "a533de88-6ebc-45c4-a40c-29588a1a1ef1",
+    uuid"a533de88-6ebc-45c4-a40c-29588a1a1ef1",
     _.toBin(Bases.Alphabets.Binary),
     s => BitVector.fromBinDescriptive(s, Bases.Alphabets.Binary).leftMap(Error(_))
   ) {

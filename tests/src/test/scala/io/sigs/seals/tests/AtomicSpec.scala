@@ -37,7 +37,7 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
 
   "Automatic Model derivation" in {
     atomic.description should === ("MyUUID")
-    atomic.uuid should === (UUID.fromString("85a168db-6ce3-47e7-b8aa-e45aa075d523"))
+    atomic.uuid should === (uuid"85a168db-6ce3-47e7-b8aa-e45aa075d523")
   }
 
   "equals + hashCode" in {
@@ -68,7 +68,7 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
     val r1 = Reified[CaseClass]
 
     // define an atomic:
-    val constUuid = UUID.fromString("3ba1f17e-c0cd-4b17-8cca-771e90b60498")
+    val constUuid = uuid"3ba1f17e-c0cd-4b17-8cca-771e90b60498"
     val r2 = {
       object ACC extends Atomic[CaseClass] with Atomic.FallbackBinary[CaseClass] {
 

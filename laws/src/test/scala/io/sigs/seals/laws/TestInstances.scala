@@ -50,7 +50,7 @@ object TestInstances {
         a.uuid.toString
 
       val uuid: UUID =
-        UUID.fromString("85a168db-6ce3-47e7-b8aa-e45aa075d523")
+        uuid"85a168db-6ce3-47e7-b8aa-e45aa075d523"
     }
 
     implicit val atomicWhatever: Atomic[Whatever.type] =
@@ -72,7 +72,7 @@ object TestInstances {
         Whatever.toString
 
       val uuid: UUID =
-        UUID.fromString("fa786e05-9baf-4a87-a06d-712d83d3c5d7")
+        uuid"fa786e05-9baf-4a87-a06d-712d83d3c5d7"
     }
 
     object bad {
@@ -94,7 +94,7 @@ object TestInstances {
           a.toString
 
         val uuid: UUID =
-          UUID.fromString("fa786e05-9baf-4a87-a06d-712d83d3c5d7")
+          uuid"fa786e05-9baf-4a87-a06d-712d83d3c5d7"
       }
     }
   }

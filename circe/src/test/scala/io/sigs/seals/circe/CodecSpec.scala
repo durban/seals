@@ -17,8 +17,6 @@
 package io.sigs.seals
 package circe
 
-import java.util.UUID
-
 import cats.implicits._
 
 import io.circe._
@@ -178,7 +176,7 @@ class CodecSpec extends BaseJsonSpec {
   }
 
   "Roundtrip" - {
-    val x = FooBarU(Foo(42), MyUUID(UUID.fromString("69fd9ed5-4789-4290-b55c-f5f1a773265a")))
+    val x = FooBarU(Foo(42), MyUUID(uuid"69fd9ed5-4789-4290-b55c-f5f1a773265a"))
     val j = x.asJson
     val y = j.as[FooBarU]
     y should === (Either.right(x))

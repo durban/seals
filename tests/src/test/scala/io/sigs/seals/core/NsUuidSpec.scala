@@ -26,49 +26,46 @@ import io.circe._
 class NsUuidSpec extends tests.BaseSpec {
 
   /** Version 1 UUID */
-  val ns1 = u("8f07c16c-f14d-11e6-81af-1d121b157edb")
+  val ns1 = uuid"8f07c16c-f14d-11e6-81af-1d121b157edb"
   assert(ns1.variant() === 2)
   assert(ns1.version() === 1)
 
   /** Version 3 (name-based MD5) UUID for "example.com" (DNS) */
-  val ns3 = u("9073926b-929f-31c2-abc9-fad77ae3e8eb")
+  val ns3 = uuid"9073926b-929f-31c2-abc9-fad77ae3e8eb"
   assert(ns3.variant() === 2)
   assert(ns3.version() === 3)
 
   /** Version 4 (random) UUID as test namespace */
-  val ns4 = u("3b4ff1b0-5235-47b9-bdff-8f7df19bf8a4")
+  val ns4 = uuid"3b4ff1b0-5235-47b9-bdff-8f7df19bf8a4"
   assert(ns4.variant() === 2)
   assert(ns4.version() === 4)
 
   /** Version 5 (name-based SHA1) UUID for "example.com" (DNS) */
-  val ns5 = u("cfbff0d1-9375-5685-968c-48ce8b15ae17")
+  val ns5 = uuid"cfbff0d1-9375-5685-968c-48ce8b15ae17"
   assert(ns5.variant() === 2)
   assert(ns5.version() === 5)
 
   /** DNS namespace from RFC 4122 */
-  val nsDns = u("6ba7b810-9dad-11d1-80b4-00c04fd430c8")
+  val nsDns = uuid"6ba7b810-9dad-11d1-80b4-00c04fd430c8"
   assert(nsDns.variant() === 2)
 
   /** URL namespace from RFC 4122 */
-  val nsUrl = u("6ba7b811-9dad-11d1-80b4-00c04fd430c8")
+  val nsUrl = uuid"6ba7b811-9dad-11d1-80b4-00c04fd430c8"
   assert(nsUrl.variant() === 2)
-
-  def u(s: String): UUID =
-    UUID.fromString(s)
 
   "Basic functionality" - {
 
     "empty name" in {
-      NsUuid.uuid5(ns4, "") should === (u("56756e5d-8a7e-570f-a419-82ea6d431713"))
+      NsUuid.uuid5(ns4, "") should === (uuid"56756e5d-8a7e-570f-a419-82ea6d431713")
     }
 
     "short name" in {
-      NsUuid.uuid5(ns4, "alpha") should === (u("21bbb574-bba8-51e4-8b71-2ab43a593184"))
+      NsUuid.uuid5(ns4, "alpha") should === (uuid"21bbb574-bba8-51e4-8b71-2ab43a593184")
     }
 
     "long name" in {
       NsUuid.uuid5(ns4, "the quick brown fox jumps over the lazy dog") should === (
-        u("e9e3506b-5eca-5b3b-916f-c9d8fdce37c8")
+        uuid"e9e3506b-5eca-5b3b-916f-c9d8fdce37c8"
       )
     }
   }
@@ -81,47 +78,47 @@ class NsUuidSpec extends tests.BaseSpec {
 
     "URL" in {
       NsUuid.uuid5(nsUrl, "http://www.example.com/a/b/c") should === (
-        u("c3d9ade2-286d-5034-ab44-93d660958179")
+        uuid"c3d9ade2-286d-5034-ab44-93d660958179"
       )
     }
 
     "v1" in {
-      NsUuid.uuid5(ns1, "foobar") should === (u("d247cb15-9aff-5df1-beff-fdbc144f042a"))
+      NsUuid.uuid5(ns1, "foobar") should === (uuid"d247cb15-9aff-5df1-beff-fdbc144f042a")
     }
 
     "v3" in {
-      NsUuid.uuid5(ns3, "foobar") should === (u("ae857671-99d7-5c5c-b458-c95c071bc730"))
+      NsUuid.uuid5(ns3, "foobar") should === (uuid"ae857671-99d7-5c5c-b458-c95c071bc730")
     }
 
     "v5" in {
-      NsUuid.uuid5(ns5, "foobar") should === (u("f1030914-4615-533a-ba0f-ce2603a31662"))
+      NsUuid.uuid5(ns5, "foobar") should === (uuid"f1030914-4615-533a-ba0f-ce2603a31662")
     }
   }
 
   "Nested namespaces" - {
 
-    val n1 = u("d71eb6ce-094e-47d1-8a87-0fe592905d05")
-    val n2 = u("75f91432-77d8-4ab3-a9c4-2a2652878029")
-    val n3 = u("e3c836b9-ac3c-4cc9-8ff6-b208515deda8")
-    val n4 = u("4458e30e-8120-47fc-a325-39053796fd83")
+    val n1 = uuid"d71eb6ce-094e-47d1-8a87-0fe592905d05"
+    val n2 = uuid"75f91432-77d8-4ab3-a9c4-2a2652878029"
+    val n3 = uuid"e3c836b9-ac3c-4cc9-8ff6-b208515deda8"
+    val n4 = uuid"4458e30e-8120-47fc-a325-39053796fd83"
 
     "UUIDs and a name" in {
       val name = "foobar"
       NsUuid.uuid5nestedNsNm(name, ns1) should === (NsUuid.uuid5(ns1, name))
-      NsUuid.uuid5nestedNsNm(name, ns1, n1) should === (u("8fc121a2-bdb6-57fd-9f4b-8c57d9860d7d"))
-      NsUuid.uuid5nestedNsNm(name, ns1, n1, n2, n3, n4) should === (u("7f8c26c6-d014-58cc-a205-25c13c2b98c0"))
+      NsUuid.uuid5nestedNsNm(name, ns1, n1) should === (uuid"8fc121a2-bdb6-57fd-9f4b-8c57d9860d7d")
+      NsUuid.uuid5nestedNsNm(name, ns1, n1, n2, n3, n4) should === (uuid"7f8c26c6-d014-58cc-a205-25c13c2b98c0")
     }
 
     "names" in {
       NsUuid.uuid5nested(ns1) should === (ns1)
-      NsUuid.uuid5nested(ns1, "foo") should === (u("37af6235-cf58-51f3-8a67-3e6a0eedff96"))
-      NsUuid.uuid5nested(ns1, "foo", "bar", "baz") should === (u("fd8f5430-b2d5-5d2b-8524-57da37991e36"))
+      NsUuid.uuid5nested(ns1, "foo") should === (uuid"37af6235-cf58-51f3-8a67-3e6a0eedff96")
+      NsUuid.uuid5nested(ns1, "foo", "bar", "baz") should === (uuid"fd8f5430-b2d5-5d2b-8524-57da37991e36")
     }
 
     "UUIDs" in {
       NsUuid.uuid5nestedNs(ns1) should === (ns1)
-      NsUuid.uuid5nestedNs(ns1, n1) should === (u("da3145fc-debf-5024-be13-051b8a1217d2"))
-      NsUuid.uuid5nestedNs(ns1, n1, n2, n3, n4) should === (u("cd7b7bd8-3810-5be5-9c6f-05c8dc1bb8c6"))
+      NsUuid.uuid5nestedNs(ns1, n1) should === (uuid"da3145fc-debf-5024-be13-051b8a1217d2")
+      NsUuid.uuid5nestedNs(ns1, n1, n2, n3, n4) should === (uuid"cd7b7bd8-3810-5be5-9c6f-05c8dc1bb8c6")
     }
 
     "generated test data" in {

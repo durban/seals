@@ -51,11 +51,11 @@ object Refinement {
     type Repr = R
   }
 
-  final val root = UUID.fromString("cc154e4c-24b8-4505-a13c-59b548ec9883")
+  final val root = uuid"cc154e4c-24b8-4505-a13c-59b548ec9883"
 
-  final val ge = UUID.fromString("ff6383db-8d2e-4507-a571-f6f0f73f1fe8")
-  final val le = UUID.fromString("95d56687-589e-4e8a-8857-0707ad3cd60b")
-  final val en = UUID.fromString("5c7fe757-72c0-4114-9ed0-06e8a8d34c04")
+  final val ge = uuid"ff6383db-8d2e-4507-a571-f6f0f73f1fe8"
+  final val le = uuid"95d56687-589e-4e8a-8857-0707ad3cd60b"
+  final val en = uuid"5c7fe757-72c0-4114-9ed0-06e8a8d34c04"
 
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int

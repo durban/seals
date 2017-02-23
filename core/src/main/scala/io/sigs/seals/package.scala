@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,8 @@
 package io.sigs
 
 import java.util.UUID
+
+import scala.language.implicitConversions
 
 import scodec.bits.ByteVector
 
@@ -49,4 +51,7 @@ package object seals {
     def / (sub: UUID): UUIDBuilder = UUIDBuilder(self, Vector(NsUuid.bvFromUUID(sub)))
     def / (sub: ByteVector): UUIDBuilder = UUIDBuilder(self, Vector(sub))
   }
+
+  private[seals] implicit def uuidLiteralSyntax(sc: StringContext): macros.UUIDSyntax =
+    new macros.UUIDSyntax(sc)
 }

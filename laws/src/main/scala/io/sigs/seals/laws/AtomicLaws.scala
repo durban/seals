@@ -57,7 +57,7 @@ object AtomicLaws {
       "DerivedByteFromInt"
 
     def uuid: UUID =
-      UUID.fromString("b1452721-fe47-4649-aa8b-55205b8e1098")
+      uuid"b1452721-fe47-4649-aa8b-55205b8e1098"
   }
 
   object FallbackStringTester
@@ -80,7 +80,7 @@ object AtomicLaws {
       "FallbackStringTester"
 
     override val uuid: UUID =
-      UUID.fromString("cc03cb40-7c79-405d-add3-5bb51542b954")
+      uuid"cc03cb40-7c79-405d-add3-5bb51542b954"
   }
 
   object FallbackBinaryTester
@@ -99,7 +99,7 @@ object AtomicLaws {
       "FallbackBinaryTester"
 
     override val uuid: UUID =
-      UUID.fromString("a848f0f6-9586-427f-aa17-d5c34c9cbbb6")
+      uuid"a848f0f6-9586-427f-aa17-d5c34c9cbbb6"
   }
 
   object ForEnumTester
@@ -109,7 +109,7 @@ object AtomicLaws {
       "ForEnumTester"
 
     override val uuid: UUID =
-      UUID.fromString("090c78d0-86a4-4b32-9556-26b3a124354a")
+      uuid"090c78d0-86a4-4b32-9556-26b3a124354a"
   }
 }
 

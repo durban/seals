@@ -274,7 +274,7 @@ class ReifiedSpec extends BaseSpec {
 
       val r3 = r0.refined(new Refinement[Boolean] {
         override type Repr = Int
-        override val uuid = UUID.fromString("c935143b-64fe-4c2b-8912-09af5a88c734")
+        override val uuid = uuid"c935143b-64fe-4c2b-8912-09af5a88c734"
         override def desc(r: String) = s"Flag(${r})"
         override def from(i: Int) = i match {
           case 0 => Right(false)
@@ -288,7 +288,7 @@ class ReifiedSpec extends BaseSpec {
 
     "Refining with UUID only" in {
       val r0 = Reified[Int]
-      val r1 = r0.pimap[Int](UUID.fromString("6445fb0b-1814-4e2d-bd8b-750f6e906a28")) { i =>
+      val r1 = r0.pimap[Int](uuid"6445fb0b-1814-4e2d-bd8b-750f6e906a28") { i =>
         if ((i >= 0) && (i <= 15)) Right(i)
         else Left("out of range")
       } { i => i }
