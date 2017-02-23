@@ -22,6 +22,9 @@ import cats.Eq
 
 package object core {
 
+  type EnumLike[A] = macros.EnumLike[A]
+  val EnumLike = macros.EnumLike
+
   implicit val symbolEq: Eq[Symbol] =
     Eq.fromUniversalEquals[Symbol]
 

@@ -15,7 +15,7 @@
  */
 
 package io.sigs.seals
-package core
+package macros
 
 import scala.reflect.macros.blackbox.Context
 
