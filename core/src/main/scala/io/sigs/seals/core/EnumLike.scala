@@ -17,7 +17,6 @@
 package io.sigs.seals
 package core
 
-import scala.language.experimental.macros
 import scala.reflect.macros.blackbox.Context
 
 import cats.implicits._

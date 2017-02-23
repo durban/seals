@@ -16,8 +16,6 @@
 
 package io.sigs.seals
 
-import scala.language.experimental.macros
-
 import scala.annotation.{ StaticAnnotation, compileTimeOnly }
 import scala.reflect.macros.whitebox.{ Context => WContext }
 import scala.reflect.macros.blackbox.{ Context => BContext }

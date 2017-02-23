@@ -19,7 +19,14 @@ lazy val core = project
   .settings(commonSettings)
   .settings(coreSettings)
   .settings(tutSettings)
-  .settings(macroParadiseSettings)
+  .settings(macroSettings)
+  .dependsOn(macros)
+
+lazy val macros = project
+  .settings(name := "seals-macros")
+  .settings(commonSettings)
+  .settings(macrosSettings)
+  .settings(macroSettings)
 
 lazy val laws = project
   .settings(name := "seals-laws")
@@ -36,7 +43,7 @@ lazy val checker = project
   .settings(name := "seals-checker")
   .settings(commonSettings)
   .settings(checkerSettings)
-  .settings(macroParadiseSettings)
+  .settings(macroSettings)
   .dependsOn(core, circe)
 
 lazy val plugin = project
@@ -60,7 +67,7 @@ lazy val scodec = project
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .aggregate(core, laws, tests, checker, circe, scodec) // Note: `plugin` is intentionally missing
+  .aggregate(core, macros, laws, tests, checker, circe, scodec) // Note: `plugin` is intentionally missing
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
@@ -71,7 +78,7 @@ lazy val commonSettings = Seq[Setting[_]](
     "-deprecation",
     "-unchecked",
     "-encoding", "UTF-8",
-    "-language:higherKinds",
+    "-language:higherKinds,experimental.macros",
     "-Xlint:_",
     "-Xfuture",
     "-Xfatal-warnings",
@@ -119,6 +126,10 @@ lazy val coreSettings = Seq[Setting[_]](
   libraryDependencies += dependencies.scodecBits
 )
 
+lazy val macrosSettings = Seq[Setting[_]](
+  libraryDependencies += dependencies.shapeless % "test-internal"
+)
+
 lazy val lawsSettings = Seq[Setting[_]](
   libraryDependencies ++= dependencies.laws
 )
@@ -127,7 +138,8 @@ lazy val checkerSettings = Seq[Setting[_]](
   libraryDependencies += scalaOrganization.value % "scala-compiler" % scalaVersion.value
 )
 
-lazy val macroParadiseSettings = Seq[Setting[_]](
+lazy val macroSettings = Seq[Setting[_]](
+  libraryDependencies += scalaOrganization.value % "scala-reflect" % scalaVersion.value,
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 )
 
@@ -237,7 +249,7 @@ lazy val exLib = project.in(file("examples/lib"))
 lazy val exLibProto = project.in(file("examples/lib/proto"))
   .settings(name := "seals-examples-lib-proto")
   .settings(exampleSettings)
-  .settings(macroParadiseSettings)
+  .settings(macroSettings)
   .dependsOn(core)
 
 lazy val exLibServer = project.in(file("examples/lib/server"))
