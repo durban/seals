@@ -593,7 +593,7 @@ object Atomic {
 
     def to(a: MathContext): Long = {
       val precision: Int = a.getPrecision
-      val rounding: Int = RoundingModeEnumLike.index(a.getRoundingMode)
+      val rounding: Int = roundingModeEnumLike.index(a.getRoundingMode)
       (precision.toLong << 32) | (rounding & 0xffffffffL)
     }
 
@@ -603,7 +603,7 @@ object Atomic {
       if (precision < 0) {
         Left(Error(s"negative precision: ${precision}"))
       } else {
-        RoundingModeEnumLike
+        roundingModeEnumLike
           .fromIndex(rounding)
           .map(r => new MathContext(precision, r))
           .leftMap(Error(_))
@@ -614,39 +614,17 @@ object Atomic {
   implicit val builtinRoundingMode: Atomic[RoundingMode] =
     SimpleRoundingMode
 
+  private implicit lazy val roundingModeEnumLike: EnumLike[RoundingMode] =
+    shapeless.cachedImplicit[EnumLike[RoundingMode]]
+
   private object SimpleRoundingMode
-      extends ForEnum[RoundingMode]()(RoundingModeEnumLike) {
+      extends ForEnum[RoundingMode]()(roundingModeEnumLike) {
 
     def description: String =
       "RoundingMode"
 
     def uuid: UUID =
       UUID.fromString("ad069397-978d-4436-8728-f2ff795826b6")
-  }
-
-  private object RoundingModeEnumLike extends EnumLike.JavaEnum[RoundingMode] {
-
-    private[this] final val values: Array[RoundingMode] =
-      RoundingMode.values
-
-    final override val maxIndex =
-      values.length - 1
-
-    final override def typeName: String =
-      classOf[RoundingMode].getName
-
-    final override def fromNameOpt(name: String): Option[RoundingMode] = {
-      try {
-        Some(RoundingMode.valueOf(name))
-      } catch {
-        case _: IllegalArgumentException => None
-      }
-    }
-
-    final override def fromIndexOpt(index: Int): Option[RoundingMode] = {
-      if ((index >= 0) && (index < values.length)) Some(values(index))
-      else None
-    }
   }
 
   implicit val builtinUUID: Atomic[UUID] =
