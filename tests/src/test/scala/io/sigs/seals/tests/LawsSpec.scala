@@ -49,6 +49,7 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[Option[Int], String, Float]("Option[Int]")
   checkReifiedLaws[Month, String, Float]("java.time.Month")
   checkReifiedLaws[Symbol, Float, Option[Int]]("scala.Symbol")
+  checkReifiedLaws[RoundingMode, Symbol, Int]("java.math.RoundingMode")
 
   locally {
     import TestInstances.reified._
@@ -68,7 +69,6 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[BigInt]("BigInt")
   checkAtomicLaws[BigDecimal]("BigDecimal")
   checkAtomicLaws[MathContext]("MathContext")
-  checkAtomicLaws[RoundingMode]("RoundingMode")
   checkAtomicLaws[UUID]("UUID")
   checkAtomicLaws[ByteVector]("ByteVector")
   checkAtomicLaws[BitVector]("BitVector")

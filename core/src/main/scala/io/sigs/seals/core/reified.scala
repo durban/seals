@@ -18,6 +18,7 @@ package io.sigs.seals
 package core
 
 import java.util.UUID
+import java.math.RoundingMode
 
 import cats.{ Monad, InvariantMonoidal }
 import cats.implicits._
@@ -401,12 +402,6 @@ object Reified extends LowPrioReified1 {
       case Some(value) => Union[OptionRepr[A]](Some = Record(value = value))
     }
   }
-
-  implicit def reifiedForEnumLike[A](implicit A: EnumLike[A]): Reified.Aux[A, Model.Atom, FFirst] = {
-    Reified
-      .reifiedFromAtomic[Int](Atomic.builtinInt)
-      .refined(Refinement.enum[A](A))
-  }
 }
 
 /** Standard refinements */
@@ -414,7 +409,7 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
 
   import Reified.FFirst
 
-  implicit val reifiedForSymbol: Reified.Aux[Symbol, Model.Atom, FFirst] = {
+  implicit lazy val reifiedForSymbol: Reified.Aux[Symbol, Model.Atom, FFirst] = {
     Reified
       .reifiedFromAtomic[String](Atomic.builtinString)
       .refined(new Refinement[Symbol]{
@@ -425,9 +420,28 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
         override def to(sym: Symbol) = sym.name
       })
   }
+
+  /** Cached here to avoid always rematerializing */
+  private[this] lazy val enumLikeForRoundingMode: EnumLike[RoundingMode] =
+    EnumLike[RoundingMode]
+
+  /** Uses the cached `EnumLike[RoundingMode]` */
+  implicit lazy val reifiedForRoundingMode: Reified.Aux[RoundingMode, Model.Atom, FFirst] =
+    Reified.reifiedForEnumLike[RoundingMode](enumLikeForRoundingMode)
 }
 
 private[core] sealed trait LowPrioReified2 extends LowPrioReified3 {
+
+  import Reified.FFirst
+
+  implicit def reifiedForEnumLike[A](implicit A: EnumLike[A]): Reified.Aux[A, Model.Atom, FFirst] = {
+    Reified
+      .reifiedFromAtomic[Int](Atomic.builtinInt)
+      .refined(Refinement.enum[A](A))
+  }
+}
+
+private[core] sealed trait LowPrioReified3 extends LowPrioReified4 {
 
   import Reified.{ FFirst, FSecond }
 
@@ -580,7 +594,7 @@ private[core] sealed trait LowPrioReified2 extends LowPrioReified3 {
   }
 }
 
-private[core] sealed trait LowPrioReified3 extends LowPrioReified4 {
+private[core] sealed trait LowPrioReified4 extends LowPrioReified5 {
 
   // TODO: if this is implicit, it causes problems (probably cycles)
   def reifiedFromRefinement[A, R, M <: Model, F[_, _]](
@@ -614,7 +628,7 @@ object Derived {
   }
 }
 
-private[core] sealed trait LowPrioReified4 {
+private[core] sealed trait LowPrioReified5 {
 
   /**
    * Provide a `Reified` instance from a `Derived` instance

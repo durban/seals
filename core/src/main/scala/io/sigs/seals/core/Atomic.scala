@@ -508,6 +508,8 @@ object Atomic {
     }
   }
 
+  // TODO: When/if products can have refinements, this
+  // TODO: could be based on (BigInt, Int, MathContext).
   implicit val builtinBigDecimal: Atomic[BigDecimal] =
     SimpleBigDecimal
 
@@ -566,6 +568,8 @@ object Atomic {
       new BigDecimal(new java.math.BigDecimal(intVal.bigInteger, scale, ctx), ctx)
   }
 
+  // TODO: When/if products can have refinements, this
+  // TODO: could be based on (Int, RoundingMode).
   implicit val builtinMathContext: Atomic[MathContext] =
     SimpleMathContext
 
@@ -583,7 +587,7 @@ object Atomic {
 
     def to(a: MathContext): Long = {
       val precision: Int = a.getPrecision
-      val rounding: Int = roundingModeEnumLike.index(a.getRoundingMode)
+      val rounding: Int = a.getRoundingMode.ordinal
       (precision.toLong << 32) | (rounding & 0xffffffffL)
     }
 
@@ -592,29 +596,13 @@ object Atomic {
       val rounding: Int = (b & 0xffffffffL).toInt
       if (precision < 0) {
         Left(Error(s"negative precision: ${precision}"))
+      } else if ((rounding < 0) || (rounding >= RoundingMode.values.length)) {
+        Left(Error(s"not a valid RoundingMode: ${rounding}"))
       } else {
-        roundingModeEnumLike
-          .fromIndex(rounding)
-          .map(r => new MathContext(precision, r))
-          .leftMap(Error(_))
+        val r = RoundingMode.valueOf(rounding)
+        Right(new MathContext(precision, r))
       }
     }
-  }
-
-  implicit val builtinRoundingMode: Atomic[RoundingMode] =
-    SimpleRoundingMode
-
-  private implicit lazy val roundingModeEnumLike: EnumLike[RoundingMode] =
-    shapeless.cachedImplicit[EnumLike[RoundingMode]]
-
-  private object SimpleRoundingMode
-      extends ForEnum[RoundingMode]()(roundingModeEnumLike) {
-
-    def description: String =
-      "RoundingMode"
-
-    def uuid: UUID =
-      uuid"ad069397-978d-4436-8728-f2ff795826b6"
   }
 
   implicit val builtinUUID: Atomic[UUID] =
@@ -707,7 +695,6 @@ object Atomic {
     entryOf[BigInt],
     entryOf[BigDecimal],
     entryOf[MathContext],
-    entryOf[RoundingMode],
     entryOf[UUID],
     // scodec-bits:
     entryOf[ByteVector],

@@ -18,7 +18,6 @@ package io.sigs.seals
 package tests
 
 import java.util.UUID
-import java.math.RoundingMode
 
 import org.scalatest.Inside
 import org.scalatest.prop.GeneratorDrivenPropertyChecks
@@ -106,12 +105,5 @@ class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside
       case a: core.Model.Atom =>
         a.uuid should === (constUuid)
     }
-  }
-
-  "Atomic.ForEnum have higher priority than Reified#reifiedForEnumLike" in {
-    val inst = Atomic[RoundingMode]
-    val fromReified = Reified.reifiedForEnumLike[RoundingMode]
-    inst shouldBe theSameInstanceAs (Atomic.builtinRoundingMode)
-    inst should not be theSameInstanceAs (fromReified)
   }
 }

@@ -47,7 +47,6 @@ class BuiltinAtomSpec extends BaseSpec {
       atom[BigInt],
       atom[BigDecimal],
       atom[MathContext],
-      atom[RoundingMode],
       atom[UUID],
       // scodec-bits:
       atom[ByteVector],
