@@ -33,15 +33,15 @@ object CanonicalRepr {
     )
   }
 
-  def unfold[A](repr: CanonicalRepr)(implicit r: Reified[A]): A = {
-    r.unfold(unfolder)(repr).fold(
-      err => core.impossible(s"cannot unfold CanonicalRepr: ${err}"),
-      _._1
+  def unfold[A](repr: CanonicalRepr)(implicit r: Reified[A]): Either[String, A] =
+    r.unfold(unfolder)(repr).map(_._1)
+
+  def roundtrip[A](a: A)(implicit r: Reified[A]): A = {
+    unfold(fold(a)(r))(r).fold(
+      err => core.impossible(s"cannot unfold folded CanonicalRepr: ${err}"),
+      a => a
     )
   }
-
-  def roundtrip[A](a: A)(implicit r: Reified[A]): A =
-    unfold(fold(a)(r))(r)
 
   implicit val eqForCanonicalRepr: Eq[CanonicalRepr] =
     Eq.fromUniversalEquals

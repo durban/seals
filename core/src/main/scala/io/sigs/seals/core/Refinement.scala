@@ -34,6 +34,10 @@ trait Refinement[A] extends Serializable {
 
   def to(a: A): Repr
 
+  /** Convenience for implementations */
+  protected def root: UUID =
+    Refinement.root
+
   final override def equals(that: Any): Boolean = that match {
     case that: Refinement[_] =>
       this.uuid === that.uuid

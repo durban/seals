@@ -22,7 +22,7 @@ import scala.language.implicitConversions
 
 import scodec.bits.ByteVector
 
-import io.sigs.seals.core.{ UUIDBuilder, NsUuid }
+import io.sigs.seals.core.UUIDBuilder
 
 package object seals {
 
@@ -48,8 +48,9 @@ package object seals {
   val Wire = core.Wire
 
   private[seals] implicit final class UUIDSyntax(private val self: UUID) extends AnyVal {
-    def / (sub: UUID): UUIDBuilder = UUIDBuilder(self, Vector(NsUuid.bvFromUUID(sub)))
-    def / (sub: ByteVector): UUIDBuilder = UUIDBuilder(self, Vector(sub))
+    def / (sub: UUID): UUIDBuilder = UUIDBuilder(self) / sub
+    def / (sub: ByteVector): UUIDBuilder = UUIDBuilder(self) / sub
+    def / (sub: String): UUIDBuilder = UUIDBuilder(self) / sub
   }
 
   private[seals] implicit def uuidLiteralSyntax(sc: StringContext): macros.UUIDSyntax =

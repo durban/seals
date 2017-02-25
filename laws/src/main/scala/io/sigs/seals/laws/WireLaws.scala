@@ -112,10 +112,12 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
           wirY.fromWire(repr).fold(
             err => Prop.falsified :| s"xy: ${err}",
             y2 => {
-              val transformed: Y = CanonicalRepr.unfold[Y](
+              CanonicalRepr.unfold[Y](
                 CanonicalRepr.fold[X](x)(wirX.reified)
-              )(wirY.reified)
-              y2 ?== transformed
+              )(wirY.reified).fold(
+                { err => Prop.falsified :| s"xyx: ${err}" },
+                { transformed: Y => (y2 ?== transformed) }
+              )
             }
           )
         }
@@ -126,10 +128,12 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
           wirX.fromWire(repr).fold(
             err => Prop.falsified :| s"yx: ${err}",
             x2 => {
-              val transformed: X = CanonicalRepr.unfold[X](
+              CanonicalRepr.unfold[X](
                 CanonicalRepr.fold[Y](y)(wirY.reified)
-              )(wirX.reified)
-              x2 ?== transformed
+              )(wirX.reified).fold(
+                { err => Prop.falsified :| s"yxy: ${err}" },
+                { transformed: X => (x2 ?== transformed) }
+              )
             }
           )
         }

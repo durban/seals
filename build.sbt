@@ -64,10 +64,16 @@ lazy val scodec = project
   .settings(scodecSettings)
   .dependsOn(core, laws % "test->test", tests % "test->test")
 
+lazy val refined = project
+  .settings(name := s"seals-refined")
+  .settings(commonSettings)
+  .settings(refinedSettings)
+  .dependsOn(core, laws % "test->test", tests % "test->test")
+
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .aggregate(core, macros, laws, tests, checker, circe, scodec) // Note: `plugin` is intentionally missing
+  .aggregate(core, macros, laws, tests, checker, circe, scodec, refined) // Note: `plugin` is intentionally missing
 
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.8",
@@ -170,6 +176,13 @@ lazy val scodecSettings = Seq[Setting[_]](
   libraryDependencies ++= dependencies.scodec
 )
 
+lazy val refinedSettings = Seq[Setting[_]](
+  libraryDependencies ++= Seq(
+    dependencies.refined,
+    scalaOrganization.value % "scala-compiler" % scalaVersion.value % "test-internal"
+  )
+)
+
 lazy val dependencies = new {
 
   val catsVersion = "0.9.0"
@@ -192,6 +205,8 @@ lazy val dependencies = new {
     "org.scodec" %% "scodec-stream" % "1.0.1",
     scodecCats
   )
+
+  val refined = "eu.timepit" %% "refined" % "0.7.0"
 
   val laws = Seq(
     scodecCats,
