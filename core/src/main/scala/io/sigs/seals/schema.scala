@@ -20,6 +20,9 @@ import scala.annotation.{ StaticAnnotation, compileTimeOnly }
 import scala.reflect.macros.whitebox.{ Context => WContext }
 import scala.reflect.macros.blackbox.{ Context => BContext }
 
+import cats.Show
+import cats.implicits._
+
 private[seals] object SchemaExtractor {
 
   import scala.reflect.runtime.universe._
@@ -45,7 +48,7 @@ private[seals] object SchemaExtractor {
             throw new IllegalArgumentException("not a ConstantType")
         }
       case _ =>
-        throw new IllegalArgumentException(s"${field} is not a field accessor")
+        throw new IllegalArgumentException(sh"${field} is not a field accessor")
     }
   }
 }
@@ -126,6 +129,9 @@ private[seals] object SchemaMacros {
 
     import c.universe._
 
+    implicit val showTree: Show[Tree] =
+      Show.show(t => c.universe.show(t))
+
     def transformAnns(anns: List[c.Tree]): List[c.Tree] = {
       anns.filter {
         case pq"_root_.io.sigs.seals.schema" => false
@@ -164,7 +170,7 @@ private[seals] object SchemaMacros {
         """
 
       case h :: t =>
-        c.abort(c.enclosingPosition, s"Invalid annotation target: ${h} (${h.getClass})")
+        c.abort(c.enclosingPosition, sh"Invalid annotation target: ${h} (${h.getClass.getName})")
 
       case _ =>
         c.abort(c.enclosingPosition, "Invalid annotation target")

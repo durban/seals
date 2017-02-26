@@ -20,7 +20,7 @@ package core
 import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3
 import java.util.UUID
-import cats.Eq
+import cats.{ Eq, Show }
 import cats.data.State
 import cats.implicits._
 
@@ -117,7 +117,7 @@ sealed trait Model extends Serializable {
   }
 
   final override def toString: String =
-    s"Model[${this.desc}]"
+    sh"Model[${this.desc}]"
 
   final def pathComp: String = this match {
     case HNil => "HNil"
@@ -220,6 +220,9 @@ object Model {
   implicit val modelEquality: Eq[Model] =
     Eq.fromUniversalEquals[Model]
 
+  implicit val modelShow: Show[Model] =
+    Show.fromToString[Model]
+
   /**
    * Reified instance for Model
    */
@@ -275,6 +278,9 @@ object Model {
 
   private object Desc {
 
+    implicit val showDesc: Show[Desc] =
+      Show.fromToString[Desc]
+
     final case class Leaf(label: String, postfix: String = "") extends Desc {
       override def toString = label + postfix
       override def withPostfix(postfix: String): Leaf = this.copy(postfix = postfix)
@@ -292,12 +298,12 @@ object Model {
       override def toString = {
         val repr = h match {
           case Branch(_, _, _, _, _, _) =>
-            s"${l} -> (${h}${headPostfix}) ${label} ${t}"
+            sh"${l} -> (${h}${headPostfix}) ${label} ${t}"
           case _ =>
-            s"${l} -> ${h}${headPostfix} ${label} ${t}"
+            sh"${l} -> ${h}${headPostfix} ${label} ${t}"
         }
         if (postfix.nonEmpty) {
-          s"(${repr})${postfix}"
+          sh"(${repr})${postfix}"
         } else {
           repr
         }
@@ -649,7 +655,7 @@ object Model {
       new Atom(uuid, desc)
 
     def unknown(uuid: UUID): Atom =
-      new Atom(uuid, s"<UnknownAtom:${uuid}>")
+      new Atom(uuid, sh"<UnknownAtom:${uuid}>")
 
     def atom[A](implicit atomic: Atomic[A]): Atom =
       atomic.atom

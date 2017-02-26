@@ -35,7 +35,7 @@ trait EnumLike[A] extends Serializable {
     Either.fromOption(fromNameOpt(name), ifNone = fromNameError(name))
 
   def fromNameError(s: String): String =
-    s"'${s}' is not a(n) ${typeName} value"
+    show"'${s}' is not a(n) ${typeName} value"
 
   def index(a: A): Int
 
@@ -45,7 +45,7 @@ trait EnumLike[A] extends Serializable {
     Either.fromOption(fromIndexOpt(index), ifNone = fromIndexError(index))
 
   def fromIndexError(i: Int): String =
-    s"${i} is not a(n) ${typeName} value"
+    show"${i} is not a(n) ${typeName} value"
 }
 
 object EnumLike {

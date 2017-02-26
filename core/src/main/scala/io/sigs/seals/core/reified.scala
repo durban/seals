@@ -45,7 +45,7 @@ sealed trait Reified[A] extends Serializable { self =>
   private[core] def modelComponent: Mod
 
   final override def toString: String =
-    s"Reified[${model.desc}]"
+    sh"Reified[${model.desc}]"
 
   final override def equals(that: Any): Boolean = that match {
     case that: AnyRef =>

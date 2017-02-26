@@ -37,7 +37,7 @@ object UUIDMacro {
       UUID.fromString(s)
     } catch {
       case ex: IllegalArgumentException =>
-        c.abort(c.enclosingPosition, s"not a valid UUID (${ex.getMessage})")
+        c.abort(c.enclosingPosition, show"not a valid UUID (${ex.getMessage})")
     }
     if (u.variant =!= 2) {
       c.abort(c.enclosingPosition, "not an RFC-4122 UUID (variant is not 2)")

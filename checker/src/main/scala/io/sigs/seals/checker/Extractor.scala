@@ -58,7 +58,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
   val encoder = Encoder[Model]
 
   def allClasses(pack: String): Vector[String] = {
-    val p = findPack(root, pack).getOrElse(throw new IllegalArgumentException(s"no such package: '${pack}'"))
+    val p = findPack(root, pack).getOrElse(throw new IllegalArgumentException(sh"no such package: '${pack}'"))
     p.iterator
       .filter(!_.isDirectory)
       .map(_.name)
@@ -102,7 +102,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
         // it's a module
         val modName = clsName.dropRight(1)
         val mods = try {
-          Vector(mirror.staticModule(s"${pack}.${modName}"))
+          Vector(mirror.staticModule(sh"${pack}.${modName}"))
         } catch {
           case _: ScalaReflectionException =>
             // probably a nested module,
@@ -113,7 +113,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
       } else {
         // it's a class
         val clss = try {
-          Vector(mirror.staticClass(s"${pack}.${clsName}"))
+          Vector(mirror.staticClass(sh"${pack}.${clsName}"))
         } catch {
           case _: ScalaReflectionException =>
             // probably an anonymous or otherwise,
@@ -160,7 +160,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
     val reified = if (compSym.isModule) {
       val compObj = mirror.reflectModule(compSym.asModule).instance match {
         case null => // scalastyle:ignore null
-          core.impossible(s"${compSym} is not a companion object")
+          core.impossible(sh"${compSym} is not a companion object")
         case x: Any =>
           x
       }
@@ -168,23 +168,24 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
       val valName = SchemaMacros.synthName(ru)(cls.asType.name, SchemaMacros.reifiedPrefix)
       val field = companion.symbol.info.member(valName)
       if (field.isTerm) {
-        val getterSym = field.asTerm.getter match {
-          case NoSymbol => core.impossible(s"no getter found for field ${field}")
-          case getter: Any if getter.isMethod => getter.asMethod
-          case x: Any => core.impossible(s"getter is not a method: ${x}")
+        val getter = field.asTerm.getter // workaround for strict-unsealed-patmat problem
+        val getterSym = getter match {
+          case NoSymbol => core.impossible(sh"no getter found for field ${field}")
+          case getter: Symbol if getter.isMethod => getter.asMethod
+          case _ => core.impossible(sh"getter is not a method: ${getter}")
         }
         companion.reflectMethod(getterSym).apply()
       } else {
-        core.impossible(s"${field} is not a term symbol")
+        core.impossible(sh"${field} is not a term symbol")
       }
     } else {
-      core.impossible(s"${cls} has no companion object")
+      core.impossible(sh"${cls} has no companion object")
     }
     val model = reified match {
       case reified: Reified[_] =>
         reified.model
       case x: Any =>
-        core.impossible(s"expected a Reified instance, got a(n) '${x.getClass}'")
+        core.impossible(sh"expected a Reified instance, got a(n) '${x.getClass.getName}'")
     }
     encoder.apply(model)
   }

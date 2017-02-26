@@ -71,7 +71,7 @@ object Atomic {
   }
 
   final case class InsufficientData(expBytes: Long, actBytes: Long) extends Error {
-    override def msg: String = s"insufficient data: expected ${expBytes} bytes, got ${actBytes}"
+    override def msg: String = sh"insufficient data: expected ${expBytes} bytes, got ${actBytes}"
   }
 
   final case class InvalidData(msg: String) extends Error
@@ -111,7 +111,7 @@ object Atomic {
         abv <- fromBinary(bv)
         a <- abv match {
           case (a, ByteVector.empty) => Right(a)
-          case (_, r) => Left(Error(s"leftover bytes: ${r}"))
+          case (_, r) => Left(Error(sh"leftover bytes: ${r}"))
         }
       } yield a
     }
@@ -130,7 +130,7 @@ object Atomic {
         (n, rest) = lenAndRest
         bvs <- trySplit(rest, n.toLong)
         (d, r) = bvs
-        s <- d.decodeUtf8.leftMap(ex => Error(s"${ex.getClass.getSimpleName}: ${ex.getMessage}"))
+        s <- d.decodeUtf8.leftMap(ex => Error(sh"${ex.getClass.getSimpleName}: ${ex.getMessage}"))
         a <- fromString(s)
       } yield (a, r)
     }
@@ -157,7 +157,7 @@ object Atomic {
   }
 
   private final def trySplit(b: ByteVector, n: Long): Either[Error, (ByteVector, ByteVector)] = {
-    if (n < 0) Left(InvalidData(s"negative length: ${n}"))
+    if (n < 0) Left(InvalidData(sh"negative length: ${n}"))
     else if (n > b.length) Left(InsufficientData(n, b.length))
     else Right(b.splitAt(n))
   }
@@ -177,7 +177,7 @@ object Atomic {
       bvs <- trySplit(b, 4)
       (l, r) = bvs
       n <- l.toInt(signed = true) match {
-        case n if n < 0 => Left(Error(s"negative encoded length or index: $n"))
+        case n if n < 0 => Left(Error(sh"negative encoded length or index: $n"))
         case n => Right(n)
       }
     } yield (n, r)
@@ -188,7 +188,7 @@ object Atomic {
       bvs <- trySplit(b, 8)
       (l, r) = bvs
       n <- l.toLong(signed = true) match {
-        case n if n < 0 => Left(Error(s"negative encoded length or index: $n"))
+        case n if n < 0 => Left(Error(sh"negative encoded length or index: $n"))
         case n => Right(n)
       }
     } yield (n, r)
@@ -253,14 +253,14 @@ object Atomic {
 
   private[this] def tryParseAscii[A](parse: String => A): String => Either[Error, A] = { s =>
     if (s.codePoints.allMatch(isAscii)) {
-      Either.catchNonFatal(parse(s)).leftMap(ex => Error(s"${ex.getClass.getName}: ${ex.getMessage}"))
+      Either.catchNonFatal(parse(s)).leftMap(ex => Error(sh"${ex.getClass.getName}: ${ex.getMessage}"))
     } else {
-      Left(InvalidData(s"string contains non-ASCII character: '${s}'"))
+      Left(InvalidData(sh"string contains non-ASCII character: '${s}'"))
     }
   }
 
   private[this] def fromTry[A](t: Try[A]): Either[Error, A] =
-    Either.fromTry(t).leftMap(ex => Error(s"${ex.getClass.getName}: ${ex.getMessage}"))
+    Either.fromTry(t).leftMap(ex => Error(sh"${ex.getClass.getName}: ${ex.getMessage}"))
 
   // Primitives:
 
@@ -301,7 +301,7 @@ object Atomic {
       if (s.length === 1) {
         Right(s(0))
       } else {
-        Left(Error(s"not a single Char: '${s}'"))
+        Left(Error(sh"not a single Char: '${s}'"))
       }
     },
     2,
@@ -368,7 +368,7 @@ object Atomic {
             // must be the canonical NaN:
             val bits = java.lang.Float.floatToRawIntBits(a)
             if (bits === canonicalNanBits) Right(a)
-            else Left(InvalidData(s"non-canonical Float NaN: ${bits}"))
+            else Left(InvalidData(sh"non-canonical Float NaN: ${bits}"))
           } else {
             Right(a)
           }
@@ -410,7 +410,7 @@ object Atomic {
             // must be the canonical NaN:
             val bits = java.lang.Double.doubleToRawLongBits(a)
             if (bits === canonicalNanBits) Right(a)
-            else Left(InvalidData(s"non-canonical Double NaN: ${bits}"))
+            else Left(InvalidData(sh"non-canonical Double NaN: ${bits}"))
           } else {
             Right(a)
           }
@@ -432,7 +432,7 @@ object Atomic {
     s => {
       if (s === true.toString) Right(true)
       else if (s === false.toString) Right(false)
-      else Left(Error(s"Not a Boolean: '${s}'"))
+      else Left(Error(sh"Not a Boolean: '${s}'"))
     }
   ) {
 
@@ -448,7 +448,7 @@ object Atomic {
         a <- d match {
           case FalseByte => Right(false)
           case TrueByte => Right(true)
-          case _ => Left(Error(s"invalid boolean: ${d}"))
+          case _ => Left(Error(sh"invalid boolean: ${d}"))
         }
       } yield (a, r)
     }
@@ -461,7 +461,7 @@ object Atomic {
     "Unit",
     uuid"d02152c8-c15b-4c74-9c3e-500af3dce57a",
     _ => "()",
-    s => if (s === "()") Right(()) else Left(Error(s"Not '()': '${s}'")),
+    s => if (s === "()") Right(()) else Left(Error(sh"Not '()': '${s}'")),
     0,
     (_, _) => (),
     _ => ()
@@ -527,7 +527,7 @@ object Atomic {
       val intValRepr = SimpleBigInt.stringRepr(intVal)
       val scaleRepr = SimpleInt.stringRepr(scale)
       val ctxRepr = SimpleMathContext.stringRepr(ctx)
-      s"${intValRepr},${scaleRepr},${ctxRepr}"
+      sh"${intValRepr},${scaleRepr},${ctxRepr}"
     }
 
     def fromString(s: String): Either[Atomic.Error, BigDecimal] = {
@@ -539,7 +539,7 @@ object Atomic {
             ctx <- SimpleMathContext.fromString(ctx)
           } yield repack(intVal, scale, ctx)
         case _ =>
-          Left(Atomic.Error(s"not a BigDecimal representation: '${s}'"))
+          Left(Atomic.Error(sh"not a BigDecimal representation: '${s}'"))
       }
     }
 
@@ -595,9 +595,9 @@ object Atomic {
       val precision: Int = (b >> 32).toInt
       val rounding: Int = (b & 0xffffffffL).toInt
       if (precision < 0) {
-        Left(Error(s"negative precision: ${precision}"))
+        Left(Error(sh"negative precision: ${precision}"))
       } else if ((rounding < 0) || (rounding >= RoundingMode.values.length)) {
-        Left(Error(s"not a valid RoundingMode: ${rounding}"))
+        Left(Error(sh"not a valid RoundingMode: ${rounding}"))
       } else {
         val r = RoundingMode.valueOf(rounding)
         Right(new MathContext(precision, r))

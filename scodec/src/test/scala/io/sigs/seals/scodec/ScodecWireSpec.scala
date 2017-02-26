@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -35,6 +35,9 @@ class ScodecWireSpec
 
   override def equR: Eq[BitVector] =
     _root_.scodec.interop.cats.BitVectorEqInstance
+
+  override def shwE =
+    _root_.scodec.interop.cats.ErrShowInstance
 
   override def mkWire[A](r: Reified[A]): Wire.Aux[A, BitVector, Err] =
     Wires.wireFromReified(r)

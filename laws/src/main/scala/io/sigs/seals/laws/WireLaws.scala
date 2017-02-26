@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,8 +17,10 @@
 package io.sigs.seals
 package laws
 
-import cats.{ ~>, Eq }
+import cats.{ ~>, Eq, Show }
 import cats.kernel.laws._
+import cats.implicits._
+
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
 import org.scalacheck.Prop
@@ -33,13 +35,17 @@ object WireLaws {
     arbA: Arbitrary[A],
     equA: Eq[A],
     equR: Eq[R],
-    reiA: Reified[A]
+    reiA: Reified[A],
+    shwA: Show[A],
+    shwE: Show[E]
   ): WireLaws[A, R, E] = new WireLaws[A, R, E] {
 
     def ArbA: Arbitrary[A] = arbA
     def EquA: Eq[A] = equA
     def EquR: Eq[R] = equR
     def ReiA: Reified[A] = reiA
+    def ShwA: Show[A] = shwA
+    def ShwE: Show[E] = shwE
 
     def wireFromReified[X](implicit X: Reified[X]): Wire.Aux[X, R, E] = wfr(X)
   }
@@ -51,6 +57,8 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
   implicit def EquA: Eq[A]
   implicit def EquR: Eq[R]
   implicit def ReiA: Reified[A]
+  implicit def ShwA: Show[A]
+  implicit def ShwE: Show[E]
 
   implicit def wireFromReified[X](implicit X: Reified[X]): Wire.Aux[X, R, E]
 
@@ -72,18 +80,18 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
   )
 
   private def simpleRoundtrip[X](
-    implicit arb: Arbitrary[X], wir: Wire.Aux[X, R, E], equ: Eq[X]
+    implicit arb: Arbitrary[X], wir: Wire.Aux[X, R, E], equ: Eq[X], shw: Show[X]
   ): Prop = {
     forAll { (x: X) =>
       wir.toWire(x).fold(
         err => Prop.proved,
         repr => {
           wir.fromWire(repr).fold(
-            err => Prop.falsified :| s"cannot decode encoded value '${x}': '${err}'",
+            err => Prop.falsified :| sh"cannot decode encoded value '${x}': '${err}'",
             x2 => {
               val objOk = x2 ?== x
               wir.toWire(x2).fold(
-                err => Prop.falsified :| s"cannot reencode decoded value '${x2}': '${err}'",
+                err => Prop.falsified :| sh"cannot reencode decoded value '${x2}': '${err}'",
                 repr2 => {
                   val reprOk = repr2 ?== repr
                   objOk && reprOk
@@ -110,12 +118,12 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
         err => Prop.proved,
         repr => {
           wirY.fromWire(repr).fold(
-            err => Prop.falsified :| s"xy: ${err}",
+            err => Prop.falsified :| sh"xy: ${err}",
             y2 => {
               CanonicalRepr.unfold[Y](
                 CanonicalRepr.fold[X](x)(wirX.reified)
               )(wirY.reified).fold(
-                { err => Prop.falsified :| s"xyx: ${err}" },
+                { err => Prop.falsified :| sh"xyx: ${err}" },
                 { transformed: Y => (y2 ?== transformed) }
               )
             }
@@ -126,12 +134,12 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
         err => Prop.proved,
         repr => {
           wirX.fromWire(repr).fold(
-            err => Prop.falsified :| s"yx: ${err}",
+            err => Prop.falsified :| sh"yx: ${err}",
             x2 => {
               CanonicalRepr.unfold[X](
                 CanonicalRepr.fold[Y](y)(wirY.reified)
               )(wirX.reified).fold(
-                { err => Prop.falsified :| s"yxy: ${err}" },
+                { err => Prop.falsified :| sh"yxy: ${err}" },
                 { transformed: X => (x2 ?== transformed) }
               )
             }

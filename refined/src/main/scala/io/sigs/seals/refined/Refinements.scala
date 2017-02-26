@@ -17,10 +17,12 @@
 package io.sigs.seals
 package refined
 
-import core.Refinement
+import cats.implicits._
 
 import eu.timepit.refined.api.{ RefType, Validate }
 import eu.timepit.refined.numeric.Positive
+
+import core.Refinement
 
 object Refinements extends Refinements {
 
@@ -35,7 +37,7 @@ trait Refinements {
     new Refinement[R[A, Positive]] {
       override type Repr = A
       override val uuid = (root / euTimepitRefined / "positive").uuid // TODO
-      override def desc(r: String) = s"${r} > 0"
+      override def desc(r: String) = sh"${r} > 0"
       override def from(a: A): Either[String, R[A, Positive]] = R.refine[Positive](a)
       override def to(pa: R[A, Positive]): A = R.unwrap(pa)
     }

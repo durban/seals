@@ -19,7 +19,7 @@ package laws
 
 import java.util.UUID
 
-import cats.Eq
+import cats.{ Eq, Show }
 
 import org.scalacheck.{ Arbitrary, Gen }
 
@@ -84,6 +84,9 @@ object TestTypes {
 
         implicit val adt1Eq: Eq[Adt1] =
           Eq.fromUniversalEquals
+
+        implicit val adt1Show: Show[Adt1] =
+          Show.fromToString
       }
 
       sealed trait Adt2
@@ -159,6 +162,8 @@ object TestTypes {
       object IntList {
         implicit val intListEq: Eq[IntList] =
           Eq.fromUniversalEquals
+        implicit val intListShow: Show[IntList] =
+          Show.fromToString[IntList]
         lazy val expModel: Model.Coproduct = {
           'IntCons -> Model.HCons('head, atom[Int], Model.HCons('tail, expModel, Model.HNil)) :+:
           'IntNil -> (Model.HNil) :+:
@@ -173,6 +178,8 @@ object TestTypes {
         object IntList {
           implicit val intListEq: Eq[IntList] =
             Eq.fromUniversalEquals
+          implicit val intListShow: Show[IntList] =
+            Show.fromToString[IntList]
         }
         final case object IntNil extends IntList
         final case class IntCons(head: Int, tail: IntList, dummy: Int = 42)
@@ -263,6 +270,9 @@ object TestTypes {
 
       implicit val equ: Eq[Adt] =
         Eq.fromUniversalEquals
+
+      implicit val shw: Show[Adt] =
+        Show.fromToString[Adt]
     }
 
     final case class WithList(i: Int, l: List[Float]) extends Adt
@@ -279,6 +289,8 @@ object TestTypes {
     object Cyclic {
       implicit val eqForCyclic: Eq[Cyclic] =
         Eq.fromUniversalEquals
+      implicit val showForCyclic: Show[Cyclic] =
+        Show.fromToString
     }
     final case class CyA(i: Int, cs: Vector[Cyclic]) extends Cyclic
     final case object CyB extends Cyclic

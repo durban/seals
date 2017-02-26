@@ -23,6 +23,8 @@ import java.nio.charset.StandardCharsets
 import scala.collection.JavaConverters._
 import scala.util.control.NoStackTrace
 
+import cats.implicits._
+
 import io.circe.parser
 
 import circe.Codecs._
@@ -56,7 +58,7 @@ object Checker {
   def loadModels(path: String): Map[String, Map[String, Model]] = {
     val str = Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).asScala.mkString
     parser.decode[Map[String, Map[String, Model]]](str).fold(
-      err => throw new IllegalArgumentException(s"error while decoding '${path}': ${err}"),
+      err => throw new IllegalArgumentException(sh"error while decoding '${path}': ${err}"),
       models => models
     )
   }
@@ -83,9 +85,9 @@ object Checker {
     val ok = curr compatible prev
     if (!ok) {
       Some(mkList(
-        s"Schema '${name}' changed in an incompatible way",
-        s"current:  ${curr}" ::
-        s"previous: ${prev}" ::
+        sh"Schema '${name}' changed in an incompatible way",
+        sh"current:  ${curr}" ::
+        sh"previous: ${prev}" ::
         Nil
       ))
     } else {
@@ -96,11 +98,11 @@ object Checker {
   private def assertSameKeys[A](label: String, curr: Map[String, A], prev: Map[String, A]): Unit = {
     val news = curr.keySet -- prev.keySet
     if (news.nonEmpty) {
-      error(mkList(s"New ${label}: ", news))
+      error(mkList(sh"New ${label}: ", news))
     }
     val deleted = prev.keySet -- curr.keySet
     if (deleted.nonEmpty) {
-      error(mkList(s"Deleted ${label}: ", deleted))
+      error(mkList(sh"Deleted ${label}: ", deleted))
     }
   }
 

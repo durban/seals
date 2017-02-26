@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ trait StreamCodecs {
         // TODO: manyChunked?
         decode.many(Codecs.decoderFromReified(A))
       } else {
-        decode.fail(Err(s"incompatible models: expected '${A.model}', got '${model}'"))
+        decode.fail(Err(sh"incompatible models: expected '${A.model}', got '${model}'"))
       }
     }
   }
@@ -94,7 +94,7 @@ trait StreamCodecs {
         if (model compatible A.model) {
           decodeMany(Codecs.decoderFromReified[A])(h)
         } else {
-          Pull.fail(DecodingError(Err(s"incompatible models: expected '${A.model}', got '${model}'")))
+          Pull.fail(DecodingError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
         }
       }
     }

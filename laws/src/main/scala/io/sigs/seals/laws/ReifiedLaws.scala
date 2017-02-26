@@ -19,7 +19,7 @@ package laws
 
 import scala.annotation.tailrec
 
-import cats.Eq
+import cats.{ Eq, Show }
 import cats.kernel.laws._
 import cats.implicits._
 import org.typelevel.discipline.Laws
@@ -94,6 +94,9 @@ object ReifiedLaws {
 
     implicit val eqForTree: Eq[Tree] =
       Eq.fromUniversalEquals
+
+    implicit val showForTree: Show[Tree] =
+      Show.fromToString[Tree]
   }
 
   final case class Atom(s: String) extends Tree
@@ -137,10 +140,10 @@ trait ReifiedLaws[A] extends Laws {
             case t @ Atom(s) => Either.right(Reified.StringResult(s, t))
             case _ => Either.left("not atom")
           },
-          atomErr = (t, err) => s"cannot parse ${t}: '${err.msg}'",
+          atomErr = (t, err) => sh"cannot parse ${t}: '${err.msg}'",
           hNil = {
             case PNil => Either.right(PNil)
-            case x: Any => Either.left(s"not HNil: $x")
+            case x: Any => Either.left(sh"not HNil: $x")
           },
           hCons = (t, sym) => t match {
             case PCons(`sym`, h, t) => Either.right(Either.right((h, _ => Either.right(t))))
@@ -150,11 +153,11 @@ trait ReifiedLaws[A] extends Laws {
           cCons = (t, sym) => t match {
             case Sum(`sym`, t2) => Either.right(Left(t2))
             case Sum(_, _) => Either.right(Right(t))
-            case _ => Either.left(s"not CCons: $t")
+            case _ => Either.left(sh"not CCons: $t")
           },
           vectorInit = t => t match {
             case Vect(els) => Either.right((t, els))
-            case _ => Either.left(s"not Vect: $t")
+            case _ => Either.left(sh"not Vect: $t")
           },
           vectorFold = (t, v) => if (v.isEmpty) {
             Either.right(None)
@@ -166,7 +169,7 @@ trait ReifiedLaws[A] extends Laws {
       )(tree)
 
       x.fold(
-        err => Prop.falsified :| s"error during unfold: ${err}",
+        err => Prop.falsified :| sh"error during unfold: ${err}",
         { case (a2, _) => (a2 ?== a) }
       )
     }

@@ -38,7 +38,7 @@ object CanonicalRepr {
 
   def roundtrip[A](a: A)(implicit r: Reified[A]): A = {
     unfold(fold(a)(r))(r).fold(
-      err => core.impossible(s"cannot unfold folded CanonicalRepr: ${err}"),
+      err => core.impossible(sh"cannot unfold folded CanonicalRepr: ${err}"),
       a => a
     )
   }
@@ -59,7 +59,7 @@ object CanonicalRepr {
       case a @ Atom(r) => Right(Reified.StringResult(r, a))
       case _ => Left("not an atom")
     },
-    atomErr = (c, err) => s"cannot decode atom: '${err.msg}'",
+    atomErr = (c, err) => sh"cannot decode atom: '${err.msg}'",
     hNil = {
       case hn @ HNil => Right(hn)
       case hc @ HCons(_, _, _) => Right(hc) // ignore unneeded field

@@ -45,6 +45,11 @@
    <parameter name="illegalImports">sun._,java.awt._</parameter>
   </parameters>
  </check>
+ <check level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+  <parameters>
+   <parameter name="regex">s".*"</parameter>
+  </parameters>
+ </check>
  <check level="error" class="org.scalastyle.file.HeaderMatchesChecker" enabled="true">
   <parameters>
    <parameter name="regex">true</parameter>

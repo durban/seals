@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban
+ * Copyright 2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,29 +15,14 @@
  */
 
 package io.sigs.seals
-package circe
 
-import cats.Eq
+import scala.reflect.runtime.{ universe => ru }
 
-import io.circe._
+import cats.Show
 
-class CirceWireSpec
-    extends tests.BaseLawsSpec
-    with laws.AbstractWireSpec[Json, DecodingFailure]
-    with laws.ArbInstances {
 
-  override def descE: String =
-    "DecodingFailure"
+package object checker {
 
-  override def descR: String =
-    "Json"
-
-  override def equR: Eq[Json] =
-    Json.eqJson
-
-  override def shwE =
-    DecodingFailure.showDecodingFailure
-
-  override def mkWire[A](r: Reified[A]): Wire.Aux[A, Json, DecodingFailure] =
-    Wires.wireFromReified(r)
+  private[checker] implicit val ruSymbolShow: Show[ru.Symbol] =
+    Show.show(sym => ru.show(sym))
 }

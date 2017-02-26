@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,18 +18,23 @@ package io.sigs.seals
 
 import java.util.UUID
 
-import cats.Eq
+import cats.{ Eq, Show }
+
+import scodec.bits.ByteVector
 
 package object core {
 
   type EnumLike[A] = macros.EnumLike[A]
   val EnumLike = macros.EnumLike
 
-  implicit val symbolEq: Eq[Symbol] =
+  private[seals] implicit val symbolEq: Eq[Symbol] =
     Eq.fromUniversalEquals[Symbol]
 
-  implicit val uuidEq: Eq[UUID] =
+  private[seals] implicit val uuidEq: Eq[UUID] =
     Eq.fromUniversalEquals[UUID]
+
+  private[seals] implicit val byteVectorShow: Show[ByteVector] =
+    Show.fromToString[ByteVector]
 
   private[seals] def impossible(msg: => String): Nothing =
     throw new AssertionError(msg)

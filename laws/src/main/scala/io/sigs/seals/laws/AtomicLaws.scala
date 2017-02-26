@@ -47,7 +47,7 @@ object AtomicLaws {
 
     def from(b: Int): Either[Atomic.Error, Byte] = {
       if ((b >= Byte.MinValue) && (b <= Byte.MaxValue)) Right(b.toByte)
-      else Left(Atomic.Error(s"out of range: ${b}"))
+      else Left(Atomic.Error(sh"out of range: ${b}"))
     }
 
     def to(a: Byte): Int =

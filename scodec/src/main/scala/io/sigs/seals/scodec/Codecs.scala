@@ -113,7 +113,7 @@ trait Codecs {
           case (_, Atomic.InsufficientData(exp, act)) =>
             Err.insufficientBits(needed = exp, have = act)
           case (_, Atomic.InvalidData(msg)) =>
-            Err.apply(s"error while decoding atom: '${msg}'")
+            Err.apply(sh"error while decoding atom: '${msg}'")
         },
         hNil = { b =>
           // we may have to skip fields:
@@ -138,7 +138,7 @@ trait Codecs {
             err => Either.right(Either.left(err)),
             dr => dr.value match {
               case End =>
-                Either.left(Err(s"missing field: '${l.name}'"))
+                Either.left(Err(sh"missing field: '${l.name}'"))
               case Field =>
                 Either.right(fieldLengthCodec.decode(dr.remainder).toEither.map(dr => (dr.remainder, Right(_))))
             }

@@ -20,6 +20,7 @@ package core
 import java.util.UUID
 
 import cats.kernel.Order
+import cats.Show
 import cats.implicits._
 
 trait Refinement[A] extends Serializable {
@@ -28,7 +29,7 @@ trait Refinement[A] extends Serializable {
 
   def uuid: UUID
 
-  def desc(r: String): String = s"${r}{?}"
+  def desc(r: String): String = sh"${r}{?}"
 
   def from(a: Repr): Either[String, A]
 
@@ -64,24 +65,24 @@ object Refinement {
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int
     override val uuid = (root / en / Atomic[Int].binaryRepr(A.maxIndex)).uuid
-    override def desc(r: String) = s"0 ≤ ${r} ≤ ${A.maxIndex}"
+    override def desc(r: String) = sh"0 ≤ ${r} ≤ ${A.maxIndex}"
     def from(idx: Int) = A.fromIndex(idx)
     def to(a: A) = A.index(a)
   }
 
-  def greaterEqual[A](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
+  def greaterEqual[A: Show](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
     override type Repr = A
     override val uuid = (root / ge / atc.binaryRepr(than)).uuid
-    override def desc(r: String) = s"${r} ≥ ${than}"
-    def from(a: A) = if (A.gteqv(a, than)) Right(a) else Left(s"${a} ≱ ${than}")
+    override def desc(r: String) = sh"${r} ≥ ${than}"
+    def from(a: A) = if (A.gteqv(a, than)) Right(a) else Left(sh"${a} ≱ ${than}")
     def to(a: A) = a
   }
 
-  def lessEqual[A](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
+  def lessEqual[A: Show](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
     override type Repr = A
     override val uuid = (root / le / atc.binaryRepr(than)).uuid
-    override def desc(r: String) = s"${r} ≤ ${than}"
-    def from(a: A) = if (A.lteqv(a, than)) Right(a) else Left(s"${a} ≰ ${than}")
+    override def desc(r: String) = sh"${r} ≤ ${than}"
+    def from(a: A) = if (A.lteqv(a, than)) Right(a) else Left(sh"${a} ≰ ${than}")
     def to(a: A) = a
   }
 }

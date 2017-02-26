@@ -47,13 +47,13 @@ trait Codecs {
       val x = A.unfold(Reified.Unfolder.instance[HCursor, DecodingFailure, (Boolean, HCursor)](
         atom = { cur => cur.as[String](Decoder.decodeString).map(s => Reified.StringResult(s, cur)) },
         atomErr = { (cur, err) =>
-          DecodingFailure(s"error while decoding atom: '${err.msg}'", cur.history)
+          DecodingFailure(sh"error while decoding atom: '${err.msg}'", cur.history)
         },
         hNil = { cur => cur.as[JsonObject](Decoder.decodeJsonObject).map(_ => cur) },
         hCons = { (cur, sym) =>
           val c2 = cur.downField(sym.name)
           c2.success
-            .toRight(left = DecodingFailure(s"missing key: '${sym.name}'", c2.history))
+            .toRight(left = DecodingFailure(sh"missing key: '${sym.name}'", c2.history))
             .map { hc =>
               Either.right((hc, (_: HCursor) => Either.right(cur)))
             }

@@ -19,7 +19,7 @@ package core
 
 import scala.util.hashing.MurmurHash3
 
-import cats.Eq
+import cats.{ Eq, Show }
 import cats.implicits._
 
 sealed trait Envelope[A] extends Serializable {
@@ -44,7 +44,10 @@ sealed trait Envelope[A] extends Serializable {
   }
 
   final override def toString: String =
-    s"Envelope[${model}](${value})"
+    show(Show.fromToString[A])
+
+  final def show(implicit A: Show[A]): String =
+    sh"Envelope[${model}](${value})"
 }
 
 object Envelope {
@@ -63,6 +66,9 @@ object Envelope {
       EqA.eqv(x.value, y.value)
   }
 
+  implicit def envelopeShow[A](implicit A: Show[A]): Show[Envelope[A]] =
+    Show.show(env => env.show(A))
+
   private def refinement[A](implicit r: Reified[A]): Refinement.Aux[Envelope[A], EnvelopeRepr[A]] = {
     new Refinement[Envelope[A]] {
       override type Repr = EnvelopeRepr[A]
@@ -71,7 +77,7 @@ object Envelope {
       override def desc(r: String) = "✉"
       override def from(repr: Repr) = {
         if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
-        else Either.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
+        else Either.left(sh"incompatible models: expected '${r.model}', got '${repr.model}'")
       }
       override def to(env: Envelope[A]) = {
         EnvelopeRepr[A](env.model, env.value)
@@ -83,7 +89,7 @@ object Envelope {
   implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
     Reified[EnvelopeRepr[A]].pimapOld[Envelope[A]] { repr =>
       if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
-      else Either.left(s"incompatible models: expected '${r.model}', got '${repr.model}'")
+      else Either.left(sh"incompatible models: expected '${r.model}', got '${repr.model}'")
     } { env =>
       EnvelopeRepr[A](env.model, env.value)
     }

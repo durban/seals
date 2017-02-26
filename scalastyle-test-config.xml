@@ -25,6 +25,7 @@
    Removed from the main Scalastyle config:
      - org.scalastyle.scalariform.MagicNumberChecker
      - org.scalastyle.file.RegexChecker (println)
+     - org.scalastyle.file.RegexChecker (s-interpolator)
      - org.scalastyle.scalariform.NoWhitespaceBeforeLeftBracketChecker
 
    Modified:

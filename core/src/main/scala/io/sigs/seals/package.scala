@@ -20,6 +20,8 @@ import java.util.UUID
 
 import scala.language.implicitConversions
 
+import cats.Show
+
 import scodec.bits.ByteVector
 
 import io.sigs.seals.core.UUIDBuilder
@@ -55,4 +57,8 @@ package object seals {
 
   private[seals] implicit def uuidLiteralSyntax(sc: StringContext): macros.UUIDSyntax =
     new macros.UUIDSyntax(sc)
+
+  private[seals] implicit class ShortShowSyntax(private val sc: StringContext) extends AnyVal {
+    def sh(args: Show.Shown*): String = Show.ShowInterpolator(sc).show(args: _*)
+  }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package io.sigs.seals
 package laws
 
-import cats.{ ~>, Eq }
+import cats.{ ~>, Eq, Show }
 import cats.implicits._
 
 import org.typelevel.discipline.scalatest.Discipline
@@ -37,6 +37,7 @@ trait AbstractWireSpec[R, E] { this: Discipline =>
   def descR: String
 
   implicit def equR: Eq[R]
+  implicit def shwE: Show[E]
 
   val mkWireNt = λ[Reified ~> Wire.Aux[?, R, E]](
     r => mkWire(r)

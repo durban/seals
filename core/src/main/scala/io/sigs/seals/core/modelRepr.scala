@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -68,8 +68,8 @@ private object ModelRepr extends ModelReprBase {
         st <- State.get[DecMap]
       } yield {
         lazy val res: C = build(
-          Eval.later(h.value._2.getOrElse(impossible(s"accessing ${desc} parent of invalid `h`"))),
-          Eval.later(t.value._2.getOrElse(impossible(s"accessing ${desc} parent of invalid `t`")))
+          Eval.later(h.value._2.getOrElse(impossible(sh"accessing ${desc} parent of invalid `h`"))),
+          Eval.later(t.value._2.getOrElse(impossible(sh"accessing ${desc} parent of invalid `t`")))
         )
         lazy val newSt: DecMap = st + (id -> res)
         lazy val h = head.toModelSt.value.run(newSt)
@@ -185,7 +185,7 @@ private object ModelRepr extends ModelReprBase {
   final case class Ref(id: Int) extends ModelRepr {
     protected override def toModelSt: DecSt[Model] = {
       EitherT(State.get[DecMap].map { map =>
-        Either.fromOption(map.get(id), s"invalid ID: $id")
+        Either.fromOption(map.get(id), sh"invalid ID: $id")
       })
     }
   }
@@ -196,7 +196,7 @@ private object ModelRepr extends ModelReprBase {
       hNil = _ => HNil,
       hCons = { (c, l, o, h, t) =>
         val id = map.get(c.m).getOrElse {
-          impossible(s"no ID found for HCons at ${c.p} (map is ${map})")
+          impossible(sh"no ID found for HCons at ${c.p} (map is ${map})")
         }
         t match {
           case t: ProdRepr => HCons(id, l, o, h, t)
@@ -206,7 +206,7 @@ private object ModelRepr extends ModelReprBase {
       cNil = _ => CNil,
       cCons = { (c, l, h, t) =>
         val id = map.get(c.m).getOrElse {
-          impossible(s"no ID found for CCons at ${c.p} (map is ${map})")
+          impossible(sh"no ID found for CCons at ${c.p} (map is ${map})")
         }
         t match {
           case t: SumRepr => CCons(id, l, h, t)
@@ -217,7 +217,7 @@ private object ModelRepr extends ModelReprBase {
       atom = (_, a) => Atom(a.uuid, a.atomDesc),
       cycle = { c =>
         val id = map.get(c.m).getOrElse {
-          impossible(s"no ID found for cycle at ${c.p} (map is ${map})")
+          impossible(sh"no ID found for cycle at ${c.p} (map is ${map})")
         }
         Ref(id)
       }

@@ -19,6 +19,8 @@ package circe
 
 import java.util.UUID
 
+import cats.implicits._
+
 import io.circe.numbers.BiggerDecimal
 
 trait Atoms {
@@ -48,7 +50,7 @@ object Atoms extends Atoms {
 
     def fromString(s: String): Either[Atomic.Error, BiggerDecimal] = {
       BiggerDecimal.parseBiggerDecimal(s).toRight(
-        left = Atomic.InvalidData(s"not a BiggerDecimal: '${s}'")
+        left = Atomic.InvalidData(sh"not a BiggerDecimal: '${s}'")
       )
     }
   }
