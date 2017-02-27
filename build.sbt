@@ -225,8 +225,9 @@ addCommandAlias("testAll", ";test;examples/test")
 addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
 addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
+addCommandAlias("doPlugin", ";plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
-addCommandAlias("validate", ";clean;++ 2.11.8;doAll;++ 2.12.1;doAll;++ 2.10.6;plugin/scripted;reload")
+addCommandAlias("validate", ";clean;++ 2.11.8;doAll;++ 2.12.1;doAll;++ 2.10.6;doPlugin;reload")
 
 
 //////////////////////

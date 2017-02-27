@@ -47,7 +47,8 @@
  </check>
  <check level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
   <parameters>
-   <parameter name="regex">s".*"</parameter>
+    <!-- The `s` string interpolator: -->
+   <parameter name="regex">^([^s"]|("[^"]*")|(s[^"]))*+s"[^"]*"</parameter>
   </parameters>
  </check>
  <check level="error" class="org.scalastyle.file.HeaderMatchesChecker" enabled="true">

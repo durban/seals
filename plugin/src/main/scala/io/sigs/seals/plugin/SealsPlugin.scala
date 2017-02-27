@@ -20,6 +20,8 @@ package plugin
 import sbt._
 import sbt.Keys._
 
+import cats.implicits._
+
 import com.typesafe.tools.mima
 
 object SealsPlugin extends AutoPlugin { self =>
@@ -28,7 +30,7 @@ object SealsPlugin extends AutoPlugin { self =>
   final val extractorFqn = "io.sigs.seals.checker.Extractor"
   final val checkerFqn = "io.sigs.seals.checker.Checker"
 
-  def nsScalaVer(ver: String): String = s"${namespace}_${ver}"
+  def nsScalaVer(ver: String): String = show"${namespace}_${ver}"
 
   override def requires = plugins.JvmPlugin && mima.plugin.MimaPlugin
 
@@ -70,7 +72,7 @@ object SealsPlugin extends AutoPlugin { self =>
       // FIXME: This won't work if a previous artifact
       // FIXME: depends on an incompatible version of us.
       val classpath = sbt.Attributed.data((fullClasspath in Compile).value)
-      val modifiedClasspath = classdir +: classpath.filterNot(remove.contains)
+      val modifiedClasspath = (classdir +: classpath.filterNot(remove.contains)).toVector
       extract(
         streams,
         (runner in Compile).value,
@@ -93,7 +95,7 @@ object SealsPlugin extends AutoPlugin { self =>
     ) { in: Set[File] =>
       extractOne(current, currTarget)
       val prevs = previous.map { case (module, prev) =>
-        val targetFile = targetDir / "previous" / s"${module}.json"
+        val targetFile = targetDir / "previous" / show"${module}.json"
         extractOne(prev, targetFile, remove = Set(current))
         targetFile
       }.toSet
@@ -111,12 +113,12 @@ object SealsPlugin extends AutoPlugin { self =>
   def extract(
     streams: TaskStreams,
     runner: ScalaRun,
-    classpath: Seq[File],
+    classpath: Vector[File],
     classdir: File,
     targetFile: File,
     packs: Seq[String]
   ): Unit = {
-    streams.log.debug(s"Starting extractor with classpath: ${classpath}")
+    streams.log.debug(show"Starting extractor with classpath: ${classpath}")
     targetFile.getAbsoluteFile.getParentFile.mkdirs()
     val res = runner.run(
       mainClass = extractorFqn,

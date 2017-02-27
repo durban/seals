@@ -52,7 +52,7 @@ object Checker {
 
     // at this point we're OK:
     val nModels = r.values.map(_.size).sum
-    Console.println(s"All ${nModels} checked models are compatible.") // scalastyle:ignore regex
+    Console.println(sh"All ${nModels} checked models are compatible.") // scalastyle:ignore regex
   }
 
   def loadModels(path: String): Map[String, Map[String, Model]] = {
