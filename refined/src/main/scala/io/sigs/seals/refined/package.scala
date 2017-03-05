@@ -16,6 +16,8 @@
 
 package io.sigs.seals
 
-package object refined
-  extends Refinements
-  with ReifiedInstances
+package object refined extends AllInstances
+
+trait AllInstances
+  extends refined.Refinements
+  with refined.ReifiedInstances
