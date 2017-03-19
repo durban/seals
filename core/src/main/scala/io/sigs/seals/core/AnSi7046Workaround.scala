@@ -26,7 +26,7 @@ private final class AnSi7046Workaround {
   private def `This is to force Composite`: Model.Composite[_, _] =
     sys.error("This should never be called")
 
-  private def `This is to force HCons`: Model.HCons =
+  private def `This is to force HCons`: Model.HCons[_] =
     sys.error("This should never be called")
 
   private def `This is to force CCons`: Model.CCons =

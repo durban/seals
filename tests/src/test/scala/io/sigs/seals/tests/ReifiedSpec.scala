@@ -22,6 +22,7 @@ import java.util.UUID
 import shapeless._
 import shapeless.record._
 import shapeless.union._
+import shapeless.test.typed
 
 import scodec.bits._
 
@@ -151,6 +152,15 @@ class ReifiedSpec extends BaseSpec {
 
         "in ADTs" in {
           Reified[Adt2].model should === (Adt2.expModel)
+        }
+      }
+
+      "should have precise types" - {
+
+        "for case classes" in {
+          import TestTypes.adts.defs.Adt2
+          val r = Reified[Adt2.C]
+          typed[Reified.Aux[Adt2.C, Model.HCons[Model.HCons[Model.HCons[Model.HNil.type]]], Reified.FSecond]](r)
         }
       }
     }

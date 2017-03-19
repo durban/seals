@@ -30,6 +30,8 @@ sealed trait Model extends Serializable {
 
   import Model._
 
+  private[core] def uuid: UUID
+
   lazy val desc: String = {
     this.fold[Desc](
       hNil = () => Desc.Leaf("HNil"),
@@ -121,7 +123,7 @@ sealed trait Model extends Serializable {
 
   final def pathComp: String = this match {
     case HNil => "HNil"
-    case _: HCons => HCons.pathComp
+    case _: HCons[_] => HCons.pathComp
     case CNil => "CNil"
     case _: CCons => CCons.pathComp
     case _: Atom => Atom.pathComp
@@ -216,6 +218,9 @@ object Model {
   private[core] type Memo = Memo.Memo[Model]
 
   private[core] type IdMemo = Memo.IdMemo[Model]
+
+  private[core] val unrefined: UUID =
+    uuid"fc967af9-4e24-4e2f-b687-b1ba7cf7e368"
 
   implicit val modelEquality: Eq[Model] =
     Eq.fromUniversalEquals[Model]
@@ -314,7 +319,7 @@ object Model {
     }
   }
 
-  sealed abstract class Composite[H <: Model, T <: Model](
+  sealed abstract class Composite[+H <: Model, +T <: Model](
       val label: Symbol,
       private[this] var h: () => H,
       private[this] var t: () => T
@@ -335,7 +340,7 @@ object Model {
       t = null // scalastyle:ignore
       res
     }
-    protected def checkType(that: Model): Option[Composite[H, T]]
+    protected def checkType(that: Model): Option[Composite[Model, Model]]
     protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       this.checkType(that).map { that =>
         if (memo contains that) {
@@ -365,35 +370,30 @@ object Model {
 
   sealed trait Sentinel extends Model
 
-  sealed trait WithDefaults[D <: shapeless.HList] extends Serializable {
-    def unsafeWithDefaults(m: HList)(d: D): HList
+  sealed trait WithDefaults[M <: HList, D <: shapeless.HList] extends Serializable {
+    def unsafeWithDefaults(m: M)(d: D): M
   }
 
   object WithDefaults {
 
-    implicit val hNilWithDefaults: WithDefaults[shapeless.HNil] = {
-      new WithDefaults[shapeless.HNil] {
-        override def unsafeWithDefaults(m: HList)(d: shapeless.HNil): HList =
+    implicit val hNilWithDefaults: WithDefaults[HNil.type, shapeless.HNil] = {
+      new WithDefaults[HNil.type, shapeless.HNil] {
+        override def unsafeWithDefaults(m: HNil.type)(d: shapeless.HNil): HNil.type =
           HNil
       }
     }
 
-    implicit def hConsWithDefaults[H <: Option[Any], T <: shapeless.HList](
-      implicit t: WithDefaults[T]
-    ): WithDefaults[shapeless.::[H, T]] = {
-      new WithDefaults[shapeless.::[H, T]] {
-        override def unsafeWithDefaults(m: HList)(d: shapeless.::[H, T]): HList = {
-          m match {
-            case hc: HCons =>
-              val h = if (d.head.isDefined) {
-                hc.withDefault
-              } else {
-                hc.withoutDefault
-              }
-              h.withTail(t.unsafeWithDefaults(h.tail)(d.tail))
-            case _ =>
-              impossible("Model and Defaults length mismatch")
+    implicit def hConsWithDefaults[H <: Option[Any], T <: shapeless.HList, MT <: HList](
+      implicit t: WithDefaults[MT, T]
+    ): WithDefaults[HCons[MT], shapeless.::[H, T]] = {
+      new WithDefaults[HCons[MT], shapeless.::[H, T]] {
+        override def unsafeWithDefaults(m: HCons[MT])(d: shapeless.::[H, T]): HCons[MT] = {
+          val h = if (d.head.isDefined) {
+            m.withDefault
+          } else {
+            m.withoutDefault
           }
+          h.withTail(t.unsafeWithDefaults(h.tail)(d.tail))
         }
       }
     }
@@ -405,14 +405,15 @@ object Model {
     private[core] final def foldLeft[B](z: B)(f: (B, Boolean) => B): B = this match {
       case _: HNil.type =>
         z
-      case hc: HCons =>
-        hc.tail.foldLeft(f(z, hc.optional))(f)
+      case hc: HCons[_] =>
+        (hc.tail : HList).foldLeft(f(z, hc.optional))(f)
     }
   }
 
   final case object HNil extends HList with Sentinel {
-    def ::(h: (Symbol, Model)): HCons =
+    def ::(h: (Symbol, Model)): HCons[HNil.type] =
       HCons(h._1, h._2, this)
+    private[core] final val uuid = unrefined
     protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       if (compat) {
         that match {
@@ -440,16 +441,17 @@ object Model {
     ): R = hNil(Ctx(this, path :+ this.pathComp))
   }
 
-  final class HCons(
+  final class HCons[T <: HList](
       l: Symbol,
       val optional: Boolean,
       h0: () => Model,
-      t0: () => HList
-  ) extends Composite[Model, HList](l, h0, t0) with HList {
-    def ::(h: (Symbol, Model)): HCons =
+      t0: () => T,
+      private[core] val uuid: UUID = unrefined
+  ) extends Composite[Model, T](l, h0, t0) with HList {
+    def ::(h: (Symbol, Model)): HCons[HCons[T]] =
       HCons(h._1, h._2, this)
     protected override def checkType(that: Model) = that match {
-      case that: HCons if this.optional === that.optional =>
+      case that: HCons[_] if this.optional === that.optional =>
         Some(that)
       case _ =>
         None
@@ -512,21 +514,21 @@ object Model {
       }
     }
 
-    private[core] def withDefault: HCons =
+    private[core] def withDefault: HCons[T] =
       HCons(this.label, true, this.head, this.tail)
 
-    private[core] def withoutDefault: HCons =
+    private[core] def withoutDefault: HCons[T] =
       HCons(this.label, false, this.head, this.tail)
 
-    private[core] def withTail(newTail: => HList): HCons =
+    private[core] def withTail(newTail: => T): HCons[T] =
       HCons(this.label, this.optional, this.head, newTail)
   }
 
   object HCons {
     private[core] val pathComp = "HCons"
-    private[seals] def apply(label: Symbol, h: => Model, t: => HList): HCons =
+    private[seals] def apply[T <: HList](label: Symbol, h: => Model, t: => T): HCons[T] =
       apply(label, false, h, t)
-    private[seals] def apply(label: Symbol, optional: Boolean, h: => Model, t: => HList): HCons =
+    private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, h: => Model, t: => T): HCons[T] =
       new HCons(label, optional, h _, t _)
   }
 
@@ -535,6 +537,7 @@ object Model {
   final case object CNil extends Coproduct with Sentinel {
     def :+:(h: (Symbol, Model)): CCons =
       CCons(h._1, h._2, this)
+    private[core] final val uuid = unrefined
     protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) =
       this eq that
     protected[core] final override def foldImpl[R](
@@ -553,7 +556,8 @@ object Model {
   final class CCons(
       l: Symbol,
       h0: () => Model,
-      t0: () => Coproduct
+      t0: () => Coproduct,
+      private[core] val uuid: UUID = unrefined
   ) extends Composite[Model, Coproduct](l, h0, t0) with Coproduct {
     def :+:(h: (Symbol, Model)): CCons =
       CCons(h._1, h._2, this)
@@ -617,7 +621,7 @@ object Model {
       private[core] val atomDesc: String
   ) extends Model {
 
-    private[core] def refined(r: Refinement[_]): Atom =
+    private[Model] def refined(r: Refinement[_]): Atom =
       new Atom(CanBeRefined.combine(uuid, r.uuid), r.desc(atomDesc))
 
     private[core] def atomHash: Int =
@@ -664,7 +668,8 @@ object Model {
       Eq.fromUniversalEquals
   }
 
-  final class Vector private (val elem: Model) extends Model {
+  final class Vector private (val elem: Model, private[core] val uuid: UUID = unrefined)
+      extends Model {
 
     def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
       case that: Vector =>

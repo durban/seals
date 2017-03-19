@@ -74,18 +74,18 @@ class SerializableSpec extends BaseSpec {
       )
       checkSer(mod1)
       // force evaluate thunks:
-      val x = mod1.tail.asInstanceOf[Model.CCons].head.asInstanceOf[Model.HCons].head
+      val x = mod1.tail.asInstanceOf[Model.CCons].head.asInstanceOf[Model.HCons[Model.HCons[Model.HNil.type]]].head
       checkSer(x)
       checkSer(mod1)
 
-      lazy val mod2: Model.HCons = Model.HCons(
+      lazy val mod2: Model.HCons[Model.HCons[Model.HNil.type]] = Model.HCons(
         'm1,
         mod1,
         Model.HCons('m2, mod2, Model.HNil)
       )
       checkSer(mod2)
       // force evaluate thunks:
-      val y = mod2.tail.asInstanceOf[Model.HCons].head
+      val y = mod2.tail.asInstanceOf[Model.HCons[Model.HNil.type]].head
       checkSer(y)
       checkSer(mod2)
     }

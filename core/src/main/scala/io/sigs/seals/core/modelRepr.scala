@@ -125,11 +125,11 @@ private object ModelRepr extends ModelReprBase {
     optional: Boolean = false,
     head: ModelRepr,
     tail: ProdRepr
-  ) extends ProdRepr with Composite[Model.HCons, Model.HList, ProdRepr] {
+  ) extends ProdRepr with Composite[Model.HCons[_], Model.HList, ProdRepr] {
 
     protected override val desc = "HCons"
 
-    protected override def build(h: Eval[Model], t: Eval[Model.HList]): Model.HCons =
+    protected override def build(h: Eval[Model], t: Eval[Model.HList]): Model.HCons[_] =
       Model.HCons(label, optional, h.value, t.value)
 
     protected override def decTail(tr: ProdRepr): DecSt[Model.HList] =

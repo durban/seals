@@ -114,7 +114,7 @@ trait ArbInstances {
     Arbitrary.arbUnit.arbitrary.map(_ => Model.HNil)
   }
 
-  implicit def arbModelHcons(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HCons] = Arbitrary {
+  implicit def arbModelHcons(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HCons[_]] = Arbitrary {
     for {
       sym <- Gen.alphaStr
       opt <- Gen.oneOf(true, false)
@@ -162,7 +162,7 @@ trait ArbInstances {
   private[this] lazy val _arbModel: Arbitrary[Model] = {
 
     type ModelReprH = Model.HNil.type
-    type ModelReprT = Model.HCons :+: Model.CNil.type :+: Model.CCons :+: Model.Atom :+: Model.Vector :+: CNil
+    type ModelReprT = Model.HCons[_] :+: Model.CNil.type :+: Model.CCons :+: Model.Atom :+: Model.Vector :+: CNil
     type ModelRepr = ModelReprH :+: ModelReprT
 
     implicit val modGen: Generic.Aux[Model, ModelRepr] = new Generic[Model] {
@@ -171,7 +171,7 @@ trait ArbInstances {
         shapeless.ops.coproduct.Unifier[Repr].apply(r)
       def to(t: Model): Repr = t match {
         case Model.HNil => Inl(Model.HNil)
-        case hc: core.Model.HCons => Inr(Inl(hc))
+        case hc: core.Model.HCons[_] => Inr(Inl(hc))
         case Model.CNil => Inr(Inr(Inl(Model.CNil)))
         case cc: core.Model.CCons => Inr(Inr(Inr(Inl(cc))))
         case a: core.Model.Atom => Inr(Inr(Inr(Inr(Inl(a)))))

@@ -98,12 +98,12 @@ class ModelSpec extends BaseSpec {
       Model.CNil
     )
   )
-  lazy val cy2a: Model.HCons = Model.HCons(
+  lazy val cy2a: Model.HCons[Model.HCons[Model.HNil.type]] = Model.HCons(
     p,
     cy1a,
     Model.HCons(l, ac, Model.HNil)
   )
-  lazy val cy2b: Model.HCons = Model.HCons(
+  lazy val cy2b: Model.HCons[Model.HCons[Model.HNil.type]] = Model.HCons(
     p,
     cy1b,
     Model.HCons(l, atom[MyUUID], Model.HNil)

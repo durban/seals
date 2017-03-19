@@ -471,7 +471,7 @@ private[core] sealed trait LowPrioReified3 extends LowPrioReified4 {
     label: Witness.Aux[HK],
     rh0: Lazy[Reified[HV]],
     rt0: Lazy[Reified.Aux[T, MT, FSecond]]
-  ): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons, FSecond] = {
+  ): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons[MT], FSecond] = {
     new HConsReified[HK, HV, T, MT](label, None, () => rh0, () => rt0)
   }
 
@@ -483,13 +483,13 @@ private[core] sealed trait LowPrioReified3 extends LowPrioReified4 {
   )   extends WithLazy[Reified[HV], Reified.Aux[T, MT, FSecond]](rh0, rt0)
       with Reified[FieldType[HK, HV] :: T] {
 
-    override type Mod = Model.HCons
+    override type Mod = Model.HCons[MT]
     override type Fold[X, Y] = Y
 
     lazy private[core] override val modelComponent: Mod =
       Model.HCons(label.value, head.modelComponent, tail.modelComponent)
 
-    private[core] override def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons, FSecond] = {
+    private[core] override def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[FieldType[HK, HV] :: T, Model.HCons[MT], FSecond] = {
       new HConsReified[HK, HV, T, MT](
         label,
         defs.head.map(_.asInstanceOf[HV]),
@@ -642,10 +642,10 @@ object Derived {
     A: LabelledGeneric.Aux[A, GA],
     D: Default.Aux[A, DA],
     DL: ToTraversable.Aux[DA, List, Option[Any]],
-    WD: Model.WithDefaults[DA],
+    WD: Model.WithDefaults[MA, DA],
     RA: Lazy[Reified.Aux[GA, MA, FA]]
-  ): Derived[A, Model.HList, FA] = {
-    Derived[A, Model.HList, FA](Reified.reifiedFromGenericProductWithDefaults[A, GA, DA, MA, FA])
+  ): Derived[A, MA, FA] = {
+    Derived[A, MA, FA](Reified.reifiedFromGenericProductWithDefaults[A, GA, DA, MA, FA])
   }
 }
 
@@ -679,13 +679,13 @@ private[core] sealed trait LowPrioReified5 {
     A: LabelledGeneric.Aux[A, GA],
     D: Default.Aux[A, DA],
     DL: ToTraversable.Aux[DA, List, Option[Any]],
-    WD: Model.WithDefaults[DA],
+    WD: Model.WithDefaults[MA, DA],
     RA: Lazy[Reified.Aux[GA, MA, FA]]
-  ): Reified.Aux[A, Model.HList, FA] = new WithLazy[Reified[GA] { type Mod = MA; type Fold[X, Y] = FA[X, Y] }, None.type](
+  ): Reified.Aux[A, MA, FA] = new WithLazy[Reified[GA] { type Mod = MA; type Fold[X, Y] = FA[X, Y] }, None.type](
       () => RA.map(_.unsafeWithDefaults(D.apply().toList)),
       () => None
   ) with Reified[A] {
-    override type Mod = Model.HList
+    override type Mod = MA
     override type Fold[B, U] = FA[B, U]
     lazy private[core] override val modelComponent: Mod = {
       WD.unsafeWithDefaults(head.modelComponent)(D())
