@@ -200,7 +200,7 @@ object Model {
       cbr
 
     def combine(r1: UUID, r2: UUID): UUID =
-      NsUuid.uuid5nestedNs(r1, r2) // FIXME
+      NsUUID.uuid5nestedNs(r1, r2) // FIXME
 
     implicit val atomCanBeRefined: CanBeRefined[Model.Atom] = new CanBeRefined[Model.Atom] {
       override def refine(m: Model.Atom, r: Refinement[_]) =

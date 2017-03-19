@@ -25,7 +25,7 @@ import io.circe._
 
 import _root_.scodec.bits._
 
-class NsUuidSpec extends tests.BaseSpec {
+class NsUUIDSpec extends tests.BaseSpec {
 
   /** Version 1 UUID */
   val ns1 = uuid"8f07c16c-f14d-11e6-81af-1d121b157edb"
@@ -58,15 +58,15 @@ class NsUuidSpec extends tests.BaseSpec {
   "Basic functionality" - {
 
     "empty name" in {
-      NsUuid.uuid5(ns4, "") should === (uuid"56756e5d-8a7e-570f-a419-82ea6d431713")
+      NsUUID.uuid5(ns4, "") should === (uuid"56756e5d-8a7e-570f-a419-82ea6d431713")
     }
 
     "short name" in {
-      NsUuid.uuid5(ns4, "alpha") should === (uuid"21bbb574-bba8-51e4-8b71-2ab43a593184")
+      NsUUID.uuid5(ns4, "alpha") should === (uuid"21bbb574-bba8-51e4-8b71-2ab43a593184")
     }
 
     "long name" in {
-      NsUuid.uuid5(ns4, "the quick brown fox jumps over the lazy dog") should === (
+      NsUUID.uuid5(ns4, "the quick brown fox jumps over the lazy dog") should === (
         uuid"e9e3506b-5eca-5b3b-916f-c9d8fdce37c8"
       )
     }
@@ -75,25 +75,25 @@ class NsUuidSpec extends tests.BaseSpec {
   "Various namespaces" - {
 
     "DNS" in {
-      NsUuid.uuid5(nsDns, "example.com") should === (ns5)
+      NsUUID.uuid5(nsDns, "example.com") should === (ns5)
     }
 
     "URL" in {
-      NsUuid.uuid5(nsUrl, "http://www.example.com/a/b/c") should === (
+      NsUUID.uuid5(nsUrl, "http://www.example.com/a/b/c") should === (
         uuid"c3d9ade2-286d-5034-ab44-93d660958179"
       )
     }
 
     "v1" in {
-      NsUuid.uuid5(ns1, "foobar") should === (uuid"d247cb15-9aff-5df1-beff-fdbc144f042a")
+      NsUUID.uuid5(ns1, "foobar") should === (uuid"d247cb15-9aff-5df1-beff-fdbc144f042a")
     }
 
     "v3" in {
-      NsUuid.uuid5(ns3, "foobar") should === (uuid"ae857671-99d7-5c5c-b458-c95c071bc730")
+      NsUUID.uuid5(ns3, "foobar") should === (uuid"ae857671-99d7-5c5c-b458-c95c071bc730")
     }
 
     "v5" in {
-      NsUuid.uuid5(ns5, "foobar") should === (uuid"f1030914-4615-533a-ba0f-ce2603a31662")
+      NsUUID.uuid5(ns5, "foobar") should === (uuid"f1030914-4615-533a-ba0f-ce2603a31662")
     }
   }
 
@@ -106,21 +106,21 @@ class NsUuidSpec extends tests.BaseSpec {
 
     "UUIDs and a name" in {
       val name = "foobar"
-      NsUuid.uuid5nestedNsNm(name, ns1) should === (NsUuid.uuid5(ns1, name))
-      NsUuid.uuid5nestedNsNm(name, ns1, n1) should === (uuid"8fc121a2-bdb6-57fd-9f4b-8c57d9860d7d")
-      NsUuid.uuid5nestedNsNm(name, ns1, n1, n2, n3, n4) should === (uuid"7f8c26c6-d014-58cc-a205-25c13c2b98c0")
+      NsUUID.uuid5nestedNsNm(name, ns1) should === (NsUUID.uuid5(ns1, name))
+      NsUUID.uuid5nestedNsNm(name, ns1, n1) should === (uuid"8fc121a2-bdb6-57fd-9f4b-8c57d9860d7d")
+      NsUUID.uuid5nestedNsNm(name, ns1, n1, n2, n3, n4) should === (uuid"7f8c26c6-d014-58cc-a205-25c13c2b98c0")
     }
 
     "names" in {
-      NsUuid.uuid5nested(ns1) should === (ns1)
-      NsUuid.uuid5nested(ns1, "foo") should === (uuid"37af6235-cf58-51f3-8a67-3e6a0eedff96")
-      NsUuid.uuid5nested(ns1, "foo", "bar", "baz") should === (uuid"fd8f5430-b2d5-5d2b-8524-57da37991e36")
+      NsUUID.uuid5nested(ns1) should === (ns1)
+      NsUUID.uuid5nested(ns1, "foo") should === (uuid"37af6235-cf58-51f3-8a67-3e6a0eedff96")
+      NsUUID.uuid5nested(ns1, "foo", "bar", "baz") should === (uuid"fd8f5430-b2d5-5d2b-8524-57da37991e36")
     }
 
     "UUIDs" in {
-      NsUuid.uuid5nestedNs(ns1) should === (ns1)
-      NsUuid.uuid5nestedNs(ns1, n1) should === (uuid"da3145fc-debf-5024-be13-051b8a1217d2")
-      NsUuid.uuid5nestedNs(ns1, n1, n2, n3, n4) should === (uuid"cd7b7bd8-3810-5be5-9c6f-05c8dc1bb8c6")
+      NsUUID.uuid5nestedNs(ns1) should === (ns1)
+      NsUUID.uuid5nestedNs(ns1, n1) should === (uuid"da3145fc-debf-5024-be13-051b8a1217d2")
+      NsUUID.uuid5nestedNs(ns1, n1, n2, n3, n4) should === (uuid"cd7b7bd8-3810-5be5-9c6f-05c8dc1bb8c6")
     }
 
     "generated test data" in {
@@ -139,25 +139,25 @@ class NsUuidSpec extends tests.BaseSpec {
 
     "empty" in {
       UUIDBuilder(root).uuid should === (
-        NsUuid.uuid5bv(root, ByteVector.empty)
+        NsUUID.uuid5bv(root, ByteVector.empty)
       )
     }
 
     "with UUIDs" in {
       (root / u1 / u2).uuid should === (
-        NsUuid.uuid5bv(root, ByteVector.fromUUID(u1) ++ ByteVector.fromUUID(u2))
+        NsUUID.uuid5bv(root, ByteVector.fromUUID(u1) ++ ByteVector.fromUUID(u2))
       )
     }
 
     "with ByteVectors" in {
       (root / hex"deadbeef" / hex"abcdef").uuid should === (
-        NsUuid.uuid5bv(root, hex"deadbeef abcdef")
+        NsUUID.uuid5bv(root, hex"deadbeef abcdef")
       )
     }
 
     "with Strings" in {
       (root / "xyz" / "1256hgds").uuid should === (
-        NsUuid.uuid5bv(root, ByteVector.encodeUtf8("xyz1256hgds").fold(
+        NsUUID.uuid5bv(root, ByteVector.encodeUtf8("xyz1256hgds").fold(
           err => fail(err.toString),
           bv => bv
         ))
@@ -166,7 +166,7 @@ class NsUuidSpec extends tests.BaseSpec {
 
     "with mixed" in {
       (root / u1 / hex"abef" / "éáű" / u2).uuid should === (
-        NsUuid.uuid5bv(
+        NsUUID.uuid5bv(
           root,
           ByteVector.fromUUID(u1) ++
             hex"abef" ++
@@ -214,8 +214,8 @@ class NsUuidSpec extends tests.BaseSpec {
     def comp(root: UUID, nss: Vector[Either[UUID, String]]): UUID = {
       val (u, _) = nss.foldLeft((root, true)) { (st, us) =>
         (st, us) match {
-          case ((s, true), Left(uuid)) => (NsUuid.uuid5nestedNs(s, uuid), true)
-          case ((s, f), Right(name)) => (NsUuid.uuid5(s, name), false)
+          case ((s, true), Left(uuid)) => (NsUUID.uuid5nestedNs(s, uuid), true)
+          case ((s, f), Right(name)) => (NsUUID.uuid5(s, name), false)
           case ((_, false), Left(_)) => fail("UUID after name")
         }
       }
