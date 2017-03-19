@@ -60,5 +60,14 @@ class RefinedSpec extends BaseSpec {
         case Right(l) => fail(s"unexpected result: ${l}")
       }
     }
+
+    "Less" in {
+      type LT5 = Int Refined Less[shapeless.Nat._5]
+      type LT6 = Int Refined Less[shapeless.Nat._6]
+      type LT6Float = Float Refined Less[shapeless.Nat._6]
+      val r = Reified[LT6]
+      assert(!r.model.compatible(Reified[LT5].model))
+      assert(!r.model.compatible(Reified[LT6Float].model))
+    }
   }
 }

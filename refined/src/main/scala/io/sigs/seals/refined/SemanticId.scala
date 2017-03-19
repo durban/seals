@@ -44,4 +44,7 @@ object SemanticId {
 
   implicit def forGreater[N : Show : Reified](implicit wit: Witness.Aux[N]): SemanticId[Greater[N]] =
     mk[Greater[N]](Semantics.greater[N](wit.value))
+
+  implicit def forLess[N : Show : Reified](implicit wit: Witness.Aux[N]): SemanticId[Less[N]] =
+    mk[Less[N]](Semantics.less[N](wit.value))
 }
