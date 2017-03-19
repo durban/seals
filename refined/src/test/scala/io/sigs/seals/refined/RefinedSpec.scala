@@ -17,6 +17,8 @@
 package io.sigs.seals
 package refined
 
+import cats.implicits._
+
 import eu.timepit.refined.api._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric._
@@ -34,6 +36,26 @@ class RefinedSpec extends BaseSpec {
       f should === (CanonicalRepr.Atom("89"))
       CanonicalRepr.unfold[Int Refined Positive](f) should === (Right(k))
       CanonicalRepr.unfold[Int Refined Positive](CanonicalRepr.Atom("0")) match {
+        case Left(_) => // OK
+        case Right(l) => fail(s"unexpected result: ${l}")
+      }
+    }
+
+    "Greater[0] is the same as Positive" in {
+      val r1 = Reified[Int Refined Positive]
+      val r2 = Reified[Int Refined Greater[shapeless.Nat._0]]
+      val r3 = Reified[Int Refined Greater[shapeless.Nat._1]]
+
+      r1.model should === (r2.model)
+      r1.model should !== (r3.model)
+    }
+
+    "Greater" in {
+      type GE6 = Int Refined Greater[shapeless.Nat._5]
+      val f = CanonicalRepr.fold[GE6](6)
+      f should === (CanonicalRepr.Atom("6"))
+      CanonicalRepr.unfold[GE6](f) should === (Right(6 : GE6))
+      CanonicalRepr.unfold[GE6](CanonicalRepr.Atom("5")) match {
         case Left(_) => // OK
         case Right(l) => fail(s"unexpected result: ${l}")
       }

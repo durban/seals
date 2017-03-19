@@ -19,9 +19,10 @@ package core
 
 import java.util.UUID
 
-import cats.kernel.Order
 import cats.Show
 import cats.implicits._
+
+import _root_.scodec.bits.ByteVector
 
 trait Refinement[A] extends Serializable {
 
@@ -48,6 +49,9 @@ trait Refinement[A] extends Serializable {
 
   final override def hashCode: Int =
     this.uuid.##
+
+  override def toString: String =
+    desc("?")
 }
 
 object Refinement {
@@ -56,11 +60,80 @@ object Refinement {
     type Repr = R
   }
 
+  final case class Semantics(id: UUID, repr: String => String) {
+
+    final override def equals(that: Any): Boolean = that match {
+      case Semantics(thatId, _) =>
+        id === thatId
+      case _ =>
+        false
+    }
+
+    final override def hashCode: Int =
+      id.##
+  }
+
+  object Semantics {
+
+    import java.io.ByteArrayOutputStream
+    import java.nio.charset.StandardCharsets.UTF_8
+
+    private[this] final class FoldBytes extends Reified.Folder[ByteArrayOutputStream, ByteArrayOutputStream] {
+
+      private[this] val buf = new ByteArrayOutputStream
+
+      def atom(repr: Reified.AtomRepr): ByteArrayOutputStream = {
+        buf.write(repr.binaryRepr.toArray)
+        buf
+      }
+
+      def hCons(l: Symbol, b: ByteArrayOutputStream, t: ByteArrayOutputStream): ByteArrayOutputStream = {
+        assert(b eq t)
+        b.write(0x01)
+        b.write(l.name.getBytes(UTF_8))
+        b
+      }
+
+      def hNil: ByteArrayOutputStream = {
+        buf.write(0x00)
+        buf
+      }
+
+      def prod(t: ByteArrayOutputStream): ByteArrayOutputStream = {
+        assert(t eq buf)
+        t
+      }
+
+      def sum(l: Symbol, b: ByteArrayOutputStream): ByteArrayOutputStream = {
+        assert(b eq buf)
+        b.write(0x02)
+        b.write(l.name.getBytes(UTF_8))
+        b
+      }
+
+      def vector(v: Vector[ByteArrayOutputStream]): ByteArrayOutputStream = {
+        assert(v.forall(_ eq buf))
+        buf.write(0x03)
+        buf
+      }
+    }
+
+    def greater[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
+      val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
+      Semantics((root / gt / repr).uuid, r => sh"${r} > ${than}")
+    }
+
+    def less[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
+      val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
+      Semantics((root / lt / repr).uuid, r => sh"${r} > ${than}")
+    }
+  }
+
   final val root = uuid"cc154e4c-24b8-4505-a13c-59b548ec9883"
 
-  final val ge = uuid"ff6383db-8d2e-4507-a571-f6f0f73f1fe8"
-  final val le = uuid"95d56687-589e-4e8a-8857-0707ad3cd60b"
-  final val en = uuid"5c7fe757-72c0-4114-9ed0-06e8a8d34c04"
+  private[this] final val gt = uuid"ff6383db-8d2e-4507-a571-f6f0f73f1fe8"
+  private[this] final val lt = uuid"95d56687-589e-4e8a-8857-0707ad3cd60b"
+  private[this] final val en = uuid"5c7fe757-72c0-4114-9ed0-06e8a8d34c04"
 
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int
@@ -68,21 +141,5 @@ object Refinement {
     override def desc(r: String) = sh"0 ≤ ${r} ≤ ${A.maxIndex}"
     def from(idx: Int) = A.fromIndex(idx)
     def to(a: A) = A.index(a)
-  }
-
-  def greaterEqual[A: Show](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
-    override type Repr = A
-    override val uuid = (root / ge / atc.binaryRepr(than)).uuid
-    override def desc(r: String) = sh"${r} ≥ ${than}"
-    def from(a: A) = if (A.gteqv(a, than)) Right(a) else Left(sh"${a} ≱ ${than}")
-    def to(a: A) = a
-  }
-
-  def lessEqual[A: Show](than: A)(implicit A: Order[A], atc: Atomic[A]): Aux[A, A] = new Refinement[A] {
-    override type Repr = A
-    override val uuid = (root / le / atc.binaryRepr(than)).uuid
-    override def desc(r: String) = sh"${r} ≤ ${than}"
-    def from(a: A) = if (A.lteqv(a, than)) Right(a) else Left(sh"${a} ≰ ${than}")
-    def to(a: A) = a
   }
 }

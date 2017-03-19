@@ -19,6 +19,9 @@ package laws
 
 import java.util.UUID
 
+import shapeless.{ Nat, Witness }
+import shapeless.ops.nat.ToInt
+
 import org.scalacheck.{ Arbitrary, Gen, Cogen }
 import org.scalacheck.rng.Seed
 import org.scalacheck.derive.Recursive
@@ -120,4 +123,10 @@ trait TestArbInstances extends ArbInstances {
       )
     )
   }
+
+  implicit def arbShapelessNat[N <: Nat](implicit wit: Witness.Aux[N]): Arbitrary[N] =
+    Arbitrary(Gen.const(wit.value))
+
+  implicit def cogenShapelessNat[N <: Nat](implicit toInt: ToInt[N]): Cogen[N] =
+    Cogen[Int].contramap(_ => toInt())
 }

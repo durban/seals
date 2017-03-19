@@ -26,6 +26,8 @@ import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
 import cats.instances.all._
 
+import shapeless.Nat
+
 import scodec.bits._
 import scodec.interop.cats._
 
@@ -50,6 +52,7 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[Month, String, Float]("java.time.Month")
   checkReifiedLaws[Symbol, Float, Option[Int]]("scala.Symbol")
   checkReifiedLaws[RoundingMode, Symbol, Int]("java.math.RoundingMode")
+  checkReifiedLaws[Nat._2, Symbol, Float]("shapeless.Nat._2")
 
   locally {
     import TestInstances.reified._

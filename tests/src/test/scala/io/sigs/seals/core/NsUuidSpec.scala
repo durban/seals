@@ -23,6 +23,8 @@ import scala.util.{ Try, Success, Failure }
 
 import io.circe._
 
+import _root_.scodec.bits._
+
 class NsUuidSpec extends tests.BaseSpec {
 
   /** Version 1 UUID */
@@ -125,6 +127,56 @@ class NsUuidSpec extends tests.BaseSpec {
       val str = stringFromResource("/test_data.json")
       val json = io.circe.parser.parse(str).fold(err => fail(err.toString), x => x)
       checkFromJsonData(json)
+    }
+  }
+
+  "UUIDBuilder" - {
+
+    val root = uuid"2fffa6dc-d430-4c8a-9d90-a53764159e89"
+
+    val u1 = uuid"ec11c15f-7137-4531-a862-8c72b71fd8d4"
+    val u2 = uuid"676f5566-97a3-47b4-8ab5-3fd6a3f00b61"
+
+    "empty" in {
+      UUIDBuilder(root).uuid should === (
+        NsUuid.uuid5bv(root, ByteVector.empty)
+      )
+    }
+
+    "with UUIDs" in {
+      (root / u1 / u2).uuid should === (
+        NsUuid.uuid5bv(root, ByteVector.fromUUID(u1) ++ ByteVector.fromUUID(u2))
+      )
+    }
+
+    "with ByteVectors" in {
+      (root / hex"deadbeef" / hex"abcdef").uuid should === (
+        NsUuid.uuid5bv(root, hex"deadbeef abcdef")
+      )
+    }
+
+    "with Strings" in {
+      (root / "xyz" / "1256hgds").uuid should === (
+        NsUuid.uuid5bv(root, ByteVector.encodeUtf8("xyz1256hgds").fold(
+          err => fail(err.toString),
+          bv => bv
+        ))
+      )
+    }
+
+    "with mixed" in {
+      (root / u1 / hex"abef" / "éáű" / u2).uuid should === (
+        NsUuid.uuid5bv(
+          root,
+          ByteVector.fromUUID(u1) ++
+            hex"abef" ++
+            ByteVector.encodeUtf8("éáű").fold(
+              err => fail(err.toString),
+              bv => bv
+            ) ++
+            ByteVector.fromUUID(u2)
+        )
+      )
     }
   }
 

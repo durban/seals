@@ -295,6 +295,19 @@ class ReifiedSpec extends BaseSpec {
       r1.model.compatible(r0.model) should === (false)
       r1.toString should === ("Reified[Int{?}]")
     }
+
+    "shapeless.Nat" in {
+      val r0 = Reified[Nat._0]
+      val r2a = Reified[Nat._2]
+      val r2b = Reified[Succ[Nat._1]]
+      val r9 = Reified[Nat._9]
+      checkNotEqHashCompat(r0.model, Reified[Int].model)
+      checkNotEqHashCompat(r0.model, r2a.model)
+      checkNotEqHashCompat(r0.model, r2b.model)
+      checkNotEqHashCompat(r0.model, r9.model)
+      checkNotEqHashCompat(r2a.model, r9.model)
+      checkEqHashCompat(r2a.model, r2b.model)
+    }
   }
 }
 

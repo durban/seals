@@ -17,29 +17,21 @@
 package io.sigs.seals
 package refined
 
-import cats.implicits._
-
 import eu.timepit.refined.api.{ RefType, Validate }
-import eu.timepit.refined.numeric.Positive
 
 import core.Refinement
 
-object Refinements extends Refinements {
-
-  val euTimepitRefined = uuid"670341e5-c2f8-46e2-be9d-44fca48265f0"
-}
+object Refinements extends Refinements
 
 trait Refinements {
 
-  import Refinements._
-
-  implicit def positive[R[_, _], A](implicit R: RefType[R], v: Validate[A, Positive]): Refinement.Aux[R[A, Positive], A] = {
-    new Refinement[R[A, Positive]] {
+  implicit def forRefType[R[_, _], A, P](implicit R: RefType[R], v: Validate[A, P], id: SemanticId[P]): Refinement.Aux[R[A, P], A] = {
+    new Refinement[R[A, P]] {
       override type Repr = A
-      override val uuid = (root / euTimepitRefined / "positive").uuid // TODO
-      override def desc(r: String) = sh"${r} > 0"
-      override def from(a: A): Either[String, R[A, Positive]] = R.refine[Positive](a)
-      override def to(pa: R[A, Positive]): A = R.unwrap(pa)
+      override val uuid = id.uuid
+      override def desc(r: String) = id.repr(r)
+      override def from(a: A): Either[String, R[A, P]] = R.refine[P](a)
+      override def to(pa: R[A, P]): A = R.unwrap(pa)
     }
   }
 }

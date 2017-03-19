@@ -43,7 +43,7 @@ private[seals] object NsUuid {
 
   private def uuid5bytes(ns: UUID, name: ByteBuffer): UUID = {
     val buf = ByteBuffer.allocate(16) // network byte order by default
-    uuidToBuf(ns, buf)
+    putUUIDToBuf(ns, buf)
     buf.rewind()
     val h = sha1()
     h.update(buf)
@@ -75,7 +75,7 @@ private[seals] object NsUuid {
   def uuid5nestedNs(ns1: UUID, nss: UUID*): UUID = {
     val buf = ByteBuffer.allocate(16)
     nss.foldLeft(ns1) { (st, u) =>
-      uuidToBuf(u, buf)
+      putUUIDToBuf(u, buf)
       buf.rewind()
       val r = uuid5bytes(st, buf)
       buf.rewind()
@@ -83,14 +83,15 @@ private[seals] object NsUuid {
     }
   }
 
-  private def uuidToBuf(u: UUID, buf: ByteBuffer): Unit = {
+  private def putUUIDToBuf(u: UUID, buf: ByteBuffer): Unit = {
     buf.putLong(u.getMostSignificantBits)
     buf.putLong(u.getLeastSignificantBits)
   }
 
   def bvFromUUID(u: UUID): ByteVector = {
     val buf = ByteBuffer.allocate(16)
-    uuidToBuf(u, buf)
+    putUUIDToBuf(u, buf)
+    buf.rewind()
     ByteVector.view(buf)
   }
 

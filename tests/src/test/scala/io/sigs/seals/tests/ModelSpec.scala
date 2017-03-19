@@ -17,9 +17,9 @@
 package io.sigs.seals
 package tests
 
-import scala.util.hashing.MurmurHash3
+import java.time.{ Month, DayOfWeek }
 
-import cats.implicits._
+import scala.util.hashing.MurmurHash3
 
 import shapeless.test.illTyped
 
@@ -44,15 +44,15 @@ class ModelSpec extends BaseSpec {
   val ac = atom[MyUUID]
   val refinedAtom1 = Model.CanBeRefined[Model.Atom].refine(
     a1a,
-    Refinement.greaterEqual(3)
+    Refinement.enum[Month]
   )
   val refinedAtom1b = Model.CanBeRefined[Model.Atom].refine(
     a1b,
-    Refinement.greaterEqual(3)
+    Refinement.enum[Month]
   )
   val refinedAtom2 = Model.CanBeRefined[Model.Atom].refine(
     a1a,
-    Refinement.greaterEqual(4)
+    Refinement.enum[DayOfWeek]
   )
 
   val p1a = l -> a2 :: m -> a1b :: Model.HNil
@@ -313,8 +313,8 @@ class ModelSpec extends BaseSpec {
     k1a.desc should === ("Int*")
     k2a.desc should === (s"(${pc1aExp})*")
 
-    refinedAtom1.desc should === ("Int ≥ 3")
-    refinedAtom1.toString should === ("Model[Int ≥ 3]")
+    refinedAtom1.desc should === ("0 ≤ Int ≤ 11")
+    refinedAtom1.toString should === ("Model[0 ≤ Int ≤ 11]")
   }
 
   "cats.Eq" in {

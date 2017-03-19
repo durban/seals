@@ -31,5 +31,5 @@ trait ReifiedInstances {
     R: RefType[R],
     refinement: Refinement.Aux[R[A, P], A],
     canRefine: Model.CanBeRefined[M]
-  ): Reified[R[A, P]] = A.refined[R[A, P]](refinement)
+  ): Reified.Aux[R[A, P], M, A.Fold] = A.refined[R[A, P]](refinement)
 }

@@ -28,6 +28,7 @@ import shapeless.union._
 import shapeless.record._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
+import shapeless.ops.nat.ToInt
 
 import scodec.bits.ByteVector
 
@@ -412,7 +413,7 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
   implicit lazy val reifiedForSymbol: Reified.Aux[Symbol, Model.Atom, FFirst] = {
     Reified
       .reifiedFromAtomic[String](Atomic.builtinString)
-      .refined(new Refinement[Symbol]{
+      .refined(new Refinement[Symbol] {
         override type Repr = String
         override val uuid = uuid"8c750487-1a6b-4c99-b01a-f1392b8177ed"
         override def desc(r: String) = "Symbol"
@@ -428,6 +429,26 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
   /** Uses the cached `EnumLike[RoundingMode]` */
   implicit lazy val reifiedForRoundingMode: Reified.Aux[RoundingMode, Model.Atom, FFirst] =
     Reified.reifiedForEnumLike[RoundingMode](enumLikeForRoundingMode)
+
+  implicit def reifiedForShapelessNat[N <: Nat](
+    implicit
+    toInt: ToInt[N],
+    wit: Witness.Aux[N]
+  ): Reified.Aux[N, Model.Atom, FFirst] = {
+    Reified
+      .reifiedFromAtomic[Int](Atomic.builtinInt)
+      .refined(new Refinement[N] {
+        override type Repr = Int
+        override val uuid =
+          (uuid"f13a06d7-8442-4454-8b9e-9cc246428959" / Atomic.builtinInt.binaryRepr(toInt())).uuid
+        override def desc(r: String) =
+          sh"shapeless.Nat(${toInt()})"
+        override def from(i: Int): Either[String, N] =
+          if (i === toInt()) Right(wit.value) else Left(sh"${i} is not ${toInt()}")
+        override def to(n: N): Int =
+          toInt()
+      })
+  }
 }
 
 private[core] sealed trait LowPrioReified2 extends LowPrioReified3 {

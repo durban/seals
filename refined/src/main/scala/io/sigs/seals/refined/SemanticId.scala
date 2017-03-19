@@ -15,18 +15,33 @@
  */
 
 package io.sigs.seals
+package refined
+
+import java.util.UUID
 
 import cats.Show
 
-import shapeless.Nat
-import shapeless.ops.nat.ToInt
+import shapeless.Witness
 
-package object refined extends AllInstances {
+import eu.timepit.refined.numeric._
 
-  private[refined] implicit def catsShowForShapelessNat[N <: Nat](implicit ti: ToInt[N], si: Show[Int]): Show[N] =
-    Show.show(_ => si.show(ti()))
+import core.Refinement.Semantics
+
+trait SemanticId[A] {
+  def uuid: UUID
+  def repr(r: String): String
 }
 
-trait AllInstances
-  extends refined.Refinements
-  with refined.ReifiedInstances
+object SemanticId {
+
+  def apply[A](implicit sid: SemanticId[A]): SemanticId[A] =
+    sid
+
+  def mk[A](s: Semantics): SemanticId[A] = new SemanticId[A] {
+    override val uuid = s.id
+    override def repr(r: String): String = s.repr(r)
+  }
+
+  implicit def forGreater[N : Show : Reified](implicit wit: Witness.Aux[N]): SemanticId[Greater[N]] =
+    mk[Greater[N]](Semantics.greater[N](wit.value))
+}

@@ -20,6 +20,9 @@ package laws
 import cats.Eq
 import cats.implicits._
 
+import shapeless.Nat
+import shapeless.ops.nat.ToInt
+
 import org.scalacheck.Arbitrary
 
 /**
@@ -51,4 +54,7 @@ trait TestEqInstances {
 
   implicit val mathContextEq: Eq[java.math.MathContext] =
     Eq.fromUniversalEquals
+
+  implicit def shapelessNatEq[N <: Nat](implicit toInt: ToInt[N]): Eq[N] =
+    Eq.by(_ => toInt())
 }
