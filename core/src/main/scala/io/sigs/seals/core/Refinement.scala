@@ -26,11 +26,20 @@ import _root_.scodec.bits.ByteVector
 
 trait Refinement[A] extends Serializable {
 
+  import Refinement._
+
   type Repr
 
   def uuid: UUID
 
-  def desc(r: String): String = sh"${r}{?}"
+  def repr: ReprFormat =
+    ReprFormat("", true, "{?}")
+
+  final def semantics: Semantics =
+    Semantics(uuid, repr)
+
+  final def desc(r: String): String =
+    repr.repr(r)
 
   def from(a: Repr): Either[String, A]
 
@@ -60,17 +69,41 @@ object Refinement {
     type Repr = R
   }
 
-  final case class Semantics(id: UUID, repr: String => String) {
+  final case class ReprFormat(pre: String, mid: Boolean, post: String) {
+
+    def repr(r: String): String = {
+      if (mid) pre + r + post
+      else pre + post
+    }
+
+    def combine(that: ReprFormat): ReprFormat = {
+      if (that.mid) {
+        ReprFormat(that.pre + this.pre, this.mid, this.post + that.post)
+      } else {
+        that
+      }
+    }
+  }
+
+  object ReprFormat {
+    def single(s: String): ReprFormat =
+      ReprFormat(s, false, "")
+  }
+
+  final case class Semantics(uuid: UUID, repr: ReprFormat) {
+
+    def desc(r: String): String =
+      repr.repr(r)
 
     final override def equals(that: Any): Boolean = that match {
       case Semantics(thatId, _) =>
-        id === thatId
+        uuid === thatId
       case _ =>
         false
     }
 
     final override def hashCode: Int =
-      id.##
+      uuid.##
   }
 
   object Semantics {
@@ -120,12 +153,12 @@ object Refinement {
 
     def greater[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
       val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
-      Semantics((root / gt / repr).uuid, r => sh"${r} > ${than}")
+      Semantics((root / gt / repr).uuid, ReprFormat("", true, sh" > ${than}"))
     }
 
     def less[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
       val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
-      Semantics((root / lt / repr).uuid, r => sh"${r} > ${than}")
+      Semantics((root / lt / repr).uuid, ReprFormat("", true, sh" < ${than}"))
     }
   }
 
@@ -138,7 +171,7 @@ object Refinement {
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int
     override val uuid = (root / en / Atomic[Int].binaryRepr(A.maxIndex)).uuid
-    override def desc(r: String) = sh"0 ≤ ${r} ≤ ${A.maxIndex}"
+    override def repr = Refinement.ReprFormat("0 ≤ ", true, sh" ≤ ${A.maxIndex}")
     def from(idx: Int) = A.fromIndex(idx)
     def to(a: A) = A.index(a)
   }

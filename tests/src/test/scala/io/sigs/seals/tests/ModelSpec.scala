@@ -344,10 +344,10 @@ class ModelSpec extends BaseSpec {
 
       val tree = cy2a.fold[Tree](
         hNil = () => Leaf("HNil"),
-        hCons = (_, _, h, t) => Branch("HCons", h, t),
+        hCons = (_, _, _, h, t) => Branch("HCons", h, t),
         cNil = () => Leaf("CNil"),
-        cCons = (_, h, t) => Branch("CCons", h, t),
-        vector = (e) => Branch("Vector", e, Leaf("⊥")),
+        cCons = (_, _, h, t) => Branch("CCons", h, t),
+        vector = (_, e) => Branch("Vector", e, Leaf("⊥")),
         atom = (a) => Leaf(s"$a"),
         cycle = () => Leaf("CYCLE")
       )
@@ -385,18 +385,18 @@ class ModelSpec extends BaseSpec {
 
       val computation = cy2a.fold[State[Int, Unit]](
         hNil = () => mix(1),
-        hCons = (_, _, h, t) => for {
+        hCons = (_, _, _, h, t) => for {
           _ <- h
           _ <- t
           _ <- mix(2)
         } yield (),
         cNil = () => mix(3),
-        cCons = (_, h, t) => for {
+        cCons = (_, _, h, t) => for {
           _ <- h
           _ <- t
           _ <- mix(4)
         } yield (),
-        vector = (e) => e,
+        vector = (_, e) => e,
         atom = (a) => mix(a.uuid.##),
         cycle = () => State.pure(())
       )

@@ -88,6 +88,7 @@ class ModelCodecSpec extends BaseJsonSpec {
 
   val jfalse = Json.fromString(false.toString)
   val jtrue = Json.fromString(true.toString)
+  val jNone = Json.obj("None" -> Json.obj())
 
   val a1 = Reified[Int].model
   val a2 = Reified[String].model
@@ -105,12 +106,14 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("1"),
       "label" -> Json.fromString("i"),
       "optional" -> jfalse,
+      "refinement" -> jNone,
       "head" -> atom[Int],
       "tail" -> Json.obj(
         "HCons" -> Json.obj(
           "id" -> Json.fromString("0"),
           "label" -> Json.fromString("s"),
           "optional" -> jfalse,
+          "refinement" -> jNone,
           "head" -> atom[String],
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
@@ -122,9 +125,11 @@ class ModelCodecSpec extends BaseJsonSpec {
 
   val m1jsonShuffledKeys = Json.obj(
     "HCons" -> Json.obj(
+      "refinement" -> jNone,
       "tail" -> Json.obj(
         "HCons" -> Json.obj(
           "head" -> atom[String],
+          "refinement" -> jNone,
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
           ),
@@ -145,11 +150,13 @@ class ModelCodecSpec extends BaseJsonSpec {
     "CCons" -> Json.obj(
       "id" -> Json.fromString("3"),
       "label" -> Json.fromString("C"),
+      "refinement" -> jNone,
       "head" -> m1json,
       "tail" -> Json.obj(
         "CCons" -> Json.obj(
           "id" -> Json.fromString("2"),
           "label" -> Json.fromString("D"),
+          "refinement" -> jNone,
           "head" -> Json.obj(
             "HNil" -> Json.obj()
           ),
@@ -165,10 +172,12 @@ class ModelCodecSpec extends BaseJsonSpec {
     "CCons" -> Json.obj(
       "id" -> Json.fromString("2"),
       "label" -> Json.fromString("X"),
+      "refinement" -> jNone,
       "head" -> Json.obj(
         "HCons" -> Json.obj(
           "id" -> Json.fromString("0"),
           "label" -> Json.fromString("m"),
+          "refinement" -> jNone,
           "optional" -> jfalse,
           "head" -> ref(2),
           "tail" -> Json.obj(
@@ -180,6 +189,7 @@ class ModelCodecSpec extends BaseJsonSpec {
         "CCons" -> Json.obj(
           "id" -> Json.fromString("1"),
           "label" -> Json.fromString("Y"),
+          "refinement" -> jNone,
           "head" -> Json.obj(
             "HNil" -> Json.obj()
           ),
@@ -196,6 +206,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("3"),
       "label" -> Json.fromString("c"),
       "optional" -> jfalse,
+      "refinement" -> jNone,
       "head" -> cy1json,
       "tail" -> Json.obj(
         "HNil" -> Json.obj()
@@ -222,6 +233,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("0"),
       "label" -> Json.fromString("x"),
       "optional" -> jtrue,
+      "refinement" -> jNone,
       "head" -> atom[Int],
       "tail" -> Json.obj(
         "HNil" -> Json.obj()
@@ -234,6 +246,7 @@ class ModelCodecSpec extends BaseJsonSpec {
       "id" -> Json.fromString("0"),
       "label" -> Json.fromString("x"),
       // no "optional" field
+      // no "refinement" field
       "head" -> atom[Int],
       "tail" -> Json.obj(
         "HNil" -> Json.obj()
@@ -304,12 +317,14 @@ class ModelCodecSpec extends BaseJsonSpec {
             "id" -> Json.fromString("1"),
             "label" -> Json.fromString("i"),
             "optional" -> jfalse,
+            "refinement" -> jNone,
             "head" -> atom[Int],
             "tail" -> Json.obj(
               "HCons" -> Json.obj(
                 "id" -> Json.fromString("0"),
                 "label" -> Json.fromString("s"),
                 "optional" -> jfalse,
+                "refinement" -> jNone,
                 "head" -> atom[String],
                 "tail" -> Json.obj(
                   "HNil" -> Json.obj()
@@ -329,6 +344,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("1"),
               "label" -> Json.fromString("i"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> atom[Int]
               // no "tail"
             )
@@ -342,6 +358,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("1"),
               "label" -> Json.fromString("i"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> atom[Int],
               "tail" -> Json.arr() // not an object
             )
@@ -353,6 +370,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("i"),
               "optional" -> Json.Null, // not a string
+              "refinement" -> jNone,
               "head" -> atom[Int],
               "tail" -> Json.obj(
                 "HNil" -> Json.obj()
@@ -370,6 +388,7 @@ class ModelCodecSpec extends BaseJsonSpec {
             "id" -> Json.fromString("0"),
             "label" -> Json.fromString("c"),
             "optional" -> jfalse,
+            "refinement" -> jNone,
             "head" -> Json.obj(
               "Ref" -> Json.obj(
                 "id" -> Json.fromString("0")
@@ -391,6 +410,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> Json.obj(
                 "Ref" -> Json.obj(
                   "id" -> Json.fromInt(56) // not string
@@ -411,6 +431,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> Json.obj(
                 "Ref" -> Json.obj(
                   "id" -> Json.fromString("abc") // NumberFormatException
@@ -431,6 +452,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> Json.obj(
                 "Ref" -> Json.obj(
                   "id" -> Json.fromString("999") // no target
@@ -451,6 +473,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> Json.obj(
                 "Ref" -> Json.obj(
                   "id" -> Json.fromString("-1") // no target
@@ -471,6 +494,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("0"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> atom[String],
               "tail" -> Json.obj(
                 "Ref" -> Json.obj(
@@ -489,6 +513,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "id" -> Json.fromString("1"),
               "label" -> Json.fromString("c"),
               "optional" -> jfalse,
+              "refinement" -> jNone,
               "head" -> Json.obj(
                 "Ref" -> Json.obj(
                   "id" -> Json.fromString("0") // forward ref
@@ -499,6 +524,7 @@ class ModelCodecSpec extends BaseJsonSpec {
                   "id" -> Json.fromString("0"),
                   "label" -> Json.fromString("d"),
                   "optional" -> jfalse,
+                  "refinement" -> jNone,
                   "head" -> atom[String],
                   "tail" -> Json.obj(
                     "HNil" -> Json.obj()

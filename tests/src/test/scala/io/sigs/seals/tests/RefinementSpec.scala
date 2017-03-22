@@ -32,7 +32,7 @@ class RefinementSpec extends BaseSpec {
       val r1 = new Refinement[Boolean] {
         override type Repr = Int
         override val uuid = (root / u).uuid
-        override def desc(r: String) = "Bool1"
+        override def repr = Refinement.ReprFormat.single("Bool1")
         def from(idx: Int) = idx match {
           case 0 => Right(false)
           case 1 => Right(true)
@@ -43,7 +43,7 @@ class RefinementSpec extends BaseSpec {
       val r2 = new Refinement[Boolean] {
         override type Repr = Int
         override val uuid = (root / u).uuid
-        override def desc(r: String) = "Bool2"
+        override def repr = Refinement.ReprFormat.single("Bool2")
         def from(idx: Int) = idx match {
           case 10 => Right(false)
           case 11 => Right(true)
@@ -54,7 +54,7 @@ class RefinementSpec extends BaseSpec {
       val r3 = new Refinement[Boolean] {
         override type Repr = Int
         override val uuid = (root / uuid"d9d828cc-c1f5-43e7-91f7-011c71559bc1").uuid
-        override def desc(r: String) = "Bool3"
+        override def repr = Refinement.ReprFormat.single("Bool3")
         def from(idx: Int) = idx match {
           case 10 => Right(false)
           case 11 => Right(true)

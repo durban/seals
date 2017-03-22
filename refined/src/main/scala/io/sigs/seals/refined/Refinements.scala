@@ -28,8 +28,8 @@ trait Refinements {
   implicit def forRefType[R[_, _], A, P](implicit R: RefType[R], v: Validate[A, P], id: SemanticId[P]): Refinement.Aux[R[A, P], A] = {
     new Refinement[R[A, P]] {
       override type Repr = A
-      override val uuid = id.uuid
-      override def desc(r: String) = id.repr(r)
+      override val uuid = id.semantics.uuid
+      override def repr = id.semantics.repr
       override def from(a: A): Either[String, R[A, P]] = R.refine[P](a)
       override def to(pa: R[A, P]): A = R.unwrap(pa)
     }

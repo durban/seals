@@ -17,28 +17,19 @@
 package io.sigs.seals
 package macros
 
-import java.util.UUID
-
 import scala.reflect.macros.blackbox.Context
 
-import cats.implicits._
+trait StringInterpolatorHelper {
 
-object UUIDMacro extends StringInterpolatorHelper {
-
-  def impl(c: Context)(): c.Expr[UUID] = {
+  def extractLiteral(c: Context): String = {
     import c.universe._
-    val s: String = extractLiteral(c)
-    val u: UUID = try {
-      UUID.fromString(s)
-    } catch {
-      case ex: IllegalArgumentException =>
-        c.abort(c.enclosingPosition, show"not a valid UUID (${ex.getMessage})")
+    val s: String = c.prefix.tree match {
+      case Apply(_, List(Apply(_, List(Literal(Constant(s: String)))))) =>
+        s
+      case _ =>
+        c.abort(c.enclosingPosition, "not a string literal")
     }
-    if (u.variant =!= 2) {
-      c.abort(c.enclosingPosition, "not an RFC-4122 UUID (variant is not 2)")
-    }
-    val msb: Long = u.getMostSignificantBits
-    val lsb: Long = u.getLeastSignificantBits
-    c.Expr[UUID](q"new _root_.java.util.UUID(${msb}, ${lsb})")
+    s
   }
 }
+

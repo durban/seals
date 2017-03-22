@@ -17,8 +17,6 @@
 package io.sigs.seals
 package refined
 
-import java.util.UUID
-
 import cats.Show
 
 import shapeless.Witness
@@ -28,8 +26,11 @@ import eu.timepit.refined.numeric._
 import core.Refinement.Semantics
 
 trait SemanticId[A] {
-  def uuid: UUID
-  def repr(r: String): String
+
+  def semantics: Semantics
+
+  final def repr(r: String): String =
+    semantics.desc(r)
 }
 
 object SemanticId {
@@ -38,8 +39,7 @@ object SemanticId {
     sid
 
   def mk[A](s: Semantics): SemanticId[A] = new SemanticId[A] {
-    override val uuid = s.id
-    override def repr(r: String): String = s.repr(r)
+    override val semantics = s
   }
 
   implicit def forGreater[N : Show : Reified](implicit wit: Witness.Aux[N]): SemanticId[Greater[N]] =

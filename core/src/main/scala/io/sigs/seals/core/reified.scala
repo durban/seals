@@ -416,7 +416,7 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
       .refined(new Refinement[Symbol] {
         override type Repr = String
         override val uuid = uuid"8c750487-1a6b-4c99-b01a-f1392b8177ed"
-        override def desc(r: String) = "Symbol"
+        override def repr = Refinement.ReprFormat.single("Symbol")
         override def from(s: String) = Right(Symbol(s))
         override def to(sym: Symbol) = sym.name
       })
@@ -441,8 +441,8 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
         override type Repr = Int
         override val uuid =
           (uuid"f13a06d7-8442-4454-8b9e-9cc246428959" / Atomic.builtinInt.binaryRepr(toInt())).uuid
-        override def desc(r: String) =
-          sh"shapeless.Nat(${toInt()})"
+        override def repr =
+          Refinement.ReprFormat.single(sh"shapeless.Nat(${toInt()})")
         override def from(i: Int): Either[String, N] =
           if (i === toInt()) Right(wit.value) else Left(sh"${i} is not ${toInt()}")
         override def to(n: N): Int =

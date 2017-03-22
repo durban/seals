@@ -123,6 +123,7 @@ private object ModelRepr extends ModelReprBase {
     id: Int,
     label: Symbol,
     optional: Boolean = false,
+    refinement: Option[Model.Ref] = None,
     head: ModelRepr,
     tail: ProdRepr
   ) extends ProdRepr with Composite[Model.HCons[_], Model.HList, ProdRepr] {
@@ -130,7 +131,7 @@ private object ModelRepr extends ModelReprBase {
     protected override val desc = "HCons"
 
     protected override def build(h: Eval[Model], t: Eval[Model.HList]): Model.HCons[_] =
-      Model.HCons(label, optional, h.value, t.value)
+      Model.HCons(label, optional, refinement, h.value, t.value)
 
     protected override def decTail(tr: ProdRepr): DecSt[Model.HList] =
       tr.toProdSt
@@ -156,6 +157,7 @@ private object ModelRepr extends ModelReprBase {
   final case class CCons(
     id: Int,
     label: Symbol,
+    refinement: Option[Model.Ref] = None,
     head: ModelRepr,
     tail: SumRepr
   ) extends SumRepr with Composite[Model.CCons, Model.Coproduct, SumRepr] {
@@ -172,7 +174,7 @@ private object ModelRepr extends ModelReprBase {
       toCompositeModel.map(identity)
   }
 
-  final case class Vector(elems: ModelRepr) extends ModelRepr {
+  final case class Vector(refinement: Option[Model.Ref] = None, elems: ModelRepr) extends ModelRepr {
     protected override def toModelSt: DecSt[Model] =
       elems.toModelSt.map(Model.Vector(_))
   }
@@ -194,26 +196,26 @@ private object ModelRepr extends ModelReprBase {
     val map: Map[Model, Int] = model.localIds
     model.foldC[ModelRepr](
       hNil = _ => HNil,
-      hCons = { (c, l, o, h, t) =>
+      hCons = { (c, l, o, r, h, t) =>
         val id = map.get(c.m).getOrElse {
           impossible(sh"no ID found for HCons at ${c.p} (map is ${map})")
         }
         t match {
-          case t: ProdRepr => HCons(id, l, o, h, t)
+          case t: ProdRepr => HCons(id, l, o, r, h, t)
           case _ => impossible("tail of HCons is not a product")
         }
       },
       cNil = _ => CNil,
-      cCons = { (c, l, h, t) =>
+      cCons = { (c, l, r, h, t) =>
         val id = map.get(c.m).getOrElse {
           impossible(sh"no ID found for CCons at ${c.p} (map is ${map})")
         }
         t match {
-          case t: SumRepr => CCons(id, l, h, t)
+          case t: SumRepr => CCons(id, l, r, h, t)
           case _ => impossible("tail of CCons is not a sum")
         }
       },
-      vector = (c, e) => Vector(e),
+      vector = (_, r, e) => Vector(r, e),
       atom = (_, a) => Atom(a.uuid, a.atomDesc),
       cycle = { c =>
         val id = map.get(c.m).getOrElse {

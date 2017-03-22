@@ -30,15 +30,13 @@ sealed trait Model extends Serializable {
 
   import Model._
 
-  private[core] def uuid: UUID
-
   lazy val desc: String = {
     this.fold[Desc](
       hNil = () => Desc.Leaf("HNil"),
-      hCons = (l, o, h, t) => Desc.Branch("::", l, h, t, headPostfix = if (o) "?" else ""),
+      hCons = (l, o, r, h, t) => Desc.Branch("::", l, h, t, headPostfix = if (o) "?" else "").refined(r.map(_.desc)),
       cNil = () => Desc.Leaf("CNil"),
-      cCons = (l, h, t) => Desc.Branch(":+:", l, h, t),
-      vector = e => e.withPostfix("*"),
+      cCons = (l, r, h, t) => Desc.Branch(":+:", l, h, t).refined(r.map(_.desc)),
+      vector = (r, e) => e.withPostfix("*").refined(r.map(_.desc)),
       atom = a => Desc.Leaf(a.atomDesc),
       cycle = () => Desc.Leaf("<...>")
     ).toString
@@ -48,19 +46,19 @@ sealed trait Model extends Serializable {
 
   final def fold[R](
     hNil: () => R,
-    hCons: (Symbol, Boolean, R, R) => R,
+    hCons: (Symbol, Boolean, Option[Ref], R, R) => R,
     cNil: () => R,
-    cCons: (Symbol, R, R) => R,
-    vector: R => R,
+    cCons: (Symbol, Option[Ref], R, R) => R,
+    vector: (Option[Ref], R) => R,
     atom: Atom => R,
     cycle: () => R
   ): R = {
     foldImpl(
       _ => hNil(),
-      (_, l, o, h: R, t: R) => hCons(l, o, h, t),
+      (_, l, o, ref, h: R, t: R) => hCons(l, o, ref, h, t),
       _ => cNil(),
-      (_, l, h: R, t: R) => cCons(l, h, t),
-      (_, e: R) => vector(e),
+      (_, l, ref, h: R, t: R) => cCons(l, ref, h, t),
+      (_, ref, e: R) => vector(ref, e),
       (_, a) => atom(a),
       _ => cycle(),
       Memo.valMemo,
@@ -70,20 +68,20 @@ sealed trait Model extends Serializable {
 
   final def foldC[R](
     hNil: Ctx => R,
-    hCons: (Ctx, Symbol, Boolean, R, R) => R,
+    hCons: (Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
     cNil: Ctx => R,
-    cCons: (Ctx, Symbol, R, R) => R,
-    vector: (Ctx, R) => R,
+    cCons: (Ctx, Symbol, Option[Ref], R, R) => R,
+    vector: (Ctx, Option[Ref], R) => R,
     atom: (Ctx, Atom) => R,
     cycle: Ctx => R
   ): R = foldImpl(hNil, hCons, cNil, cCons, vector, atom, cycle, Memo.valMemo, Path.empty)
 
   protected[core] def foldImpl[R](
     hNil: Ctx => R,
-    hCons: (Ctx, Symbol, Boolean, R, R) => R,
+    hCons: (Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
     cNil: Ctx => R,
-    cCons: (Ctx, Symbol, R, R) => R,
-    vector: (Ctx, R) => R,
+    cCons: (Ctx, Symbol, Option[Ref], R, R) => R,
+    vector: (Ctx, Option[Ref], R) => R,
     atom: (Ctx, Atom) => R,
     cycle: Ctx => R,
     memo: Memo,
@@ -104,10 +102,10 @@ sealed trait Model extends Serializable {
   final override def hashCode: Int = {
     val st = this.foldImpl[State[(Int, Int), Unit]](
       hNil = _ => hash.mix(hash.hNil),
-      hCons = (_, l, o, h, t) => hash.mix(o).flatMap(_ => hash.mixLht(l, h, t, hash.hCons)),
+      hCons = (_, l, o, r, h, t) => hash.mix(o) >> hash.mix(r.map(_.uuid)) >> hash.mixLht(l, h, t, hash.hCons),
       cNil = _ => hash.mix(hash.cNil),
-      cCons = (_, l, h, t) => hash.mixLht(l, h, t, hash.cCons),
-      vector = (_, e) => hash.mix(hash.vector).flatMap(_ => e),
+      cCons = (_, l, r, h, t) => hash.mix(r.map(_.uuid)) >> hash.mixLht(l, h, t, hash.cCons),
+      vector = (_, r, e) => hash.mix(hash.vector) >> hash.mix(r.map(_.uuid)) >> e,
       atom = (_, a) => hash.mix(a.atomHash),
       cycle = _ => State.pure(()),
       memo = Memo.valMemo,
@@ -166,10 +164,10 @@ sealed trait Model extends Serializable {
     }
     val st = this.foldC[StMapP](
         hNil = _ => State.pure(()),
-        hCons = (c, l, _, h, t) => compositePre("HCons", c, l, h, t),
+        hCons = (c, l, _, _, h, t) => compositePre("HCons", c, l, h, t),
         cNil = _ => State.pure(()),
-        cCons = (c, l, h, t) => compositePre("CCons", c, l, h, t),
-        vector = (c, e) => e,
+        cCons = (c, l, _, h, t) => compositePre("CCons", c, l, h, t),
+        vector = (c, _, e) => e,
         atom = (_, a) => State.pure(()),
         cycle = _ => State.pure(())
     )
@@ -180,10 +178,10 @@ sealed trait Model extends Serializable {
   private[this] lazy val allAtoms: Map[UUID, Atom] = {
     this.fold[Map[UUID, Atom]](
       hNil = () => Map.empty,
-      hCons = (_, _, h, t) => h ++ t,
+      hCons = (_, _, _, h, t) => h ++ t,
       cNil = () => Map.empty,
-      cCons = (_, h, t) => h ++ t,
-      vector = e => e,
+      cCons = (_, _, h, t) => h ++ t,
+      vector = (_, e) => e,
       atom = a => Map(a.uuid -> a),
       cycle = () => Map.empty
     )
@@ -204,9 +202,27 @@ object Model {
     def combine(r1: UUID, r2: UUID): UUID =
       NsUUID.uuid5nestedNs(r1, r2) // FIXME
 
+    def combine(r1: Option[Ref], r2: Ref): Some[Ref] =
+      Some(r1.fold(r2)(r1 => Ref(combine(r1.uuid, r2.uuid), r1.repr combine r2.repr)))
+
     implicit val atomCanBeRefined: CanBeRefined[Model.Atom] = new CanBeRefined[Model.Atom] {
       override def refine(m: Model.Atom, r: Refinement[_]) =
-        m.refined(r)
+        m.refined(r.semantics)
+    }
+
+    implicit val cConsCanBeRefined: CanBeRefined[Model.CCons] = new CanBeRefined[Model.CCons] {
+      override def refine(m: Model.CCons, r: Refinement[_]) =
+        m.refined(r.semantics)
+    }
+
+    implicit def hConsCanBeRefined[T <: Model.HList]: CanBeRefined[Model.HCons[T]] = new CanBeRefined[Model.HCons[T]] {
+      override def refine(m: Model.HCons[T], r: Refinement[_]) =
+        m.refined(r.semantics)
+    }
+
+    implicit val vectorCanBeRefined: CanBeRefined[Model.Vector] = new CanBeRefined[Model.Vector] {
+      override def refine(m: Model.Vector, r: Refinement[_]) =
+        m.refined(r.semantics)
     }
   }
 
@@ -219,8 +235,8 @@ object Model {
 
   private[core] type IdMemo = Memo.IdMemo[Model]
 
-  private[core] val unrefined: UUID =
-    uuid"fc967af9-4e24-4e2f-b687-b1ba7cf7e368"
+  private[core] type Ref = Refinement.Semantics
+  private[core] val Ref = Refinement.Semantics
 
   implicit val modelEquality: Eq[Model] =
     Eq.fromUniversalEquals[Model]
@@ -249,6 +265,9 @@ object Model {
 
     final def mix(b: Boolean): State[(Int, Int), Unit] =
       mix(if (b) `true` else `false`)
+
+    final def mix(r: Option[UUID]): State[(Int, Int), Unit] =
+      r.fold(State.pure[(Int, Int), Unit](()))(u => mix(u.##))
 
     final def mix(mix: Int): State[(Int, Int), Unit] = {
       for {
@@ -279,6 +298,8 @@ object Model {
 
   private sealed trait Desc {
     def withPostfix(postfix: String): Desc
+    def refined(r: Option[String => String]): Desc =
+      r.fold(this)(d => Desc.Mapped(this, d))
   }
 
   private object Desc {
@@ -316,6 +337,15 @@ object Model {
 
       override def withPostfix(postfix: String): Branch =
         this.copy(postfix = postfix)
+    }
+
+    final case class Mapped(d: Desc, f: String => String) extends Desc {
+
+      override def toString =
+        f(d.toString)
+
+      override def withPostfix(postfix: String): Mapped =
+        Mapped(d.withPostfix(postfix), f)
     }
   }
 
@@ -413,7 +443,6 @@ object Model {
   final case object HNil extends HList with Sentinel {
     def ::(h: (Symbol, Model)): HCons[HNil.type] =
       HCons(h._1, h._2, this)
-    private[core] final val uuid = unrefined
     protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       if (compat) {
         that match {
@@ -430,10 +459,10 @@ object Model {
     }
     protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
-      hCons: (Ctx, Symbol, Boolean, R, R) => R,
+      hCons: (Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
       cNil: Ctx => R,
-      cCons: (Ctx, Symbol, R, R) => R,
-      vector: (Ctx, R) => R,
+      cCons: (Ctx, Symbol, Option[Ref], R, R) => R,
+      vector: (Ctx, Option[Ref], R) => R,
       atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -446,10 +475,12 @@ object Model {
       val optional: Boolean,
       h0: () => Model,
       t0: () => T,
-      private[core] val uuid: UUID = unrefined
+      private[Model] val refinement: Option[Ref] = None
   ) extends Composite[Model, T](l, h0, t0) with HList {
     def ::(h: (Symbol, Model)): HCons[HCons[T]] =
       HCons(h._1, h._2, this)
+    private[Model] def refined(r: Ref): HCons[T] =
+      new HCons[T](l, optional, () => head, () => tail, CanBeRefined.combine(refinement, r))
     protected override def checkType(that: Model) = that match {
       case that: HCons[_] if this.optional === that.optional =>
         Some(that)
@@ -472,10 +503,10 @@ object Model {
     }
     protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
-      hCons: (Ctx, Symbol, Boolean, R, R) => R,
+      hCons: (Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
       cNil: Ctx => R,
-      cCons: (Ctx, Symbol, R, R) => R,
-      vector: (Ctx, R) => R,
+      cCons: (Ctx, Symbol, Option[Ref], R, R) => R,
+      vector: (Ctx, Option[Ref], R) => R,
       atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -489,6 +520,7 @@ object Model {
           Ctx(this, path :+ this.pathComp),
           label,
           optional,
+          refinement,
           head.foldImpl(
             hNil,
             hCons,
@@ -509,7 +541,8 @@ object Model {
             atom,
             cycle,
             newMemo,
-            path :+ this.pathComp :+ "tail")
+            path :+ this.pathComp :+ "tail"
+          )
         )
       }
     }
@@ -530,6 +563,8 @@ object Model {
       apply(label, false, h, t)
     private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, h: => Model, t: => T): HCons[T] =
       new HCons(label, optional, h _, t _)
+    private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, refinement: Option[Ref], h: => Model, t: => T): HCons[T] =
+      new HCons(label, optional, h _, t _)
   }
 
   sealed trait Coproduct extends Model
@@ -537,15 +572,14 @@ object Model {
   final case object CNil extends Coproduct with Sentinel {
     def :+:(h: (Symbol, Model)): CCons =
       CCons(h._1, h._2, this)
-    private[core] final val uuid = unrefined
     protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) =
       this eq that
     protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
-      hCons: (Ctx, Symbol, Boolean, R, R) => R,
+      hCons: (Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
       cNil: Ctx => R,
-      cCons: (Ctx, Symbol, R, R) => R,
-      vector: (Ctx, R) => R,
+      cCons: (Ctx, Symbol, Option[Ref], R, R) => R,
+      vector: (Ctx, Option[Ref], R) => R,
       atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -557,20 +591,22 @@ object Model {
       l: Symbol,
       h0: () => Model,
       t0: () => Coproduct,
-      private[core] val uuid: UUID = unrefined
+      private[core] val refinement: Option[Ref] = None
   ) extends Composite[Model, Coproduct](l, h0, t0) with Coproduct {
     def :+:(h: (Symbol, Model)): CCons =
       CCons(h._1, h._2, this)
+    private[Model] def refined(r: Ref): CCons =
+      new CCons(l, () => head, () => tail, CanBeRefined.combine(refinement, r))
     protected override def checkType(that: Model) = that match {
       case that: CCons => Some(that)
       case _ => None
     }
     protected[core] final override def foldImpl[R](
       hNil: Ctx => R,
-      hCons: (Ctx, Symbol, Boolean, R, R) => R,
+      hCons: (Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
       cNil: Ctx => R,
-      cCons: (Ctx, Symbol, R, R) => R,
-      vector: (Ctx, R) => R,
+      cCons: (Ctx, Symbol, Option[Ref], R, R) => R,
+      vector: (Ctx, Option[Ref], R) => R,
       atom: (Ctx, Atom) => R,
       cycle: Ctx => R,
       memo: Memo,
@@ -583,6 +619,7 @@ object Model {
         cCons(
           Ctx(this, path :+ this.pathComp),
           label,
+          refinement,
           head.foldImpl(
             hNil,
             hCons,
@@ -621,7 +658,7 @@ object Model {
       private[core] val atomDesc: String
   ) extends Model {
 
-    private[Model] def refined(r: Refinement[_]): Atom =
+    private[Model] def refined(r: Ref): Atom =
       new Atom(CanBeRefined.combine(uuid, r.uuid), r.desc(atomDesc))
 
     private[core] def atomHash: Int =
@@ -638,10 +675,10 @@ object Model {
 
     protected[core] final override def foldImpl[R](
       hNil: Model.Ctx => R,
-      hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
+      hCons: (Model.Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
       cNil: Model.Ctx => R,
-      cCons: (Model.Ctx, Symbol, R, R) => R,
-      vector: (Model.Ctx, R) => R,
+      cCons: (Model.Ctx, Symbol, Option[Ref], R, R) => R,
+      vector: (Model.Ctx, Option[Ref], R) => R,
       atom: (Model.Ctx, Atom) => R,
       cycle: Model.Ctx => R,
       memo: Model.Memo,
@@ -668,8 +705,11 @@ object Model {
       Eq.fromUniversalEquals
   }
 
-  final class Vector private (val elem: Model, private[core] val uuid: UUID = unrefined)
+  final class Vector private (val elem: Model, private[Model] val refinement: Option[Ref] = None)
       extends Model {
+
+    private[Model] def refined(r: Ref): Vector =
+      new Vector(elem, CanBeRefined.combine(refinement, r))
 
     def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
       case that: Vector =>
@@ -680,15 +720,16 @@ object Model {
 
     def foldImpl[R](
       hNil: Model.Ctx => R,
-      hCons: (Model.Ctx, Symbol, Boolean, R, R) => R,
+      hCons: (Model.Ctx, Symbol, Boolean, Option[Ref], R, R) => R,
       cNil: Model.Ctx => R,
-      cCons: (Model.Ctx, Symbol, R, R) => R,
-      vector: (Model.Ctx, R) => R,
+      cCons: (Model.Ctx, Symbol, Option[Ref], R, R) => R,
+      vector: (Model.Ctx, Option[Ref], R) => R,
       atom: (Model.Ctx, Atom) => R,
       cycle: Model.Ctx => R,
       memo: Model.Memo,
       path: Model.Path): R = vector(
       Model.Ctx(this, path :+ this.pathComp),
+      refinement,
       elem.foldImpl(
         hNil,
         hCons,

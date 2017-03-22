@@ -285,7 +285,7 @@ class ReifiedSpec extends BaseSpec {
       val r3 = r0.refined(new Refinement[Boolean] {
         override type Repr = Int
         override val uuid = uuid"c935143b-64fe-4c2b-8912-09af5a88c734"
-        override def desc(r: String) = s"Flag(${r})"
+        override def repr = Refinement.ReprFormat("Flag(", true, ")")
         override def from(i: Int) = i match {
           case 0 => Right(false)
           case 1 => Right(true)
