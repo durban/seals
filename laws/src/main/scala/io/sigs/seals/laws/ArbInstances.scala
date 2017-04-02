@@ -21,10 +21,14 @@ import java.util.UUID
 
 import shapeless._
 
+import cats.implicits._
+
 import scodec.bits.{ ByteVector, BitVector }
 
 import org.scalacheck.{ Arbitrary, Gen, Cogen }
 import org.scalacheck.derive.Recursive
+
+import core.Refinement.{ Semantics, ReprFormat }
 
 object ArbInstances extends ArbInstances
 
@@ -106,45 +110,73 @@ trait ArbInstances {
   implicit def cogenEnumLike[A](implicit enu: core.EnumLike[A]): Cogen[A] =
     Cogen[Int].contramap(a => enu.index(a))
 
+  implicit def arbSemantics(implicit uid: Arbitrary[UUID]): Arbitrary[Semantics] = Arbitrary {
+    uid.arbitrary.map(id => Semantics(id, ReprFormat("(", true, sh"){${id}}")))
+  }
+
+  implicit def arbRefineForModel(implicit arbSem: Arbitrary[Semantics]): Arbitrary[Option[Semantics]] = Arbitrary {
+    for {
+      rnd <- Gen.choose(0, 3)
+      refine = if (rnd === 0) true else false
+      refinement <- if (refine) {
+        arbSem.arbitrary.map(Some(_))
+      } else {
+        Gen.const(None)
+      }
+    } yield refinement
+  }
+
   implicit def arbModelHlist(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HList] = Arbitrary {
-    Gen.oneOf(arbModelHnil.arbitrary, Gen.lzy(arbModelHcons(arbM).arbitrary))
+    Gen.oneOf(arbModelHnil.arbitrary, Gen.lzy(arbModelHcons.arbitrary))
   }
 
   implicit def arbModelHnil: Arbitrary[Model.HNil.type] = Arbitrary {
     Arbitrary.arbUnit.arbitrary.map(_ => Model.HNil)
   }
 
-  implicit def arbModelHcons(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.HCons[_]] = Arbitrary {
+  implicit def arbModelHcons(implicit arbM: Lazy[Arbitrary[Model]], arbRef: Arbitrary[Option[Semantics]]): Arbitrary[Model.HCons[_]] = Arbitrary {
     for {
       sym <- Gen.alphaStr
       opt <- Gen.oneOf(true, false)
       h <- Gen.lzy(arbM.value.arbitrary)
       t <- Gen.lzy(arbModelHlist(arbM).arbitrary)
-    } yield Model.HCons(Symbol(sym), opt, h, t)
+      refinement <- arbRef.arbitrary
+    } yield Model.HCons(Symbol(sym), opt, refinement, h, t)
   }
 
   implicit def arbModelCoproduct(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.Coproduct] = Arbitrary {
-    Gen.oneOf(arbModelCnil.arbitrary, Gen.lzy(arbModelCcons(arbM).arbitrary))
+    Gen.oneOf(arbModelCnil.arbitrary, Gen.lzy(arbModelCcons.arbitrary))
   }
 
   implicit def arbModelCnil: Arbitrary[Model.CNil.type] = Arbitrary {
     Arbitrary.arbUnit.arbitrary.map(_ => Model.CNil)
   }
 
-  implicit def arbModelCcons(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.CCons] = Arbitrary {
+  implicit def arbModelCcons(implicit arbM: Lazy[Arbitrary[Model]], arbRef: Arbitrary[Option[Semantics]]): Arbitrary[Model.CCons] = Arbitrary {
     for {
       sym <- Gen.alphaStr
       h <- Gen.lzy(arbM.value.arbitrary)
       t <- Gen.lzy(arbModelCoproduct(arbM).arbitrary)
-    } yield Model.CCons(Symbol(sym), h, t)
+      refinement <- arbRef.arbitrary
+    } yield Model.CCons(Symbol(sym), refinement, h, t)
   }
 
-  implicit def arbModelVector(implicit arbM: Lazy[Arbitrary[Model]]): Arbitrary[Model.Vector] = Arbitrary {
-    Gen.lzy(arbM.value.arbitrary).map(e => Model.Vector(e))
+  implicit def arbModelVector(implicit arbM: Lazy[Arbitrary[Model]], arbRef: Arbitrary[Option[Semantics]]): Arbitrary[Model.Vector] = Arbitrary {
+    for {
+      e <- Gen.lzy(arbM.value.arbitrary)
+      refinement <- arbRef.arbitrary
+    } yield Model.Vector(e, refinement)
   }
 
-  implicit def arbModelAtom: Arbitrary[Model.Atom] = Arbitrary {
+  def unrefinedArbModelAtom: Arbitrary[Model.Atom] = Arbitrary {
     Gen.oneOf(core.Atomic.registry.values.toSeq)
+  }
+
+  implicit def arbModelAtom(implicit arbRef: Arbitrary[Option[Semantics]]): Arbitrary[Model.Atom] = Arbitrary {
+    for {
+      a <- this.unrefinedArbModelAtom.arbitrary
+      ref <- arbRef.arbitrary
+    } yield ref.fold(a)(r => Model.CanBeRefined.atomCanBeRefined.refine(a, r))
   }
 
   implicit def recModel: Recursive[Model] =

@@ -19,7 +19,7 @@ package core
 
 import java.util.UUID
 
-import cats.Show
+import cats.{ Eq, Show }
 import cats.implicits._
 
 import _root_.scodec.bits.ByteVector
@@ -33,7 +33,7 @@ trait Refinement[A] extends Serializable {
   def uuid: UUID
 
   def repr: ReprFormat =
-    ReprFormat("", true, "{?}")
+    ReprFormat("(", true, "){?}")
 
   final def semantics: Semantics =
     Semantics(uuid, repr)
@@ -111,6 +111,19 @@ object Refinement {
     import java.io.ByteArrayOutputStream
     import java.nio.charset.StandardCharsets.UTF_8
 
+    def greater[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
+      val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
+      Semantics((root / gt / repr).uuid, ReprFormat(sh"${than} < ", true, ""))
+    }
+
+    def less[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
+      val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
+      Semantics((root / lt / repr).uuid, ReprFormat("", true, sh" < ${than}"))
+    }
+
+    implicit val eqForSemantics: Eq[Semantics] =
+      Eq.fromUniversalEquals
+
     private[this] final class FoldBytes extends Reified.Folder[ByteArrayOutputStream, ByteArrayOutputStream] {
 
       private[this] val buf = new ByteArrayOutputStream
@@ -149,16 +162,6 @@ object Refinement {
         buf.write(0x03)
         buf
       }
-    }
-
-    def greater[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
-      val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
-      Semantics((root / gt / repr).uuid, ReprFormat("", true, sh" > ${than}"))
-    }
-
-    def less[A: Show](than: A)(implicit A: Reified[A]): Semantics = {
-      val repr = ByteVector.view(A.foldClose(than)(new FoldBytes).toByteArray())
-      Semantics((root / lt / repr).uuid, ReprFormat("", true, sh" < ${than}"))
     }
   }
 

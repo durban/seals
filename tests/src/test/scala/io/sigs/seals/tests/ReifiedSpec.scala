@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import shapeless.test.typed
 import scodec.bits._
 
 import core.Refinement
-import laws.{ TestInstances, TestTypes }
+import laws.{ CanonicalRepr, TestInstances, TestTypes }
 
 class ReifiedSpec extends BaseSpec {
 
@@ -206,6 +206,30 @@ class ReifiedSpec extends BaseSpec {
         inst.model should === (StrList.expModel)
       }
     }
+
+    "for Model" - {
+
+      val r = Reified[Model]
+      val m = 'i -> Model.Atom.atom[Int] :: 's -> Model.Atom.atom[String] :: Model.HNil
+
+      "sanity check" in {
+        r shouldBe theSameInstanceAs (Model.reifiedForModel)
+      }
+
+      "simple" in {
+        val m2 = CanonicalRepr.roundtrip(m : Model)(r)
+        m2 should === (m)
+      }
+
+      "refined" in {
+        val mr = Model.CanBeRefined.hConsCanBeRefined.refine(
+          m,
+          Refinement.Semantics(uuid"4e9fe812-d609-4c81-a633-9f1b92c25d55", Refinement.ReprFormat.single("X"))
+        )
+        val mr2 = CanonicalRepr.roundtrip(mr : Model)(r)
+        mr2 should === (mr)
+      }
+    }
   }
 
   "Reified.toString" - {
@@ -248,8 +272,11 @@ class ReifiedSpec extends BaseSpec {
     "Atoms" in {
       val int = Reified[Int]
       val r1 = int.refined(Refinement.enum[MyTestEnumWithArgs]) // 2 elements
+      r1.toString should === ("Reified[0 ≤ Int ≤ 1]")
       val r2 = int.refined(Refinement.enum[MyTestEnumWithToString]) // 2 elements
+      r2.toString should === ("Reified[0 ≤ Int ≤ 1]")
       val r3 = int.refined(Refinement.enum[MyTestEnum]) // 3 elements
+      r3.toString should === ("Reified[0 ≤ Int ≤ 2]")
       assert(!int.model.compatible(r1.model))
       assert(!int.model.compatible(r2.model))
       assert(!int.model.compatible(r3.model))
@@ -268,6 +295,7 @@ class ReifiedSpec extends BaseSpec {
       val r0 = Reified[Int]
       val r1 = r0.refined(Refinement.enum[MyTestEnum]) // 3 elements
       val r2 = r1.refined(ReifiedSpec.refineEnumToBool)
+      r2.toString should === ("Reified[(0 ≤ Int ≤ 2){?}]")
       // sanity-check types:
       locally { r1 : Reified[MyTestEnum] }
       locally { r2 : Reified[Boolean] }
@@ -303,14 +331,18 @@ class ReifiedSpec extends BaseSpec {
         else Left("out of range")
       } { i => i }
       r1.model.compatible(r0.model) should === (false)
-      r1.toString should === ("Reified[Int{?}]")
+      r1.toString should === ("Reified[(Int){?}]")
     }
 
     "shapeless.Nat" in {
       val r0 = Reified[Nat._0]
+      r0.toString should === ("Reified[shapeless.Nat(0)]")
       val r2a = Reified[Nat._2]
+      r2a.toString should === ("Reified[shapeless.Nat(2)]")
       val r2b = Reified[Succ[Nat._1]]
+      r2b.toString should === ("Reified[shapeless.Nat(2)]")
       val r9 = Reified[Nat._9]
+      r9.toString should === ("Reified[shapeless.Nat(9)]")
       checkNotEqHashCompat(r0.model, Reified[Int].model)
       checkNotEqHashCompat(r0.model, r2a.model)
       checkNotEqHashCompat(r0.model, r2b.model)

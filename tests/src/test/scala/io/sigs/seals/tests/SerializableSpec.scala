@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,11 @@ package io.sigs.seals
 package tests
 
 import java.util.UUID
+import java.time.DayOfWeek
 
+import cats.implicits._
+
+import core.Refinement
 import laws.{ TestInstances, TestTypes, MyUUID }
 
 // TODO: check serial version IDs
@@ -58,7 +62,7 @@ class SerializableSpec extends BaseSpec {
     }
 
     "Vector should be serializable" in {
-      checkSer('x -> Model.Vector(atom[String]))
+      checkSer[Model](Model.Vector(atom[String]))
       checkSer(Reified[TestTypes.collections.Cyclic].model)
     }
 
@@ -92,6 +96,18 @@ class SerializableSpec extends BaseSpec {
 
     "CanBeRefined" in {
       roundtripSer(Model.CanBeRefined[Model.Atom])
+      roundtripSer(Model.CanBeRefined[Model.HCons[Model.HList]])
+      roundtripSer(Model.CanBeRefined[Model.HCons[Model.HNil.type]])
+      roundtripSer(Model.CanBeRefined[Model.HCons[Model.HCons[Model.HNil.type]]])
+      roundtripSer(Model.CanBeRefined[Model.CCons])
+      roundtripSer(Model.CanBeRefined[Model.Vector])
+    }
+
+    "Refined models" in {
+      checkSer(Model.CanBeRefined.atomCanBeRefined.refine(atom[Int], Refinement.enum[DayOfWeek].semantics))
+      checkSer(Model.CanBeRefined.hConsCanBeRefined.refine('i -> atom[Int] :: Model.HNil, Refinement.enum[DayOfWeek].semantics))
+      checkSer(Model.CanBeRefined.cConsCanBeRefined.refine('i -> atom[Int] :+: Model.CNil, Refinement.enum[DayOfWeek].semantics))
+      checkSer(Model.CanBeRefined.vectorCanBeRefined.refine(Model.Vector(atom[String]), Refinement.enum[DayOfWeek].semantics))
     }
   }
 
@@ -121,6 +137,10 @@ class SerializableSpec extends BaseSpec {
         roundtripSer(Reified[NonSerializableDefault])
       }
     }
+
+    "Refined instances" in {
+      roundtripSer(Reified[Int].refined(Refinement.enum[DayOfWeek]))
+    }
   }
 
   "Atomic" - {
@@ -137,8 +157,20 @@ class SerializableSpec extends BaseSpec {
   }
 
   "Refinement" - {
+
     "enum" in {
-      checkSer(core.Refinement.enum[java.time.Month])
+      checkSer(Refinement.enum[java.time.Month])
+    }
+
+    "Semantics" in {
+      checkSer(Refinement.Semantics.greater[Int](5))
+      checkSer(Refinement.Semantics.less[Int](5))
+      checkSer(Refinement.Semantics(uuid"640791b5-4b33-4d0b-98a8-40a758dcf3c1", Refinement.ReprFormat.single("foo")))
+    }
+
+    "ReprFormat" in {
+      checkSer(Refinement.ReprFormat.single("xyz"))
+      checkSer(Refinement.ReprFormat("xyz", true, "pqr"))
     }
   }
 

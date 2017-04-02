@@ -22,6 +22,7 @@ import cats.implicits._
 import io.circe._
 import io.circe.syntax._
 
+import core.Refinement
 import laws.MyUUID
 import laws.TestInstances
 import laws.TestTypes
@@ -31,7 +32,21 @@ import Codecs._
 object ModelCodecSpec {
 
   sealed trait Adt
+
   final case class C(i: Int, s: String) extends Adt
+  object C {
+    val refinement: Refinement.Aux[C, C] = new Refinement[C] {
+      override type Repr = C
+      override val uuid = uuid"52dbf550-fe9f-49a4-9ce3-519005b9ad5f"
+      override val repr = Refinement.ReprFormat("α", true, "ω")
+      override def from(c: C): Either[String, C] = {
+        if (c.s === c.i.toString) Right(c)
+        else Left("`s` is invalid")
+      }
+      override def to(c: C): C = c
+    }
+  }
+
   final case object D extends Adt
 
   sealed trait CyAdt
@@ -93,6 +108,7 @@ class ModelCodecSpec extends BaseJsonSpec {
   val a1 = Reified[Int].model
   val a2 = Reified[String].model
   val m1 = Reified[C].model
+  val m1r = Reified[C].refined(C.refinement).model
   val m2 = Reified[Adt].model
   val cy1 = Reified[CyAdt].model
   val cy2 = Reified[Z].model
@@ -142,6 +158,40 @@ class ModelCodecSpec extends BaseJsonSpec {
       "label" -> Json.fromString("i"),
       "id" -> Json.fromString("1"),
       "optional" -> jfalse
+    )
+  )
+
+  // α('i -> Int :: 's -> String :: HNil)ω
+  val m1rJson = Json.obj(
+    "HCons" -> Json.obj(
+      "id" -> Json.fromString("1"),
+      "label" -> Json.fromString("i"),
+      "optional" -> jfalse,
+      "refinement" -> Json.obj(
+        "Some" -> Json.obj(
+          "value" -> Json.obj(
+            "uuid" -> Json.fromString(C.refinement.uuid.toString),
+            "repr" -> Json.obj(
+              "pre" -> Json.fromString("α"),
+              "mid" -> Json.fromString("true"),
+              "post" -> Json.fromString("ω")
+            )
+          )
+        )
+      ),
+      "head" -> atom[Int],
+      "tail" -> Json.obj(
+        "HCons" -> Json.obj(
+          "id" -> Json.fromString("0"),
+          "label" -> Json.fromString("s"),
+          "optional" -> jfalse,
+          "refinement" -> jNone,
+          "head" -> atom[String],
+          "tail" -> Json.obj(
+            "HNil" -> Json.obj()
+          )
+        )
+      )
     )
   )
 
@@ -274,6 +324,10 @@ class ModelCodecSpec extends BaseJsonSpec {
     "optional fields" in {
       optMod.asJson should === (optJson)
     }
+
+    "refined models" in {
+      m1r.asJson should === (m1rJson)
+    }
   }
 
   "Decoding" - {
@@ -304,6 +358,10 @@ class ModelCodecSpec extends BaseJsonSpec {
     "optional fields" in {
       optJson.as[Model] should === (Either.right(optMod))
       optJsonOmitted.as[Model] should === (Either.right(optMod2))
+    }
+
+    "refined models" in {
+      m1rJson.as[Model] should === (Either.right(m1r))
     }
 
     "invalid data" - {

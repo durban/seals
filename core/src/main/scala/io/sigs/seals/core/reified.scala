@@ -99,7 +99,7 @@ sealed trait Reified[A] extends Serializable { self =>
     override type Fold[C, T] = self.Fold[C, T]
 
     override private[core] def modelComponent: Mod =
-      ev.refine(self.modelComponent, r)
+      ev.refine(self.modelComponent, r.semantics)
 
     override def fold[C, T](b: B)(f: Folder[C, T]): Fold[C, T] =
       self.fold[C, T](r.to(b))(f)

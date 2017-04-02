@@ -165,7 +165,7 @@ private object ModelRepr extends ModelReprBase {
     protected override val desc = "CCons"
 
     protected override def build(h: Eval[Model], t: Eval[Model.Coproduct]): Model.CCons =
-      Model.CCons(label, h.value, t.value)
+      Model.CCons(label, refinement, h.value, t.value)
 
     protected override def decTail(tr: SumRepr): DecSt[Model.Coproduct] =
       tr.toSumSt
@@ -176,7 +176,7 @@ private object ModelRepr extends ModelReprBase {
 
   final case class Vector(refinement: Option[Model.Ref] = None, elems: ModelRepr) extends ModelRepr {
     protected override def toModelSt: DecSt[Model] =
-      elems.toModelSt.map(Model.Vector(_))
+      elems.toModelSt.map(els => Model.Vector(els, refinement))
   }
 
   final case class Atom(id: UUID, desc: String) extends ModelRepr {

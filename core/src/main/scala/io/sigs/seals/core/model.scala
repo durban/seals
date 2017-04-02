@@ -191,7 +191,7 @@ sealed trait Model extends Serializable {
 object Model {
 
   sealed trait CanBeRefined[M <: Model] extends Serializable {
-    def refine(m: M, r: Refinement[_]): M
+    def refine(m: M, r: Refinement.Semantics): M
   }
 
   object CanBeRefined {
@@ -206,23 +206,23 @@ object Model {
       Some(r1.fold(r2)(r1 => Ref(combine(r1.uuid, r2.uuid), r1.repr combine r2.repr)))
 
     implicit val atomCanBeRefined: CanBeRefined[Model.Atom] = new CanBeRefined[Model.Atom] {
-      override def refine(m: Model.Atom, r: Refinement[_]) =
-        m.refined(r.semantics)
+      override def refine(m: Model.Atom, r: Refinement.Semantics) =
+        m.refined(r)
     }
 
     implicit val cConsCanBeRefined: CanBeRefined[Model.CCons] = new CanBeRefined[Model.CCons] {
-      override def refine(m: Model.CCons, r: Refinement[_]) =
-        m.refined(r.semantics)
+      override def refine(m: Model.CCons, r: Refinement.Semantics) =
+        m.refined(r)
     }
 
     implicit def hConsCanBeRefined[T <: Model.HList]: CanBeRefined[Model.HCons[T]] = new CanBeRefined[Model.HCons[T]] {
-      override def refine(m: Model.HCons[T], r: Refinement[_]) =
-        m.refined(r.semantics)
+      override def refine(m: Model.HCons[T], r: Refinement.Semantics) =
+        m.refined(r)
     }
 
     implicit val vectorCanBeRefined: CanBeRefined[Model.Vector] = new CanBeRefined[Model.Vector] {
-      override def refine(m: Model.Vector, r: Refinement[_]) =
-        m.refined(r.semantics)
+      override def refine(m: Model.Vector, r: Refinement.Semantics) =
+        m.refined(r)
     }
   }
 
@@ -298,8 +298,9 @@ object Model {
 
   private sealed trait Desc {
     def withPostfix(postfix: String): Desc
+    def map(f: String => String): Desc
     def refined(r: Option[String => String]): Desc =
-      r.fold(this)(d => Desc.Mapped(this, d))
+      r.fold(this)(d => this.map(d))
   }
 
   private object Desc {
@@ -310,6 +311,7 @@ object Model {
     final case class Leaf(label: String, postfix: String = "") extends Desc {
       override def toString = label + postfix
       override def withPostfix(postfix: String): Leaf = this.copy(postfix = postfix)
+      override def map(f: String => String): Desc = Mapped(this, f)
     }
 
     final case class Branch(
@@ -323,7 +325,7 @@ object Model {
 
       override def toString = {
         val repr = h match {
-          case Branch(_, _, _, _, _, _) =>
+          case Branch(_, _, _, _, _, _) | Mapped(Branch(_, _, _, _, _, _), _) =>
             sh"${l} -> (${h}${headPostfix}) ${label} ${t}"
           case _ =>
             sh"${l} -> ${h}${headPostfix} ${label} ${t}"
@@ -337,6 +339,9 @@ object Model {
 
       override def withPostfix(postfix: String): Branch =
         this.copy(postfix = postfix)
+
+      override def map(f: String => String): Desc =
+        Mapped(this, r => f(sh"(${r})"))
     }
 
     final case class Mapped(d: Desc, f: String => String) extends Desc {
@@ -345,7 +350,10 @@ object Model {
         f(d.toString)
 
       override def withPostfix(postfix: String): Mapped =
-        Mapped(d.withPostfix(postfix), f)
+        Mapped(d, r => sh"(${f(r)})${postfix}")
+
+      override def map(g: String => String): Desc =
+        Mapped(d, r => g(sh"(${f(r)})"))
     }
   }
 
@@ -371,12 +379,13 @@ object Model {
       res
     }
     protected def checkType(that: Model): Option[Composite[Model, Model]]
+    private[Model] def refinement: Option[Ref]
     protected[core] override def compEq(that: Model, compat: Boolean, memo: IdMemo) = {
       this.checkType(that).map { that =>
         if (memo contains that) {
           true
         } else {
-          if (this.label === that.label) {
+          if ((this.label === that.label) && (this.refinement === that.refinement)) {
             val newMemo = memo + that
             this.head.compEq(that.head, compat, newMemo) &&
             this.tail.compEq(that.tail, compat, newMemo)
@@ -475,7 +484,7 @@ object Model {
       val optional: Boolean,
       h0: () => Model,
       t0: () => T,
-      private[Model] val refinement: Option[Ref] = None
+      private[Model] val refinement: Option[Ref]
   ) extends Composite[Model, T](l, h0, t0) with HList {
     def ::(h: (Symbol, Model)): HCons[HCons[T]] =
       HCons(h._1, h._2, this)
@@ -560,11 +569,11 @@ object Model {
   object HCons {
     private[core] val pathComp = "HCons"
     private[seals] def apply[T <: HList](label: Symbol, h: => Model, t: => T): HCons[T] =
-      apply(label, false, h, t)
+      apply(label, false, None, h, t)
     private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, h: => Model, t: => T): HCons[T] =
-      new HCons(label, optional, h _, t _)
+      apply(label, optional, None, h, t)
     private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, refinement: Option[Ref], h: => Model, t: => T): HCons[T] =
-      new HCons(label, optional, h _, t _)
+      new HCons(label, optional, h _, t _, refinement)
   }
 
   sealed trait Coproduct extends Model
@@ -591,7 +600,7 @@ object Model {
       l: Symbol,
       h0: () => Model,
       t0: () => Coproduct,
-      private[core] val refinement: Option[Ref] = None
+      private[core] val refinement: Option[Ref]
   ) extends Composite[Model, Coproduct](l, h0, t0) with Coproduct {
     def :+:(h: (Symbol, Model)): CCons =
       CCons(h._1, h._2, this)
@@ -650,7 +659,9 @@ object Model {
   object CCons {
     private[core] val pathComp = "CCons"
     private[seals] def apply(label: Symbol, h: => Model, t: => Coproduct): CCons =
-      new CCons(label, h _, t _)
+      apply(label, None, h, t)
+    private[seals] def apply(label: Symbol, refinement: Option[Ref], h: => Model, t: => Coproduct): CCons =
+      new CCons(label, h _, t _, refinement)
   }
 
   final class Atom private (
@@ -713,7 +724,7 @@ object Model {
 
     def compEq(that: Model, compat: Boolean, memo: Model.IdMemo): Boolean = that match {
       case that: Vector =>
-        this.elem.compEq(that.elem, compat, memo)
+        (this.refinement === that.refinement) && this.elem.compEq(that.elem, compat, memo)
       case _ =>
         false
     }
@@ -745,7 +756,7 @@ object Model {
   }
 
   object Vector {
-    def apply(elem: Model): Vector =
-      new Vector(elem)
+    def apply(elem: Model, ref: Option[Ref] = None): Vector =
+      new Vector(elem, ref)
   }
 }

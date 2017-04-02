@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,14 @@
 package io.sigs.seals
 package tests
 
+import java.util.UUID
 import java.time.{ Month, DayOfWeek }
 
 import scala.util.hashing.MurmurHash3
 
 import shapeless.test.illTyped
+
+import cats.implicits._
 
 import core.Refinement
 import laws.MyUUID
@@ -44,38 +47,62 @@ class ModelSpec extends BaseSpec {
   val ac = atom[MyUUID]
   val refinedAtom1 = Model.CanBeRefined[Model.Atom].refine(
     a1a,
-    Refinement.enum[Month]
+    Refinement.enum[Month].semantics
   )
   val refinedAtom1b = Model.CanBeRefined[Model.Atom].refine(
     a1b,
-    Refinement.enum[Month]
+    Refinement.enum[Month].semantics
   )
   val refinedAtom2 = Model.CanBeRefined[Model.Atom].refine(
     a1a,
-    Refinement.enum[DayOfWeek]
+    Refinement.enum[DayOfWeek].semantics
   )
+
+  val r1: Refinement[_] = new Refinement[Any] {
+    override type Repr = Any
+    override def from(a: Repr): Either[String, Any] = Right(a)
+    override def to(a: Any): Repr = a
+    override def uuid: UUID = uuid"f49fef81-56a1-4dc8-8eec-a51c1f1d114c"
+    override def repr = Refinement.ReprFormat("", true, " > x")
+  }
+
+  val r1b: Refinement[_] = new Refinement[Any] {
+    override type Repr = Any
+    override def from(a: Repr): Either[String, Any] = Right(a)
+    override def to(a: Any): Repr = a
+    override def uuid: UUID = r1.uuid
+    override def repr = Refinement.ReprFormat("", true, " > xx")
+  }
 
   val p1a = l -> a2 :: m -> a1b :: Model.HNil
   val p1b = l -> atom[String] :: m -> a1a :: Model.HNil
+  val p1r = Model.CanBeRefined.hConsCanBeRefined.refine(p1a, r1.semantics)
   val p2 = n -> a1a :: p -> a1b :: Model.HNil
   val p2plus = n -> a1a :: p -> a1b :: Model.HCons('x, optional = true, a2, Model.HNil)
+  val p2plusR = Model.CanBeRefined.hConsCanBeRefined.refine(p2plus, r1.semantics)
   val p3 = p -> a2 :: q -> a2 :: r -> a1a :: Model.HNil
   val p3o = p -> a2 :: q -> a2 :: Model.HCons(r, optional = true, a1a, Model.HNil)
   val p3oMinus = p -> a2 :: q -> a2 :: Model.HNil
 
   val c1a = l -> ac :+: m -> a2 :+: n -> a2 :+: Model.CNil
   val c1b = Model.CCons(l, ac, c1a.tail)
+  val c1r = Model.CanBeRefined.cConsCanBeRefined.refine(c1a, r1.semantics)
   val c2 = Model.CCons(p, a2, c1a.tail)
   val c3 = p -> a2 :+: q -> a1a :+: r -> a2 :+: Model.CNil
 
   val pc1a = l -> p1a :+: m -> p2 :+: n -> c1a :+: Model.CNil
   val pc1b = l -> p1b :+: m -> p2 :+: n -> c1b :+: Model.CNil
+  val pc1r = Model.CanBeRefined.cConsCanBeRefined.refine(pc1a, r1.semantics)
+  val pc1rb = Model.CanBeRefined.cConsCanBeRefined.refine(pc1a, r1b.semantics)
+  val pc1rr = Model.CanBeRefined.cConsCanBeRefined.refine(l -> p1r :+: m -> p2 :+: n -> c1r :+: Model.CNil, r1.semantics)
   val pc2a = p -> c1a :: Model.HNil
   val pc2b = p -> c1b :: Model.HNil
 
   val k1a = Model.Vector(a1a)
   val k1b = Model.Vector(a1b)
   val k2a = Model.Vector(pc1a)
+  val k2r = Model.CanBeRefined.vectorCanBeRefined.refine(k2a, r1.semantics)
+  val k2rr = Model.CanBeRefined.vectorCanBeRefined.refine(Model.Vector(pc1rr), r1.semantics)
   val k2b = Model.Vector(pc1b)
   val k3a = 'x -> Model.Vector(p3o) :: Model.HNil
   val k3aMinus = 'x -> Model.Vector(p3oMinus) :: Model.HNil
@@ -142,11 +169,15 @@ class ModelSpec extends BaseSpec {
       checkEqHashCompat(p2, p2)
       checkEqHashCompat(p3, p3)
       checkEqHashCompat(p3o, p3o)
+      checkNotEqHashCompat(p1a, p1r)
       checkNotEqHashCompat(p2, p1a)
       checkNotEqHashCompat(p2, p1b)
+      checkNotEqHashCompat(p2, p1r)
       checkNotEqHashCompat(p2, p3)
       checkNotEqHashCompat(p2, p3o)
       checkNotEqHash(p2, p2plus)
+      checkNotEqHash(p2, p2plusR)
+      checkNotEqHash(p2plus, p2plusR)
       checkNotEqHashCompat(p1a, p2)
       checkNotEqHashCompat(p1a, p3)
       checkNotEqHashCompat(p1a, p3o)
@@ -166,6 +197,7 @@ class ModelSpec extends BaseSpec {
       checkEqHashCompat(c1a, c1b)
       checkEqHashCompat(c2, c2)
       checkEqHashCompat(c3, c3)
+      checkNotEqHashCompat(c1a, c1r)
       checkNotEqHashCompat(c1a, c2)
       checkNotEqHashCompat(c1a, c3)
       checkNotEqHashCompat(c1b, c2)
@@ -179,16 +211,20 @@ class ModelSpec extends BaseSpec {
     }
 
     "sum and product" in {
-      for (p <- Seq(p1a, p1b, p2, p3, p3o)) {
-        for (c <- Seq(c1a, c1b, c2, c3)) {
+      for (p <- Seq(p1a, p1b, p1r, p2, p3, p3o)) {
+        for (c <- Seq(c1a, c1b, c1r, c2, c3)) {
           checkNotEqHashCompat(p, c)
         }
       }
 
       checkEqHashCompat(pc1a, pc1a)
       checkEqHashCompat(pc1a, pc1b)
+      checkEqHashCompat(pc1r, pc1rb)
       checkNotEqHashCompat(pc1a, pc2a)
       checkNotEqHashCompat(pc1a, pc2b)
+      checkNotEqHashCompat(pc1a, pc1r)
+      checkNotEqHashCompat(pc1a, pc1rr)
+      checkNotEqHashCompat(pc1r, pc1rr)
       checkEqHashCompat(pc1b, pc1b)
       checkEqHashCompat(pc1b, pc1a)
       checkNotEqHashCompat(pc1b, pc2a)
@@ -208,10 +244,15 @@ class ModelSpec extends BaseSpec {
       checkEqHashCompat(k1a, k1b)
       checkEqHashCompat(k2a, k2a)
       checkEqHashCompat(k2a, k2b)
+      checkNotEqHashCompat(k2a, k2r)
+      checkNotEqHashCompat(k2a, k2rr)
+      checkNotEqHashCompat(k2r, k2rr)
       checkNotEqHashCompat(k1a, k2a)
       checkNotEqHashCompat(k2a, k1a)
       checkNotEqHashCompat(k1a, a1a)
       checkNotEqHashCompat(k2a, pc1a)
+      checkNotEqHashCompat(k2a, pc1r)
+      checkNotEqHashCompat(k2a, pc1rr)
     }
 
     "cyclic model" in {
@@ -278,12 +319,15 @@ class ModelSpec extends BaseSpec {
       checkNotEqHashCompat(a1a, refinedAtom1)
       checkNotEqHashCompat(a1a, refinedAtom2)
       checkNotEqHashCompat(refinedAtom1, refinedAtom2)
+      checkNotEqHashCompat(pc1a, pc1r)
+      checkEqHashCompat(pc1r, pc1rb)
       checkEqHashCompat(refinedAtom1, refinedAtom1b)
     }
   }
 
   "compatible" in {
     checkCompatible(p2, p2plus)
+    checkNotEqHashCompat(p2plus, p2plusR)
     checkCompatible(p3o, p3oMinus)
     checkCompatible(k3a, k3aMinus)
   }
@@ -291,14 +335,25 @@ class ModelSpec extends BaseSpec {
   "toString/desc" in {
     p1a.desc should === ("'l -> String :: 'm -> Int :: HNil")
     p1a.toString should === ("Model['l -> String :: 'm -> Int :: HNil]")
+    p1r.desc should === ("('l -> String :: 'm -> Int :: HNil) > x")
 
     c1a.desc should === ("'l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil")
+    c1r.desc should === ("('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) > x")
 
     val pc1aExp =
       "'l -> ('l -> String :: 'm -> Int :: HNil) :+: " +
       "'m -> ('n -> Int :: 'p -> Int :: HNil) :+: " +
       "'n -> ('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) :+: CNil"
     pc1a.desc should === (pc1aExp)
+
+    val pc1rExp = sh"(${pc1aExp}) > x"
+    pc1r.desc should === (pc1rExp)
+
+    val pc1rrExp =
+      "('l -> (('l -> String :: 'm -> Int :: HNil) > x) :+: " +
+      "'m -> ('n -> Int :: 'p -> Int :: HNil) :+: " +
+      "'n -> (('l -> MyUUID :+: 'm -> String :+: 'n -> String :+: CNil) > x) :+: CNil) > x"
+    pc1rr.desc should === (pc1rrExp)
 
     cy1a.desc should === (
       "'l -> ('p -> String :: HNil) :+: 'm -> ('q -> <...> :: 'r -> String :: HNil) :+: CNil"
@@ -311,7 +366,9 @@ class ModelSpec extends BaseSpec {
     (('p, ac) :: Model.HNil).desc should === ("'p -> MyUUID :: HNil")
 
     k1a.desc should === ("Int*")
-    k2a.desc should === (s"(${pc1aExp})*")
+    k2a.desc should === (sh"(${pc1aExp})*")
+    k2r.desc should === (sh"(${k2a.desc}) > x")
+    k2rr.desc should === (sh"((${pc1rr.desc})*) > x")
 
     refinedAtom1.desc should === ("0 ≤ Int ≤ 11")
     refinedAtom1.toString should === ("Model[0 ≤ Int ≤ 11]")
@@ -322,6 +379,7 @@ class ModelSpec extends BaseSpec {
     assert(e.eqv(atom[String], a2))
     assert(e.eqv(atom[MyUUID], ac))
     assert(e.eqv(k1a, k1b))
+    assert(!e.eqv(k2a, k2r))
   }
 
   "illegal structures" in {

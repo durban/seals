@@ -97,6 +97,55 @@ class RefinementSpec extends BaseSpec {
       checkNotEqHash(tricky1, tricky2)
     }
   }
+
+  "Refinement.ReprFormat" - {
+
+    import Refinement.ReprFormat
+
+    "ctor" in {
+      val rf1 = ReprFormat("XXX", true, "YYY")
+      rf1.repr("ZZZ") should === ("XXXZZZYYY")
+      val rf2 = ReprFormat("XXX", false, "YYY")
+      rf2.repr("ZZZ") should === ("XXXYYY")
+    }
+
+    "single" in {
+      val rf = ReprFormat.single("ABC")
+      rf.repr("XYZ") should === ("ABC")
+    }
+
+    "combine" - {
+
+      "simple" in {
+        val rf1 = ReprFormat("[", true, "]")
+        val rf2 = ReprFormat("<", true, ">")
+        (rf1 combine rf2).repr("x") should === ("<[x]>")
+        (rf2 combine rf1).repr("x") should === ("[<x>]")
+      }
+
+      "single" in {
+        val rf1 = ReprFormat("[", true, "]")
+        val rf2 = ReprFormat.single("!")
+        (rf1 combine rf2).repr("x") should === ("!")
+        (rf2 combine rf1).repr("x") should === ("[!]")
+        val rf3 = ReprFormat.single("-")
+        (rf1 combine rf3).repr("x") should === ("-")
+        (rf2 combine rf3).repr("x") should === ("-")
+      }
+
+      "multiple combine" in {
+        val rf1 = ReprFormat("[", true, "]")
+        val rf2 = ReprFormat("<", true, ">")
+        val rf3 = ReprFormat("(", true, ")")
+        (rf1 combine rf2 combine rf3).repr("x") should === ("(<[x]>)")
+        (rf3 combine rf2 combine rf1).repr("x") should === ("[<(x)>]")
+        val rf4 = ReprFormat.single("!")
+        (rf1 combine rf2 combine rf4).repr("x") should === ("!")
+        (rf1 combine rf4 combine rf3).repr("x") should === ("(!)")
+        (rf4 combine rf2 combine rf3).repr("x") should === ("(<!>)")
+      }
+    }
+  }
 }
 
 object RefinementSpec {
