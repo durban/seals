@@ -131,28 +131,6 @@ sealed trait Reified[A] extends Serializable { self =>
     })(ev)
   }
 
-  // TODO: remove this
-  final def pimapOld[B](f: A => Either[String, B])(g: B => A): Reified.Aux[B, self.Mod, self.Fold] = new Reified[B] {
-
-    override type Mod = self.Mod
-    override type Fold[C, T] = self.Fold[C, T]
-
-    override private[core] def modelComponent: Mod =
-      self.modelComponent
-
-    override def fold[C, T](b: B)(f: Folder[C, T]): Fold[C, T] =
-      self.fold[C, T](g(b))(f)
-
-    override def close[C, T](x: Fold[C, T], f: T => C): C =
-      self.close(x, f)
-
-    override def unfold[C, E, S](u: Unfolder[C, E, S])(c: C): Either[E, (B, C)] = {
-      self.unfold[C, E, S](u)(c).flatMap { case (a, c) =>
-        f(a).map(a => (a, c)).leftMap(u.unknownError)
-      }
-    }
-  }
-
   private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod, this.Fold] =
     this
 }

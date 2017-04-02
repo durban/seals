@@ -72,8 +72,7 @@ object Envelope {
   private def refinement[A](implicit r: Reified[A]): Refinement.Aux[Envelope[A], EnvelopeRepr[A]] = {
     new Refinement[Envelope[A]] {
       override type Repr = EnvelopeRepr[A]
-      // TODO:
-      override val uuid = null // scalastyle:ignore null
+      override val uuid = uuid"8e6e8b29-91e1-403c-9992-fd9cf8c82b06"
       override def repr = Refinement.ReprFormat.single("✉")
       override def from(repr: Repr) = {
         if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
@@ -85,13 +84,6 @@ object Envelope {
     }
   }
 
-  // TODO: Reified[EnvelopeRepr[A]].refined(refinement)(null : Model.CanBeRefined[Model.HList])
-  implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] = {
-    Reified[EnvelopeRepr[A]].pimapOld[Envelope[A]] { repr =>
-      if (repr.model compatible r.model) Either.right(Envelope[A](repr.value)(r))
-      else Either.left(sh"incompatible models: expected '${r.model}', got '${repr.model}'")
-    } { env =>
-      EnvelopeRepr[A](env.model, env.value)
-    }
-  }
+  implicit def reifiedForEnvelope[A](implicit r: Reified[A]): Reified[Envelope[A]] =
+    Reified[EnvelopeRepr[A]].refined[Envelope[A]](refinement[A])
 }

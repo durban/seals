@@ -248,7 +248,7 @@ object Model {
    * Reified instance for Model
    */
   implicit val reifiedForModel: Reified.Aux[Model, Model.CCons, Reified.FFirst] =
-    ModelRepr.reifiedForModelRepr.pimapOld[Model](_.toModel)(ModelRepr.fromModel)
+    ModelRepr.reifiedForModelRepr.refined[Model](ModelRepr.modelRefinement)
 
   private object hash {
 

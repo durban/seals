@@ -225,6 +225,23 @@ private object ModelRepr extends ModelReprBase {
       }
     )
   }
+
+  val modelRefinement: Refinement.Aux[Model, ModelRepr] = new Refinement[Model] {
+
+    override type Repr = ModelRepr
+
+    override val uuid =
+      uuid"61989ad2-2423-4018-98ab-5309bc863e3c"
+
+    override val repr =
+      Refinement.ReprFormat.single("ModelRepr")
+
+    override def from(r: ModelRepr) =
+      r.toModel
+
+    override def to(m: Model): ModelRepr =
+      fromModel(m)
+  }
 }
 
 /**
