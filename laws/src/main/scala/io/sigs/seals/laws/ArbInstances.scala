@@ -49,6 +49,9 @@ trait ArbInstances {
     }
   }
 
+  implicit def cogenMathContext(implicit cgStr: Cogen[String]): Cogen[java.math.MathContext] =
+    cgStr.contramap(_.toString)
+
   implicit def arbSymbol(implicit arbStr: Arbitrary[String]): Arbitrary[Symbol] = Arbitrary {
     arbStr.arbitrary.map(Symbol.apply)
   }

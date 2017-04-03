@@ -52,6 +52,8 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[Month, String, Float]("java.time.Month")
   checkReifiedLaws[Symbol, Float, Option[Int]]("scala.Symbol")
   checkReifiedLaws[RoundingMode, Symbol, Int]("java.math.RoundingMode")
+  checkReifiedLaws[BigDecimal, String, Float]("scala.BigDecimal")
+  checkReifiedLaws[MathContext, String, Float]("java.math.MathContext")
   checkReifiedLaws[Nat._2, Symbol, Float]("shapeless.Nat._2")
 
   locally {
