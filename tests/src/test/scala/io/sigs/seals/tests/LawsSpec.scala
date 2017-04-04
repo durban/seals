@@ -72,8 +72,6 @@ class LawsSpec extends BaseLawsSpec {
   checkAtomicLaws[Unit]("Unit")
   checkAtomicLaws[String]("String")
   checkAtomicLaws[BigInt]("BigInt")
-  checkAtomicLaws[BigDecimal]("BigDecimal")
-  checkAtomicLaws[MathContext]("MathContext")
   checkAtomicLaws[UUID]("UUID")
   checkAtomicLaws[ByteVector]("ByteVector")
   checkAtomicLaws[BitVector]("BitVector")

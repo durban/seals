@@ -19,16 +19,24 @@ package tests
 
 import java.{ lang => jl }
 import java.util.UUID
-import java.math.{ MathContext, RoundingMode }
 import java.nio.ByteBuffer
 
 import scodec.bits._
 
 import org.scalatest.compatible.Assertion
 
+object BuiltinAtomSpec {
+
+  val nonAsciiDigits = Vector(
+    "꩒", // U+AA52 CHAM DIGIT TWO
+    "꘢" // U+A622 VAI DIGIT TWO
+    )
+}
+
 class BuiltinAtomSpec extends BaseSpec {
 
   import Model.Atom.atom
+  import BuiltinAtomSpec._
 
   "Built-in atoms" in {
     val atoms = Vector(
@@ -45,8 +53,6 @@ class BuiltinAtomSpec extends BaseSpec {
       // std types:
       atom[String],
       atom[BigInt],
-      atom[BigDecimal],
-      atom[MathContext],
       atom[UUID],
       // scodec-bits:
       atom[ByteVector],
@@ -63,11 +69,7 @@ class BuiltinAtomSpec extends BaseSpec {
   }
 
   "Non-ASCII digits" in {
-    val strings = Vector(
-      "꩒", // U+AA52 CHAM DIGIT TWO
-      "꘢"  // U+A622 VAI DIGIT TWO
-    )
-    for (s <- strings) {
+    for (s <- nonAsciiDigits) {
       checkFail[Byte](s)
       checkFail[Short](s)
       checkFail[Int](s)
@@ -75,7 +77,6 @@ class BuiltinAtomSpec extends BaseSpec {
       checkFail[Float](s)
       checkFail[Double](s)
       checkFail[BigInt](s)
-      checkFail[BigDecimal](s"${s},0,146028888070")
     }
   }
 
@@ -256,24 +257,6 @@ class BuiltinAtomSpec extends BaseSpec {
       nInf2 should === (Double.NegativeInfinity)
       assert(nInf2.isNegInfinity)
     }
-  }
-
-  "BigDecimal with custom MathContext" in {
-    val atc = Atomic[BigDecimal]
-    val precision = 23
-    val rounding = RoundingMode.UP
-    val mc = new MathContext(precision, rounding)
-    val bd = BigDecimal("123.456", mc)
-    // string:
-    val r1 = roundtripStr(bd)
-    r1 should === (bd)
-    r1.bigDecimal should === (bd.bigDecimal)
-    r1.mc should === (bd.mc)
-    // binary:
-    val r2 = roundtripBin(bd)
-    r2 should === (bd)
-    r2.bigDecimal should === (bd.bigDecimal)
-    r2.mc should === (bd.mc)
   }
 
   "Primitive representations" - {

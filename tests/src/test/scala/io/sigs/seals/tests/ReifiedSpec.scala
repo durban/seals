@@ -18,6 +18,7 @@ package io.sigs.seals
 package tests
 
 import java.util.UUID
+import java.math.{ MathContext, RoundingMode }
 
 import shapeless._
 import shapeless.record._
@@ -228,6 +229,35 @@ class ReifiedSpec extends BaseSpec {
         )
         val mr2 = CanonicalRepr.roundtrip(mr : Model)(r)
         mr2 should === (mr)
+      }
+    }
+
+    "standard instances" - {
+
+      "BigDecimal" in {
+
+        val precision = 23
+        val rounding = RoundingMode.UP
+        val mc = new MathContext(precision, rounding)
+
+        // non-ASCII digits:
+        import CanonicalRepr._
+        val r = Reified[BigDecimal]
+        val mcRepr = fold[MathContext](mc)
+        for (s <- BuiltinAtomSpec.nonAsciiDigits) {
+          val repr = HCons('intVal, Atom(s), HCons('scale, Atom("0"), HCons('ctx, mcRepr, HNil)))
+          unfold[BigDecimal](repr)(r) match {
+            case Left(err) => assert(err.contains("non-ASCII"))
+            case Right(res) => fail(sh"Expected a failure, got ${res}")
+          }
+        }
+
+        // custom MatchContext:
+        val bd = BigDecimal("123.456", mc)
+        val r1 = roundtrip[BigDecimal](bd)(r)
+        r1 should === (bd)
+        r1.bigDecimal should === (bd.bigDecimal)
+        r1.mc should === (bd.mc)
       }
     }
   }

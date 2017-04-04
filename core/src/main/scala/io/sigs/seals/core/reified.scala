@@ -18,7 +18,7 @@ package io.sigs.seals
 package core
 
 import java.util.UUID
-import java.math.RoundingMode
+import java.math.{ MathContext, RoundingMode }
 
 import cats.{ Monad, InvariantMonoidal }
 import cats.implicits._
@@ -386,7 +386,7 @@ object Reified extends LowPrioReified1 {
 /** Standard refinements */
 private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
 
-  import Reified.FFirst
+  import Reified.{ FFirst, FSecond }
 
   implicit lazy val reifiedForSymbol: Reified.Aux[Symbol, Model.Atom, FFirst] = {
     Reified
@@ -419,13 +419,47 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
         override type Repr = Int
         override val uuid =
           (uuid"f13a06d7-8442-4454-8b9e-9cc246428959" / Atomic.builtinInt.binaryRepr(toInt())).uuid
-        override def repr =
+        override val repr =
           Refinement.ReprFormat.single(sh"shapeless.Nat(${toInt()})")
         override def from(i: Int): Either[String, N] =
           if (i === toInt()) Right(wit.value) else Left(sh"${i} is not ${toInt()}")
         override def to(n: N): Int =
           toInt()
       })
+  }
+
+  private type MathContextRepr = Record.`'precision -> Int, 'roundingMode -> RoundingMode`.T
+
+  implicit lazy val reifiedForMathContext: Reified.Aux[MathContext, Model.HCons[Model.HCons[Model.HNil.type]], FSecond] = {
+    Reified[MathContextRepr].refined(new Refinement[MathContext] {
+      override type Repr = MathContextRepr
+      override val uuid =
+        uuid"6e099f51-bdc0-415b-8f73-bff72cfd47db"
+      override val repr =
+        Refinement.ReprFormat.single("java.math.MathContext")
+      override def from(r: MathContextRepr): Either[String, MathContext] = {
+        val precision: Int = r.head
+        val roundingMode: RoundingMode = r.tail.head
+        if (precision < 0) {
+          Left(sh"negative precision: ${precision}")
+        } else {
+          Right(new MathContext(precision, roundingMode))
+        }
+      }
+      override def to(mc: MathContext): MathContextRepr =
+        Record(precision = mc.getPrecision, roundingMode = mc.getRoundingMode)
+    })
+  }
+
+  private type BigDecimalRepr = Record.`'intVal -> BigInt, 'scale -> Int, 'ctx -> MathContext`.T
+
+  implicit lazy val reifiedForBigDecimal: Reified.Aux[BigDecimal, Model.HCons[Model.HCons[Model.HCons[Model.HNil.type]]], FSecond] = {
+    Reified[BigDecimalRepr].imap[BigDecimal] { r =>
+      val ctx = r('ctx)
+      new BigDecimal(new java.math.BigDecimal(r('intVal).bigInteger, r('scale), ctx), ctx)
+    } { a =>
+      Record(intVal = new BigInt(a.bigDecimal.unscaledValue), scale = a.bigDecimal.scale, ctx = a.mc)
+    }
   }
 }
 

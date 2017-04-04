@@ -18,7 +18,6 @@ package io.sigs.seals
 package core
 
 import java.util.UUID
-import java.math.{ MathContext, RoundingMode }
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets.UTF_8
 
@@ -508,103 +507,6 @@ object Atomic {
     }
   }
 
-  // TODO: When/if products can have refinements, this
-  // TODO: could be based on (BigInt, Int, MathContext).
-  implicit val builtinBigDecimal: Atomic[BigDecimal] =
-    SimpleBigDecimal
-
-  private object SimpleBigDecimal extends Atomic[BigDecimal] {
-
-    def description: String =
-      "BigDecimal"
-
-    def uuid: UUID =
-      uuid"46317726-b42f-4147-9f99-fbbac2adce9a"
-
-    // FIXME: intVal and scale could be merged in the stringRepr
-    def stringRepr(a: BigDecimal): String = {
-      val (intVal, scale, ctx) = unpack(a)
-      val intValRepr = SimpleBigInt.stringRepr(intVal)
-      val scaleRepr = SimpleInt.stringRepr(scale)
-      val ctxRepr = SimpleMathContext.stringRepr(ctx)
-      sh"${intValRepr},${scaleRepr},${ctxRepr}"
-    }
-
-    def fromString(s: String): Either[Atomic.Error, BigDecimal] = {
-      s.split(',') match {
-        case Array(intVal, scale, ctx) =>
-          for {
-            intVal <- SimpleBigInt.fromString(intVal)
-            scale <- SimpleInt.fromString(scale)
-            ctx <- SimpleMathContext.fromString(ctx)
-          } yield repack(intVal, scale, ctx)
-        case _ =>
-          Left(Atomic.Error(sh"not a BigDecimal representation: '${s}'"))
-      }
-    }
-
-    def binaryRepr(a: BigDecimal): ByteVector = {
-      val (intVal, scale, ctx) = unpack(a)
-      SimpleBigInt.binaryRepr(intVal) ++
-      SimpleInt.binaryRepr(scale) ++
-      SimpleMathContext.binaryRepr(ctx)
-    }
-
-    def fromBinary(b: ByteVector): Either[Atomic.Error, (BigDecimal, ByteVector)] = {
-      for {
-        ir <- SimpleBigInt.fromBinary(b)
-        (intVal, r) = ir
-        sr <- SimpleInt.fromBinary(r)
-        (scale, r) = sr
-        cr <- SimpleMathContext.fromBinary(r)
-        (ctx, r) = cr
-      } yield (repack(intVal, scale, ctx), r)
-    }
-
-    private[this] def unpack(a: BigDecimal): (BigInt, Int, MathContext) =
-      (a.bigDecimal.unscaledValue, a.bigDecimal.scale, a.mc)
-
-    private[this] def repack(intVal: BigInt, scale: Int, ctx: MathContext) =
-      new BigDecimal(new java.math.BigDecimal(intVal.bigInteger, scale, ctx), ctx)
-  }
-
-  // TODO: When/if products can have refinements, this
-  // TODO: could be based on (Int, RoundingMode).
-  implicit val builtinMathContext: Atomic[MathContext] =
-    SimpleMathContext
-
-  private object SimpleMathContext extends
-      Derived[MathContext, Long]()(SimpleLong) {
-
-    def description: String =
-      "MathContext"
-
-    def uuid: UUID =
-      uuid"6e099f51-bdc0-415b-8f73-bff72cfd47db"
-
-    // FIXME: For stringRepr we could use the
-    // FIXME: toString of MathContext.
-
-    def to(a: MathContext): Long = {
-      val precision: Int = a.getPrecision
-      val rounding: Int = a.getRoundingMode.ordinal
-      (precision.toLong << 32) | (rounding & 0xffffffffL)
-    }
-
-    def from(b: Long): Either[Error, MathContext] = {
-      val precision: Int = (b >> 32).toInt
-      val rounding: Int = (b & 0xffffffffL).toInt
-      if (precision < 0) {
-        Left(Error(sh"negative precision: ${precision}"))
-      } else if ((rounding < 0) || (rounding >= RoundingMode.values.length)) {
-        Left(Error(sh"not a valid RoundingMode: ${rounding}"))
-      } else {
-        val r = RoundingMode.valueOf(rounding)
-        Right(new MathContext(precision, r))
-      }
-    }
-  }
-
   implicit val builtinUUID: Atomic[UUID] =
     SimpleUUID
 
@@ -693,8 +595,6 @@ object Atomic {
     // other standard types:
     entryOf[String],
     entryOf[BigInt],
-    entryOf[BigDecimal],
-    entryOf[MathContext],
     entryOf[UUID],
     // scodec-bits:
     entryOf[ByteVector],
