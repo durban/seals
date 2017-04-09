@@ -44,7 +44,12 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "Server" should "respond to a request" in {
     val responses: Vector[Response] = fs2.concurrent.join(Int.MaxValue)(
-      Stream(Server.serve(9876).drain, client(9876))
+      Server.serve(0).map {
+        case Left(port) =>
+          client(port)
+        case Right(_) =>
+          Stream.empty
+      }
     ).take(1L).runLog.unsafeRun
 
     responses should === (Vector(Ok))

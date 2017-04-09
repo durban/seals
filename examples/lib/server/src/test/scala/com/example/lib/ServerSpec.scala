@@ -52,7 +52,12 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
       case _ => false
     }
     val responses: Vector[Response] = fs2.concurrent.join(Int.MaxValue)(
-      Stream(Server.serve(1235).drain, clients(1235, nClients))
+      Server.serveAddr(0).map {
+        case Left(localAddr) =>
+          clients(localAddr.getPort, nClients)
+        case Right(_) =>
+          Stream.empty
+      }
     ).take((nClients * testData.size).toLong).runLog.unsafeRun
 
     val randInts = responses.collect { case RandInt(i) => i }

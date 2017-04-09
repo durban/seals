@@ -51,34 +51,37 @@ object Server {
     val cg = AsynchronousChannelGroup.withThreadPool(ex)
     val st = Strategy.fromExecutor(ex)
     try {
-      serve(port)(cg, st).run.unsafeRun()
+      serve(port)(cg, st).collect { case Right(_) => () }.run.unsafeRun()
     } finally {
       cg.shutdown()
       ex.shutdown()
     }
   }
 
-  def serve(port: Int)(implicit acg: AsynchronousChannelGroup, st: Strategy): Stream[Task, Unit] = {
-    val s: Stream[Task, Stream[Task, Unit]] = tcp.server[Task](addr(port)).flatMap { sockets =>
-      Stream.emit(sockets.flatMap { socket =>
-        val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
-        val tsk: Task[BitVector] = bvs.runLog.map(_.foldLeft(BitVector.empty)(_ ++ _))
-        val request: Task[Request] = tsk.flatMap { bv =>
-          Codec[Request].decode(bv).fold(
-            err => Task.fail(new Exception(err.toString)),
-            result => Task.now(result.value)
-          )
-        }
-
-        val response: Task[Response] = request.flatMap(logic)
-        val encoded: Stream[Task, Byte] = Stream.eval(response)
-          .map(r => Codec[Response].encode(r).require)
-          .mapChunks { ch =>
-            Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
+  def serve(port: Int)(implicit acg: AsynchronousChannelGroup, st: Strategy): Stream[Task, Either[Int, Unit]] = {
+    val s: Stream[Task, Stream[Task, Either[Int, Unit]]] = tcp.serverWithLocalAddress[Task](addr(port)).flatMap {
+      case Left(localAddr) =>
+        Stream.emit(Stream.emit(Left(localAddr.getPort)))
+      case Right(sockets) =>
+        Stream.emit(sockets.flatMap { socket =>
+          val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
+          val tsk: Task[BitVector] = bvs.runLog.map(_.foldLeft(BitVector.empty)(_ ++ _))
+          val request: Task[Request] = tsk.flatMap { bv =>
+            Codec[Request].decode(bv).fold(
+              err => Task.fail(new Exception(err.toString)),
+              result => Task.now(result.value)
+            )
           }
 
-        encoded.to(socket.writes(timeout)).onFinalize(socket.endOfOutput)
-      })
+          val response: Task[Response] = request.flatMap(logic)
+          val encoded: Stream[Task, Byte] = Stream.eval(response)
+            .map(r => Codec[Response].encode(r).require)
+            .mapChunks { ch =>
+              Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
+            }
+
+          encoded.to(socket.writes(timeout)).onFinalize(socket.endOfOutput).map(Right(_))
+        })
     }
     fs2.concurrent.join(maxClients)(s)
   }
