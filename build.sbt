@@ -76,8 +76,8 @@ lazy val seals = project.in(file("."))
   .aggregate(core, macros, laws, tests, checker, circe, scodec, refined) // Note: `plugin` is intentionally missing
 
 lazy val commonSettings = Seq[Setting[_]](
-  scalaVersion := "2.11.8",
-  crossScalaVersions := Seq(scalaVersion.value, "2.12.1"),
+  scalaVersion := "2.12.1",
+  crossScalaVersions := Seq(scalaVersion.value, "2.11.8"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
@@ -282,7 +282,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.11.8",
+  scalaVersion := "2.12.1",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
