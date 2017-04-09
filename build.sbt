@@ -186,7 +186,7 @@ lazy val refinedSettings = Seq[Setting[_]](
 lazy val dependencies = new {
 
   val catsVersion = "0.9.0"
-  val circeVersion = "0.7.0"
+  val circeVersion = "0.7.1"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -206,7 +206,7 @@ lazy val dependencies = new {
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.7.0"
+  val refined = "eu.timepit" %% "refined" % "0.8.0"
 
   val laws = Seq(
     scodecCats,
@@ -218,7 +218,7 @@ lazy val dependencies = new {
     "org.scalatest" %% "scalatest" % "3.0.1"
   )
 
-  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.13"
+  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.14"
 }
 
 addCommandAlias("testAll", ";test;examples/test")
@@ -309,7 +309,7 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.15.4a"
+  val http4sVersion = "0.15.8a"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -319,11 +319,11 @@ lazy val exampleDependencies = new {
     "org.slf4j" % "slf4j-simple" % "1.7.22"
   )
 
-  val spire = "org.spire-math" %% "spire" % "0.13.0"
+  val spire = "org.typelevel" %% "spire" % "0.14.1"
 
   val fs2 = Seq(
-    "co.fs2" %% "fs2-core" % "0.9.3",
-    "co.fs2" %% "fs2-io" % "0.9.3"
+    "co.fs2" %% "fs2-core" % "0.9.5",
+    "co.fs2" %% "fs2-io" % "0.9.5"
   )
 
   val akka = Seq(
