@@ -54,6 +54,14 @@ signed by key `36A8 2002 483A 4CBF A5F8 DF6F 48B2 9573 BF19 7B13`):
 dependsOn(ProjectRef(uri("git://github.com/durban/seals.git#master"), "core"))
 ```
 
+Alternatively, you can clone the repo, and run `sbt +publishLocal` in its root.
+Then you can depend on the locally published library by putting this into your
+`build.sbt`:
+
+```scala
+libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-SNAPSHOT"
+```
+
 ## Features
 
 ### Defining schemata
@@ -134,9 +142,11 @@ The subprojects are as follows:
   encoders and decoders (optional)
 - [`scodec`](scodec): automatic derivation of [scodec]
   codecs, encoders and decoders (optional)
+- [`refined`](refined): support for [refined] types
 - [`plugin`](plugin): sbt plugin for build-time compatibility
   checking of schema definitions (basically [MiMa] for schemata)
 - [`checker`](checker): the schema checker used by the sbt plugin
+- [`macros`](macros): a few macros used internally by `core`
 - [`laws`](laws): definitions of laws for the type classes in `core` (incomplete, for testing)
 - [`tests`](tests): unittests (don't depend on this)
 - [`examples`](examples): a few examples for using the library
@@ -157,6 +167,7 @@ Currently there are interop modules for the following projects:
 
 - [circe] provides the JSON framework for which `seals` derives encoders and decoders.
 - [scodec] provides a binary encoding/serialization framework for which `seals` derives codecs.
+- [refined] provides refinement types, some of which are supported by `seals`.
 
 For testing, it also uses:
 
@@ -181,4 +192,5 @@ For details, see the [LICENSE.txt](LICENSE.txt) and [NOTICE.txt](NOTICE.txt) fil
 
 [circe]: https://github.com/circe/circe
 [scodec]: https://github.com/scodec/scodec
+[refined]: https://github.com/fthomas/refined
 [MiMa]: https://github.com/typesafehub/migration-manager

@@ -1,4 +1,4 @@
 seals
-Copyright 2016 Daniel Urban
+Copyright 2016-2017 Daniel Urban
 
 This product includes software developed by Daniel Urban.

@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016 Daniel Urban
+   Copyright 2016-2017 Daniel Urban
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -65,3 +65,7 @@ Useful config options for GPG v2 (put them into `~/.gnupg/gpg.conf`):
         - GNOME Keyring agent (?)
 - the output of `ssh-add -l` should contain the auth key
   (if it's on a smartcard, only when the card is inserted)
+
+## Using Eclipse
+
+See [this workaround](https://gist.github.com/durban/621cf5becd38b3dcbf3d3a0d4464b46d).
