@@ -50,6 +50,7 @@ lazy val plugin = project
   .settings(name := "seals-plugin")
   .settings(commonSettings)
   .settings(pluginSettings)
+  .enablePlugins(BuildInfoPlugin)
 
 lazy val circe = project
   .settings(name := s"seals-circe")
@@ -74,6 +75,12 @@ lazy val seals = project.in(file("."))
   .settings(commonSettings)
   .aggregate(core, macros, laws, tests, checker, circe, scodec, refined) // Note: `plugin` is intentionally missing
 
+lazy val consts = new {
+  val githubOrg = "durban"
+  val githubProject = "seals"
+  val additionalFiles = Seq("LICENSE.txt", "NOTICE.txt")
+}
+
 lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.12.1",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.8"),
@@ -93,6 +100,7 @@ lazy val commonSettings = Seq[Setting[_]](
     "-Ywarn-dead-code",
     "-Ypartial-unification",
     "-Ywarn-unused-import"
+    // TODO: set -sourcepath and -doc-source-url
   ),
   scalacOptions := scalacOptions.value.flatMap {
     case opt @ "-Xstrict-patmat-analysis" =>
@@ -117,15 +125,27 @@ lazy val commonSettings = Seq[Setting[_]](
     (dependencies.test ++ dependencies.circe).map(_ % "test-internal")
   ).flatten,
   organization := "io.sigs",
+  organizationHomepage := Some(url("http://sigs.io")),
   publishMavenStyle := true,
-  publishArtifact := true, // TODO
-  mappings in (Compile, packageBin) ++= Seq("LICENSE.txt", "NOTICE.txt") map { f =>
+  publishArtifact in Compile := true,
+  publishArtifact in Test := false,
+  pomIncludeRepository := { _ => false },
+  useGpg := true,
+  useGpgAgent := true,
+  com.typesafe.sbt.pgp.PgpKeys.gpgCommand in Global := "gpg2",
+  mappings in (Compile, packageBin) ++= consts.additionalFiles map { f =>
     ((baseDirectory in ThisBuild).value / f) -> f
   },
-  TypelevelKeys.githubProject := ("durban", "seals"),
-  homepage := Some(url("https://github.com/durban/seals")),
+  mappings in (Compile, packageSrc) ++= consts.additionalFiles map { f =>
+    ((baseDirectory in ThisBuild).value / f) -> f
+  },
+  homepage := Some(url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}")),
+  scmInfo := Some(ScmInfo(
+    url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}"),
+    s"scm:git@github.com:${consts.githubOrg}/${consts.githubProject}.git"
+  )),
   licenses := Seq("Apache 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
-) ++ typelevelDefaultSettings
+)
 
 lazy val coreSettings = Seq[Setting[_]](
   libraryDependencies += dependencies.scodecBits
@@ -148,7 +168,7 @@ lazy val macroSettings = Seq[Setting[_]](
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 )
 
-lazy val pluginSettings = scriptedSettings ++ typelevelBuildInfoSettings ++ Seq[Setting[_]](
+lazy val pluginSettings = scriptedSettings ++ Seq[Setting[_]](
   sbtPlugin := true,
   scalaVersion := "2.10.6",
   crossScalaVersions := Seq(scalaVersion.value),
