@@ -139,6 +139,7 @@ lazy val commonSettings = Seq[Setting[_]](
   mappings in (Compile, packageSrc) ++= consts.additionalFiles map { f =>
     ((baseDirectory in ThisBuild).value / f) -> f
   },
+  packageOptions in (Compile, packageBin) += Package.ManifestAttributes(java.util.jar.Attributes.Name.SEALED -> "true"),
   homepage := Some(url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}")),
   scmInfo := Some(ScmInfo(
     url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}"),
