@@ -49,8 +49,7 @@ lazy val checker = project
 lazy val plugin = project
   .settings(name := "seals-plugin")
   .settings(commonSettings)
-  .settings(sbtPluginSettings)
-  .enablePlugins(BuildInfoPlugin)
+  .settings(pluginSettings)
 
 lazy val circe = project
   .settings(name := s"seals-circe")
@@ -149,7 +148,7 @@ lazy val macroSettings = Seq[Setting[_]](
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 )
 
-lazy val sbtPluginSettings = scriptedSettings ++ Seq[Setting[_]](
+lazy val pluginSettings = scriptedSettings ++ typelevelBuildInfoSettings ++ Seq[Setting[_]](
   sbtPlugin := true,
   scalaVersion := "2.10.6",
   crossScalaVersions := Seq(scalaVersion.value),
