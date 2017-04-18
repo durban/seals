@@ -83,7 +83,7 @@ lazy val consts = new {
   val additionalFiles = Seq("LICENSE.txt", "NOTICE.txt")
 }
 
-lazy val commonSettings = Seq[Setting[_]](
+lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   scalaVersion := "2.12.1",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.8"),
   scalaOrganization := "org.typelevel",
@@ -174,6 +174,7 @@ lazy val publishSettings = Seq[Setting[_]](
       setReleaseVersion,
       commitReleaseVersion,
       tagRelease,
+      releaseStepTask(releasePublishArtifactsAction in plugin),
       publishArtifacts,
       setNextVersion,
       commitNextVersion
@@ -225,6 +226,7 @@ lazy val pluginSettings = scriptedSettings ++ Seq[Setting[_]](
   addSbtPlugin(dependencies.sbtMima),
   buildInfoKeys := Seq[BuildInfoKey](version),
   buildInfoPackage := "io.sigs.seals.plugin",
+  releaseCrossBuild := false,
   scriptedLaunchOpts ++= Seq("-Dplugin.version=" + version.value, "-Xmx1024M"),
   scriptedBufferLog := false
 )
