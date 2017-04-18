@@ -131,26 +131,44 @@ lazy val commonSettings = Seq[Setting[_]](
   ).flatten,
   organization := "io.sigs",
   organizationHomepage := Some(url("http://sigs.io")),
-  publishMavenStyle := true,
-  publishArtifact in Compile := true,
-  publishArtifact in Test := false,
-  pomIncludeRepository := { _ => false },
-  useGpg := true,
-  useGpgAgent := true,
-  com.typesafe.sbt.pgp.PgpKeys.gpgCommand in Global := "gpg2",
-  mappings in (Compile, packageBin) ++= consts.additionalFiles map { f =>
-    ((baseDirectory in ThisBuild).value / f) -> f
-  },
-  mappings in (Compile, packageSrc) ++= consts.additionalFiles map { f =>
-    ((baseDirectory in ThisBuild).value / f) -> f
-  },
-  packageOptions in (Compile, packageBin) += Package.ManifestAttributes(java.util.jar.Attributes.Name.SEALED -> "true"),
   homepage := Some(url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}")),
   scmInfo := Some(ScmInfo(
     url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}"),
     s"scm:git@github.com:${consts.githubOrg}/${consts.githubProject}.git"
   )),
+  developers += Developer(
+    id = "durban",
+    name = "Daniel Urban",
+    email = "urban.dani@gmail.com",
+    url = url("https://github.com/durban")
+  ),
   licenses := Seq("Apache 2.0" -> url("https://www.apache.org/licenses/LICENSE-2.0.txt"))
+) ++ inConfig(Compile)(
+  inTask(packageBin)(extraPackagingSettings) ++
+  inTask(packageSrc)(extraPackagingSettings) ++
+  inTask(packageDoc)(extraPackagingSettings)
+) ++ publishSettings
+
+lazy val extraPackagingSettings = Seq[Setting[_]](
+  mappings ++= consts.additionalFiles map { f =>
+    ((baseDirectory in ThisBuild).value / f) -> f
+  },
+  packageOptions += Package.ManifestAttributes(java.util.jar.Attributes.Name.SEALED -> "true")
+)
+
+lazy val publishSettings = Seq[Setting[_]](
+  publishMavenStyle := true,
+  publishArtifact in Compile := true,
+  publishArtifact in Test := false,
+  pomIncludeRepository := { _ => false },
+  publishTo := {
+    if (isSnapshot.value) Some("snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")
+    else Some("staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
+  },
+  useGpg := true,
+  useGpgAgent := true,
+  releaseCrossBuild := true,
+  com.typesafe.sbt.pgp.PgpKeys.gpgCommand in Global := "gpg2"
 )
 
 lazy val coreSettings = Seq[Setting[_]](
