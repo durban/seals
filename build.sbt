@@ -166,6 +166,7 @@ lazy val publishSettings = Seq[Setting[_]](
     else Some("staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
   },
   releaseCrossBuild := true,
+  releaseVcsSign := true,
   releasePublishArtifactsAction := com.typesafe.sbt.pgp.PgpKeys.publishSigned.value,
   releaseProcess := {
     import ReleaseTransformations._
