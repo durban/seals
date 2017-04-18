@@ -167,6 +167,19 @@ lazy val publishSettings = Seq[Setting[_]](
   },
   releaseCrossBuild := true,
   releasePublishArtifactsAction := com.typesafe.sbt.pgp.PgpKeys.publishSigned.value,
+  releaseProcess := {
+    import ReleaseTransformations._
+    Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishArtifacts,
+      setNextVersion,
+      commitNextVersion
+    )
+  },
   useGpg := true,
   useGpgAgent := true,
   com.typesafe.sbt.pgp.PgpKeys.gpgCommand in Global := "gpg2"
