@@ -37,6 +37,7 @@ lazy val laws = project
 lazy val tests = project
   .settings(name := "seals-tests")
   .settings(commonSettings)
+  .settings(noPublishSettings)
   .dependsOn(core, laws % "test->test;compile->compile")
 
 lazy val checker = project
@@ -73,10 +74,7 @@ lazy val refined = project
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
-  .settings(
-    publishArtifact in Compile := false,
-    publishMavenStyle := false
-  )
+  .settings(noPublishSettings)
   .aggregate(core, macros, laws, tests, checker, circe, scodec, refined) // Note: `plugin` is intentionally missing
 
 lazy val consts = new {
@@ -184,6 +182,11 @@ lazy val publishSettings = Seq[Setting[_]](
   useGpg := true,
   useGpgAgent := true,
   com.typesafe.sbt.pgp.PgpKeys.gpgCommand in Global := "gpg2"
+)
+
+lazy val noPublishSettings = Seq[Setting[_]](
+  publishArtifact in Compile := false,
+  publishMavenStyle := false
 )
 
 lazy val coreSettings = Seq[Setting[_]](
