@@ -73,6 +73,10 @@ lazy val refined = project
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
+  .settings(
+    publishArtifact in Compile := false,
+    publishMavenStyle := false
+  )
   .aggregate(core, macros, laws, tests, checker, circe, scodec, refined) // Note: `plugin` is intentionally missing
 
 lazy val consts = new {
@@ -101,6 +105,7 @@ lazy val commonSettings = Seq[Setting[_]](
     "-Ypartial-unification",
     "-Ywarn-unused-import"
     // TODO: set -sourcepath and -doc-source-url
+    // TODO: probably also set autoAPIMappings and apiURL
   ),
   scalacOptions := scalacOptions.value.flatMap {
     case opt @ "-Xstrict-patmat-analysis" =>
