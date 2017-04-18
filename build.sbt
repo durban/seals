@@ -165,9 +165,10 @@ lazy val publishSettings = Seq[Setting[_]](
     if (isSnapshot.value) Some("snapshots" at "https://oss.sonatype.org/content/repositories/snapshots")
     else Some("staging" at "https://oss.sonatype.org/service/local/staging/deploy/maven2")
   },
+  releaseCrossBuild := true,
+  releasePublishArtifactsAction := com.typesafe.sbt.pgp.PgpKeys.publishSigned.value,
   useGpg := true,
   useGpgAgent := true,
-  releaseCrossBuild := true,
   com.typesafe.sbt.pgp.PgpKeys.gpgCommand in Global := "gpg2"
 )
 
