@@ -169,6 +169,7 @@ lazy val publishSettings = Seq[Setting[_]](
   releaseProcess := {
     import ReleaseTransformations._
     Seq[ReleaseStep](
+      releaseStepCommand("clean"),
       checkSnapshotDependencies,
       inquireVersions,
       setReleaseVersion,
