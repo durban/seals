@@ -20,6 +20,14 @@
 
 Unorganized notes which may be useful during development.
 
+## Release process
+
+1. Start a fresh `sbt` session
+1. `validate`
+1. `release` (requires Sonatype credentials)
+1. `sonatypeClose`
+1. `sonatypePromote`
+
 ## Signing Git commits and tags
 
 There are several tutorials available on signing
