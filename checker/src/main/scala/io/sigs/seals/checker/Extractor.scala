@@ -95,7 +95,6 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
   }
 
   def allSchemasOfPackage(pack: String): Vector[Symbol] = {
-    val sym = mirror.staticPackage(pack)
     val classes = allClasses(pack)
     classes.flatMap { clsName =>
       if (clsName.endsWith("$")) {

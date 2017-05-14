@@ -359,6 +359,9 @@ object Reified extends LowPrioReified1 {
   private type SomeRepr[A] = Record.`'value -> A`.T
   private type OptionRepr[A] = Union.`'None -> HNil, 'Some -> SomeRepr[A]`.T
 
+  // TODO: workaround for false positive unused warning
+  locally { val _: SomeRepr[Int] = Record(value = 0) }
+
   /**
    * `Reified` instance for `Option[A]`.
    *

@@ -18,8 +18,8 @@ lazy val core = project
   .settings(name := "seals-core")
   .settings(commonSettings)
   .settings(coreSettings)
-  .settings(tutSettings)
   .settings(macroSettings)
+  .enablePlugins(TutPlugin)
   .dependsOn(macros)
 
 lazy val macros = project
@@ -84,8 +84,8 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.1",
-  crossScalaVersions := Seq(scalaVersion.value, "2.11.8"),
+  scalaVersion := "2.12.2-bin-typelevel-4",
+  crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
@@ -93,26 +93,38 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     "-unchecked",
     "-encoding", "UTF-8",
     "-language:higherKinds,experimental.macros",
-    "-Xlint:_",
     "-Xfuture",
     "-Xfatal-warnings",
     "-Xstrict-patmat-analysis",
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
-    "-Ypartial-unification",
-    "-Ywarn-unused-import"
+    "-Ypartial-unification"
     // TODO: set -sourcepath and -doc-source-url
     // TODO: probably also set autoAPIMappings and apiURL
   ),
-  scalacOptions := scalacOptions.value.flatMap {
-    case opt @ "-Xstrict-patmat-analysis" =>
-      if (scalaVersion.value.startsWith("2.12")) opt :: Nil
-      else Nil
-    case opt =>
-      opt :: Nil
+  scalacOptions ++= {
+    CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 12)) =>
+        Seq(
+          // TODO: add unused params, implicits
+          "-Xlint:-unused,_",
+          "-Ywarn-unused:imports",
+          "-Ywarn-unused:locals",
+          "-Ywarn-unused:patvars",
+          "-Ywarn-unused:privates"
+        )
+      case Some((2, 11)) =>
+        Seq(
+          // TODO: has false positives (https://github.com/typelevel/scala/issues/149)
+          "-Xlint:-strict-unsealed-patmat,_",
+          "-Ywarn-unused-import"
+        )
+      case _ =>
+        Seq()
+    }
   },
-  scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
+  scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary),
 
@@ -291,7 +303,7 @@ addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
 addCommandAlias("doPlugin", ";plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
-addCommandAlias("validate", ";clean;++ 2.11.8;doAll;++ 2.12.1;doAll;++ 2.10.6;doPlugin;reload")
+addCommandAlias("validate", """;clean;++ "2.12.2-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll;++ 2.10.6;doPlugin;reload""")
 
 
 //////////////////////
@@ -346,13 +358,14 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.1",
+  scalaVersion := "2.12.2-bin-typelevel-4",
+  scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
     "-unchecked",
     "-encoding", "UTF-8",
-    "-Xlint:_",
+    "-Xlint:-unused,_",
     "-Xfuture",
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",

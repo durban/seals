@@ -183,7 +183,7 @@ class NsUUIDSpec extends tests.BaseSpec {
   def checkFromJsonData(j: Json): Unit = {
     def go(j: Json, nss: Vector[Either[UUID, String]]): Unit = {
       j.as[Map[String, Json]] match {
-        case Left(err) =>
+        case Left(_) =>
           // reached a leaf:
           j.as[UUID].fold(err => fail(s"not an UUID: ${j} (${err})"), _ => ())
         case Right(map) =>
@@ -215,7 +215,7 @@ class NsUUIDSpec extends tests.BaseSpec {
       val (u, _) = nss.foldLeft((root, true)) { (st, us) =>
         (st, us) match {
           case ((s, true), Left(uuid)) => (NsUUID.uuid5nestedNs(s, uuid), true)
-          case ((s, f), Right(name)) => (NsUUID.uuid5(s, name), false)
+          case ((s, _), Right(name)) => (NsUUID.uuid5(s, name), false)
           case ((_, false), Left(_)) => fail("UUID after name")
         }
       }

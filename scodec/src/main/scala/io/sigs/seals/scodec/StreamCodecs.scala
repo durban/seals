@@ -67,7 +67,7 @@ trait StreamCodecs {
           h <- {
             val data = buff ++ bv
             decoder.decode(data) match {
-              case Attempt.Failure(err: Err.InsufficientBits) =>
+              case Attempt.Failure(Err.InsufficientBits(_, _, _)) =>
                 go(data, h)
               case Attempt.Failure(err) =>
                 Pull.fail(DecodingError(err))

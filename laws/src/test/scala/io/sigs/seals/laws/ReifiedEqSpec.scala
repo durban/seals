@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,7 +66,7 @@ class ReifiedEqSpec extends FlatSpec with Matchers {
   it should "not allow additional fields" in {
     val r1 = Reified[(Int, String)]
     val r2 = Reified[(Int, String, Float)].imap[(Int, String)] {
-      case (i, s, f) => (i, s)
+      case (i, s, _) => (i, s)
     } {
       case (i, s) => (i, s, 0.0f)
     }

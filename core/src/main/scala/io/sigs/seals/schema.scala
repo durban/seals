@@ -96,15 +96,15 @@ private[seals] object SchemaMacros {
       override def transform(tree: Tree): Tree = {
         super.transform {
           tree match {
-            case q"lazy private[this] val $nme: $tpe = $_" =>
+            case q"lazy private[this] val $_: $_ = $_" =>
               EmptyTree
-            case df @ DefDef(mods, nme, tparam, params, ret, body)
+            case df @ DefDef(_, nme, _, _, _, body)
                 if df.symbol.asTerm.isLazy && df.symbol.asTerm.isAccessor && df.symbol.asTerm.isStable =>
               body match {
                 case q"$lhs = $exp; $r" if lhs.symbol == r.symbol =>
                   val rep = q"lazy val $nme = $exp"
                   rep
-                case x =>
+                case _ =>
                   df
               }
             case t =>
@@ -169,7 +169,7 @@ private[seals] object SchemaMacros {
           ${ModuleDef(oMods, oName, Template(ps, sl, newBody))}
         """
 
-      case h :: t =>
+      case h :: _ =>
         c.abort(c.enclosingPosition, sh"Invalid annotation target: ${h} (${h.getClass.getName})")
 
       case _ =>

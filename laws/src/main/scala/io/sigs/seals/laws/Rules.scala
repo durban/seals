@@ -28,7 +28,7 @@ object Rules extends Serialization {
   def serializable[A: Arbitrary]: (String, Prop) = {
     "serializable" -> forAll { (a: A) =>
       withCatchNonFatal {
-        val r: A = roundtripSer(a)
+        val _: A = roundtripSer(a)
         Prop(Result(status = True))
       }
     }

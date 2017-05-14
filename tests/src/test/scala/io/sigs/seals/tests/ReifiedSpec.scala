@@ -271,7 +271,11 @@ class ReifiedSpec extends BaseSpec {
     val hl = Reified[Record.`'i -> Int, 's -> String`.T]
     val cc = Reified[IS]
     type H1 = Record.`'i -> Int, 's -> String`.T
+    // TODO: workaround for false positive unused warning
+    locally { val _: H1 = Record(i = 0, s = "") }
     type H2 = Record.`'i -> Int`.T
+    // TODO: workaround for false positive unused warning
+    locally { val _: H2 = Record(i = 0) }
     val cp = Reified[Union.`'IS -> H1, 'IX -> H2`.T]
     val st = Reified[Adt]
 

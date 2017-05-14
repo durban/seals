@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,7 +44,7 @@ class EnvelopeCodecSpec extends BaseJsonSpec {
     val json: Json = Envelope[Foo2](Foo2(42, "ert")).asJson
     val errPat = ".*incompatible models.*".r
     inside (json.as[Envelope[Foo]]) {
-      case Left(DecodingFailure(msg, errPat)) => // OK
+      case Left(DecodingFailure(errPat(), _)) => // OK
       case x: Any => fail(s"unexpected: ${x}")
     }
   }

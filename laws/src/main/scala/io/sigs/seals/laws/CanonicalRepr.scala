@@ -66,7 +66,7 @@ object CanonicalRepr {
       case _ => Left("not HNil (or ignored HCons)")
     },
     hCons = {
-      case (hc @ HCons(l, h, t), sym) if l === sym => Right(Right((h, _ => Right(t))))
+      case (HCons(l, h, t), sym) if l === sym => Right(Right((h, _ => Right(t))))
       case _ => Left("not HCons")
     },
     cNil = _ => "CNil reached",

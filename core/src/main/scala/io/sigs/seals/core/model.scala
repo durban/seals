@@ -173,19 +173,6 @@ sealed trait Model extends Serializable {
     )
     st.runS((Map.empty, 0)).value._1
   }
-
-  @transient
-  private[this] lazy val allAtoms: Map[UUID, Atom] = {
-    this.fold[Map[UUID, Atom]](
-      hNil = () => Map.empty,
-      hCons = (_, _, _, h, t) => h ++ t,
-      cNil = () => Map.empty,
-      cCons = (_, _, h, t) => h ++ t,
-      vector = (_, e) => e,
-      atom = a => Map(a.uuid -> a),
-      cycle = () => Map.empty
-    )
-  }
 }
 
 object Model {
@@ -716,7 +703,7 @@ object Model {
       Eq.fromUniversalEquals
   }
 
-  final class Vector private (val elem: Model, private[Model] val refinement: Option[Ref] = None)
+  final class Vector private (val elem: Model, private[Model] val refinement: Option[Ref])
       extends Model {
 
     private[Model] def refined(r: Ref): Vector =
