@@ -282,7 +282,7 @@ lazy val dependencies = new {
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.8.0"
+  val refined = "eu.timepit" %% "refined" % "0.8.1"
 
   val laws = Seq(
     scodecCats,
