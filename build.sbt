@@ -199,6 +199,7 @@ lazy val publishSettings = Seq[Setting[_]](
 )
 
 lazy val noPublishSettings = Seq[Setting[_]](
+  skip in publish := true,
   publishArtifact in Compile := false,
   publishMavenStyle := false
 )

@@ -28,6 +28,16 @@ Unorganized notes which may be useful during development.
 1. `sonatypeClose`
 1. `sonatypePromote`
 
+### Releasing a `SNAPSHOT` version
+
+(This is really only useful for testing the release process itself.)
+
+1. Start a fresh `sbt` session
+1. `validate`
+1. `release` (specify a `SNAPSHOT` version when asked, e.g., `0.1.0-SNAPSHOT`;
+   requires Sonatype credentials)
+1. Delete the automatically created Git tag, e.g., `git tag --delete v0.1.0-SNAPSHOT`
+
 ## Signing Git commits and tags
 
 There are several tutorials available on signing
