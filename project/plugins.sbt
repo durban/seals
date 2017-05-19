@@ -15,7 +15,7 @@
  */
 
 addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.0.0-RC3")
-addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.5.1")
+addSbtPlugin("org.tpolecat" % "tut-plugin" % "0.5.2")
 addSbtPlugin("org.scalastyle" % "scalastyle-sbt-plugin" % "0.8.0")
 addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.7.0")
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.1.0-M1")
