@@ -21,10 +21,13 @@ import java.nio.channels.AsynchronousChannelGroup
 import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import cats.implicits._
+import cats.effect.IO
 
-import fs2.{ Stream, Task, Strategy, Chunk }
+import fs2.{ Stream, Chunk }
 import fs2.io.tcp
 
 import scodec.bits.BitVector
@@ -48,58 +51,57 @@ object Server {
 
   def main(args: Array[String]): Unit = {
     val ex = Executors.newCachedThreadPool()
-    val cg = AsynchronousChannelGroup.withThreadPool(ex)
-    val st = Strategy.fromExecutor(ex)
+    implicit val cg = AsynchronousChannelGroup.withThreadPool(ex)
     try {
-      serve(port)(cg, st).collect { case Right(_) => () }.run.unsafeRun()
+      serve(port).collect { case Right(_) => () }.run.unsafeRunSync()
     } finally {
       cg.shutdown()
       ex.shutdown()
     }
   }
 
-  def serve(port: Int)(implicit acg: AsynchronousChannelGroup, st: Strategy): Stream[Task, Either[Int, Unit]] = {
-    val s: Stream[Task, Stream[Task, Either[Int, Unit]]] = tcp.serverWithLocalAddress[Task](addr(port)).flatMap {
+  def serve(port: Int)(implicit acg: AsynchronousChannelGroup, ec: ExecutionContext): Stream[IO, Either[Int, Unit]] = {
+    val s: Stream[IO, Stream[IO, Either[Int, Unit]]] = tcp.serverWithLocalAddress[IO](addr(port)).flatMap {
       case Left(localAddr) =>
-        Stream.emit(Stream.emit(Left(localAddr.getPort)))
+        Stream.emit(Stream.emit(Left(localAddr.getPort) : Either[Int, Unit]).covary[IO]).covary[IO]
       case Right(sockets) =>
         Stream.emit(sockets.flatMap { socket =>
-          val bvs: Stream[Task, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
-          val tsk: Task[BitVector] = bvs.runLog.map(_.foldLeft(BitVector.empty)(_ ++ _))
-          val request: Task[Request] = tsk.flatMap { bv =>
+          val bvs: Stream[IO, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
+          val tsk: IO[BitVector] = bvs.runLog.map(_.foldLeft(BitVector.empty)(_ ++ _))
+          val request: IO[Request] = tsk.flatMap { bv =>
             Codec[Request].decode(bv).fold(
-              err => Task.fail(new Exception(err.toString)),
-              result => Task.now(result.value)
+              err => IO.raiseError(new Exception(err.toString)),
+              result => IO.pure(result.value)
             )
           }
 
-          val response: Task[Response] = request.flatMap(logic)
-          val encoded: Stream[Task, Byte] = Stream.eval(response)
+          val response: IO[Response] = request.flatMap(logic)
+          val encoded: Stream[IO, Byte] = Stream.eval(response)
             .map(r => Codec[Response].encode(r).require)
-            .mapChunks { ch =>
-              Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
+            .flatMap { bv =>
+              Stream.chunk(Chunk.bytes(bv.bytes.toArray))
             }
 
           encoded.to(socket.writes(timeout)).onFinalize(socket.endOfOutput).map(Right(_))
         })
     }
-    fs2.concurrent.join(maxClients)(s)
+    s.join(maxClients)
   }
 
-  def logic(req: Request): Task[Response] = req match {
+  def logic(req: Request): IO[Response] = req match {
     case RandomNumber(min, max) =>
       if (min < max) {
-        Task.delay {
+        IO {
           val v = rnd.nextInt(max - min + 1) + min
           Number(v)
         }
       } else if (min === max) {
-        Task.now(Number(min))
+        IO.pure(Number(min))
       } else {
-        Task.fail(new IllegalArgumentException("min must not be greater than max"))
+        IO.raiseError(new IllegalArgumentException("min must not be greater than max"))
       }
     case ReSeed(s) =>
-      Task.delay {
+      IO {
         rnd.setSeed(s)
         Ok
       }

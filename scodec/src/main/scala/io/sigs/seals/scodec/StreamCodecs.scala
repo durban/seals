@@ -17,7 +17,7 @@
 package io.sigs.seals
 package scodec
 
-import fs2.{ Pull, Pipe, Handle }
+import fs2.{ Stream, Pull, Pipe }
 
 import _root_.scodec.{ Err, Attempt, Decoder, DecodeResult }
 import _root_.scodec.bits.BitVector
@@ -43,7 +43,7 @@ trait StreamCodecs {
   /** See https://github.com/scodec/scodec-stream/issues/12 */
   private[this] def emit[A](bits: BitVector): StreamEncoder[A] = {
     StreamEncoder.instance[A] { h =>
-      Pull.output1(bits) >> Pull.pure(h -> encode.empty[A])
+      Pull.output1(bits) >> Pull.pure(Some(h -> encode.empty[A]))
     }
   }
 
@@ -60,45 +60,59 @@ trait StreamCodecs {
 
   def pipe[F[_], A](implicit A: Reified[A]): Pipe[F, BitVector, A] = {
 
-    def decodeOne[R](h: Handle[F, BitVector], decoder: Decoder[R]) = {
-      def go(buff: BitVector, h: Handle[F, BitVector]): Pull[F, Nothing, (R, Handle[F, BitVector])] = {
+    def decodeOne[R](s: Stream[F, BitVector], decoder: Decoder[R]): Pull[F, Nothing, Option[(R, Stream[F, BitVector])]] = {
+      def go(buff: BitVector, s: Stream[F, BitVector]): Pull[F, Nothing, Option[(R, Stream[F, BitVector])]] = {
         for {
-          (bv, h) <- h.await1
-          h <- {
-            val data = buff ++ bv
-            decoder.decode(data) match {
-              case Attempt.Failure(Err.InsufficientBits(_, _, _)) =>
-                go(data, h)
-              case Attempt.Failure(err) =>
-                Pull.fail(DecodingError(err))
-              case Attempt.Successful(DecodeResult(a, rem)) =>
-                Pull.pure((a, h.push1(rem)))
-            }
+          opt <- s.pull.uncons1
+          res <- opt match {
+            case Some((bv, rest)) =>
+              val data = buff ++ bv
+              decoder.decode(data) match {
+                case Attempt.Failure(Err.InsufficientBits(_, _, _)) =>
+                  go(data, rest)
+                case Attempt.Failure(err) =>
+                  Pull.fail(DecodingError(err)) : Pull[F, Nothing, Option[(R, Stream[F, BitVector])]]
+                case Attempt.Successful(DecodeResult(a, rem)) =>
+                  Pull.pure(Some((a, Stream(rem) ++ rest)))
+              }
+            case None =>
+              Pull.pure(None)
           }
-        } yield h
+        } yield res
       }
-      go(BitVector.empty, h)
+
+      go(BitVector.empty, s)
     }
 
-    def decodeMany[R](decoder: Decoder[R]): Handle[F, BitVector] => Pull[F, R, Nothing] = {
-      Pull.loop[F, R, Handle[F, BitVector]] { h =>
+    def decodeMany[R](decoder: Decoder[R]): Stream[F, BitVector] => Pull[F, R, Option[Stream[F, BitVector]]] = {
+      Pull.loop[F, R, Stream[F, BitVector]] { s =>
         for {
-          (r, h) <- decodeOne[R](h, decoder)
-          _ <- Pull.output1(r)
-        } yield h
+          opt <- decodeOne[R](s, decoder)
+          cont <- opt match {
+            case Some((r, tail)) =>
+              Pull.output1(r) >> Pull.pure(Some(tail))
+            case None =>
+              Pull.pure(None)
+          }
+        } yield cont
       }
     }
 
-    def decode(h: Handle[F, BitVector]): Pull[F, A, Handle[F, BitVector]] = {
-      decodeOne[Model](h, Codecs.decoderFromReified[Model]).flatMap { case (model, h) =>
-        if (model compatible A.model) {
-          decodeMany(Codecs.decoderFromReified[A])(h)
-        } else {
-          Pull.fail(DecodingError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
-        }
+    def decode(s: Stream[F, BitVector]): Pull[F, A, Option[Stream[F, BitVector]]] = {
+      decodeOne[Model](s, Codecs.decoderFromReified[Model]).flatMap {
+        case Some((model, tail)) =>
+          if (model compatible A.model) {
+            decodeMany(Codecs.decoderFromReified[A])(tail)
+          } else {
+            Pull.fail(DecodingError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
+          }
+        case None =>
+          Pull.fail(DecodingError(Err("invalid stream: no model header found")))
       }
     }
 
-    _.pull(decode)
+    s => {
+      decode(s).stream
+    }
   }
 }

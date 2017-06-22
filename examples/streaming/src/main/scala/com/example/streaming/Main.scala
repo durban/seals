@@ -18,9 +18,10 @@ package com.example.streaming
 
 import java.io.{ InputStream, OutputStream, FileInputStream, FileOutputStream }
 
-import fs2.{ Stream, Chunk, Task, Pure }
+import cats.effect.IO
 
-import scodec.bits.BitVector
+import fs2.{ Stream, Chunk, Pure }
+
 import scodec.stream.StreamCodec
 
 import io.sigs.seals.scodec.StreamCodecs._
@@ -36,11 +37,11 @@ object Main {
   final case class Quokka(name: String, color: Color = Brown) extends Animal
   final case class Quagga(name: String, speed: Double) extends Animal
 
-  def transform(from: InputStream, to: OutputStream)(f: Animal => Stream[Pure, Animal]): Task[Unit] = {
-    val sIn: Stream[Task, Animal] = StreamCodec[Animal].decodeInputStream(from).flatMap(f)
-    val sOut: Stream[Task, Unit] = StreamCodec[Animal].encode(sIn).mapChunks[Byte] { bvs =>
-      Chunk.bytes(bvs.foldLeft(BitVector.empty)(_ ++ _).toByteArray)
-    }.to(fs2.io.writeOutputStream(Task.now(to)))
+  def transform(from: InputStream, to: OutputStream)(f: Animal => Stream[Pure, Animal]): IO[Unit] = {
+    val sIn: Stream[IO, Animal] = StreamCodec[Animal].decodeInputStream[IO](from).flatMap(f.andThen(_.covary[IO]))
+    val sOut: Stream[IO, Unit] = StreamCodec[Animal].encode(sIn).flatMap { bv =>
+      Stream.chunk(Chunk.bytes(bv.bytes.toArray))
+    }.to(fs2.io.writeOutputStream(IO.pure(to)))
     sOut.run
   }
 
@@ -62,6 +63,6 @@ object Main {
     }
 
     val task = transform(new FileInputStream(from), new FileOutputStream(to))(transformer)
-    task.unsafeRun()
+    task.unsafeRunSync()
   }
 }

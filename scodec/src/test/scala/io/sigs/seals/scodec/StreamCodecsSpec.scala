@@ -19,7 +19,9 @@ package scodec
 
 import laws.TestTypes.adts.defs.{ Adt1, Adt2 }
 
-import fs2.{ Stream, Pure, Pipe, Handle, Pull, Chunk, Task }
+import cats.effect.IO
+
+import fs2.{ Stream, Pure, Pipe, Pull }
 
 import _root_.scodec.bits._
 import _root_.scodec.stream.codec.StreamCodec
@@ -60,10 +62,10 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
         }
         ex.err.message should include ("incompatible models")
       }
-      forAll(genTaskStream(bits)) { src: Stream[Task, BitVector] =>
-        src.through(StreamCodecs.pipe[Task, Adt2]).runLog.unsafeRun() should === (data2)
+      forAll(genTaskStream(bits)) { src: Stream[IO, BitVector] =>
+        src.through(StreamCodecs.pipe[IO, Adt2]).runLog.unsafeRunSync() should === (data2)
         val ex = intercept[DecodingError] {
-          src.through(StreamCodecs.pipe[Task, Int]).runLog.unsafeRun()
+          src.through(StreamCodecs.pipe[IO, Int]).runLog.unsafeRunSync()
         }
         ex.err.message should include ("incompatible models")
       }
@@ -73,17 +75,22 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
   def genStream(data: BitVector): Gen[Stream[Pure, BitVector]] =
     slice(data).map(_.through(randomizeChunks(chunkSize)))
 
-  def genTaskStream(data: BitVector): Gen[Stream[Task, BitVector]] =
+  def genTaskStream(data: BitVector): Gen[Stream[IO, BitVector]] =
     genStream(data).map(taskify)
 
-  def randomizeChunks[F[_], A](chunkSize: Gen[Int]): Pipe[F, A, A] = {
+  def randomizeChunks[F[_], A](chunkSize: Gen[Long]): Pipe[F, A, A] = {
 
-    def doIt(h: Handle[F, A]): Pull[F, A, Handle[F, A]] = {
+    def doIt(tp: Stream.ToPull[F, A]): Pull[F, A, Option[Stream[F, A]]] = {
       val n = chunkSize.sample.getOrElse(fail("cannot generate chunk size"))
       for {
-        (cs, h) <- h.awaitN(n, allowFewer = true)
-        _ <- Pull.output(Chunk.concat(cs))
-      } yield h
+        opt <- tp.unconsN(n, allowFewer = true)
+        rest <- opt match {
+          case Some((seg, rest)) =>
+            Pull.output(seg) >> Pull.pure(Some(rest))
+          case None =>
+            Pull.pure(None)
+        }
+      } yield rest
     }
 
     _.repeatPull(doIt)
@@ -91,7 +98,7 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
 
   def slice(bits: BitVector): Gen[Stream[Pure, BitVector]] = {
     if (bits.isEmpty) {
-      Gen.const(Stream.empty[Pure, BitVector])
+      Gen.const(Stream.empty)
     } else {
       for {
         n <- chunkSize
@@ -101,15 +108,15 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
     }
   }
 
-  val chunkSize: Gen[Int] = Gen.oneOf(
-    Gen.choose(0, 10),
-    Gen.choose(11, 100),
-    Gen.choose(101, Int.MaxValue)
+  val chunkSize: Gen[Long] = Gen.oneOf(
+    Gen.choose(0L, 10L),
+    Gen.choose(11L, 100L),
+    Gen.choose(101L, Int.MaxValue.toLong)
   )
 
-  def taskify[A](s: Stream[Pure, A]): Stream[Task, A] = {
-    s.toVector.foldLeft(Stream.empty[Task, A]) { (stream, a) =>
-      stream ++ Stream.eval(Task.delay {
+  def taskify[A](s: Stream[Pure, A]): Stream[IO, A] = {
+    s.toVector.foldLeft(Stream.empty : Stream[IO, A]) { (stream, a) =>
+      stream ++ Stream.eval(IO {
         Thread.sleep(10)
         a
       })

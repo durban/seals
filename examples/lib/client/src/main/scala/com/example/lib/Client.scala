@@ -19,15 +19,16 @@ package com.example.lib
 import java.net.{ InetAddress, InetSocketAddress }
 
 import scala.concurrent.Future
+import scala.concurrent.Await
 import scala.concurrent.duration._
+
+import cats.effect.IO
 
 import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.{ ByteString }
-
-import scala.concurrent.Await
 
 import scodec.interop.akka._
 import scodec.stream.codec.StreamCodec
@@ -70,7 +71,7 @@ object Client {
     val decode: Flow[ByteString, Response, NotUsed] = Flow.fromGraph(Flow[ByteString]
       .map(_.toByteVector.bits)
       .toPipe(_ => ())
-      .andThen(decPipe[fs2.Task, Response])
+      .andThen(decPipe[IO, Response])
       .toFlow
     )
     val sink: Sink[ByteString, Future[Vector[Response]]] = decode.toMat(

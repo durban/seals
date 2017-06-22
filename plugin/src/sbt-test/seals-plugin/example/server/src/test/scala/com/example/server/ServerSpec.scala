@@ -19,9 +19,13 @@ package com.example.server
 import java.util.concurrent.Executors
 import java.nio.channels.{ AsynchronousChannelGroup => ACG }
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import cats.effect.IO
+
 import org.scalatest.{ FlatSpec, Matchers, BeforeAndAfterAll }
 
-import fs2.{ Task, Stream, Chunk, Strategy }
+import fs2.{ Stream, Chunk }
 
 import scodec.bits._
 import scodec.Codec
@@ -34,7 +38,6 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   val ex = Executors.newCachedThreadPool()
   implicit val cg = ACG.withThreadPool(ex)
-  implicit val st = Strategy.fromExecutor(ex)
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -43,23 +46,20 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   "Server" should "respond to a request" in {
-    val responses: Vector[Response] = fs2.concurrent.join(Int.MaxValue)(
-      Server.serve(0).map {
-        case Left(port) =>
-          client(port)
-        case Right(_) =>
-          Stream.empty
-      }
-    ).take(1L).runLog.unsafeRun
-
+    val responses: Vector[Response] = Server.serve(0).map[Stream[IO, Response]] {
+      case Left(port) =>
+        client(port)
+      case Right(_) =>
+        Stream.empty
+    }.join(Int.MaxValue).take(1L).runLog.unsafeRunSync()
     responses should === (Vector(Ok))
   }
 
-  def client(port: Int): Stream[Task, Response] = {
-    fs2.io.tcp.client[Task](Server.addr(port)).flatMap { socket =>
+  def client(port: Int): Stream[IO, Response] = {
+    fs2.io.tcp.client[IO](Server.addr(port)).flatMap { socket =>
       val bvs: Stream[Nothing, BitVector] = Stream(Codec[Request].encode(ReSeed(56)).require)
-      val bs: Stream[Nothing, Byte] = bvs.mapChunks { ch =>
-        Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
+      val bs: Stream[Nothing, Byte] = bvs.flatMap { bv =>
+        Stream.chunk(Chunk.bytes(bv.bytes.toArray))
       }
       val read = bs.to(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
         socket.reads(Server.bufferSize, Server.timeout).chunks.map(ch => BitVector.view(ch.toArray))
@@ -67,4 +67,3 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     }
   }
 }
-

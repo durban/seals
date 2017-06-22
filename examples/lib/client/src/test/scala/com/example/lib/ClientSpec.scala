@@ -22,9 +22,11 @@ import java.nio.channels.{ AsynchronousChannelGroup => ACG }
 import scala.concurrent.{ Await, ExecutionContext }
 import scala.concurrent.duration._
 
+import cats.effect.IO
+
 import org.scalatest.{ FlatSpec, Matchers, BeforeAndAfterAll }
 
-import fs2.{ Task, Stream, Strategy }
+import fs2.Stream
 
 import akka.actor.ActorSystem
 import akka.stream.{ Materializer, ActorMaterializer }
@@ -37,7 +39,6 @@ class ClientSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   implicit val mat: Materializer = ActorMaterializer()
   implicit val ec: ExecutionContext = sys.dispatcher
   implicit val cg = ACG.withThreadPool(Executors.newCachedThreadPool())
-  implicit val st = Strategy.fromExecutionContext(ec)
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -46,16 +47,18 @@ class ClientSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   "Client" should "receive the correct response" in {
-    val sem = fs2.async.mutable.Semaphore.empty[Task].unsafeRun()
-    fs2.concurrent.join(Int.MaxValue)(
-      Stream(Server.serve(1237).drain, Stream.eval(sem.decrement))
-    ).take(1).runLog.unsafeRunAsync(_ => ())
+    val sem = fs2.async.mutable.Semaphore.empty[IO].unsafeRunSync()
+    Stream(Server.serve(1237).drain, Stream.eval(sem.decrement))
+      .join(Int.MaxValue)
+      .take(1)
+      .runLog
+      .unsafeRunAsync(_ => ())
     try {
       val resp = Await.result(Client.client(1237), 2.seconds)
       // constant, because we always seed with the same value:
       resp should === (Vector[Response](Seeded, RandInt(42)))
     } finally {
-      sem.increment.unsafeRun()
+      sem.increment.unsafeRunSync()
     }
   }
 }

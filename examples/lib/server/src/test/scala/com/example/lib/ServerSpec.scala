@@ -19,9 +19,13 @@ package com.example.lib
 import java.util.concurrent.Executors
 import java.nio.channels.{ AsynchronousChannelGroup => ACG }
 
+import scala.concurrent.ExecutionContext
+
+import cats.effect.IO
+
 import org.scalatest.{ FlatSpec, Matchers, BeforeAndAfterAll }
 
-import fs2.{ Task, Stream, Chunk, Strategy }
+import fs2.{ Stream, Chunk }
 
 import scodec.bits._
 
@@ -33,7 +37,7 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   val ex = Executors.newCachedThreadPool()
   implicit val cg = ACG.withThreadPool(ex)
-  implicit val st = Strategy.fromExecutor(ex)
+  implicit val ec = ExecutionContext.global
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -51,14 +55,15 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
       case Seed(_) => true
       case _ => false
     }
-    val responses: Vector[Response] = fs2.concurrent.join(Int.MaxValue)(
-      Server.serveAddr(0).map {
-        case Left(localAddr) =>
-          clients(localAddr.getPort, nClients)
-        case Right(_) =>
-          Stream.empty
-      }
-    ).take((nClients * testData.size).toLong).runLog.unsafeRun
+    val str: Stream[IO, Stream[IO, Response]] = Server.serveAddr(0).map {
+      case Left(localAddr) =>
+        clients(localAddr.getPort, nClients)
+      case Right(_) =>
+        Stream.empty
+    }
+    val responses: Vector[Response] = str
+      .join(Int.MaxValue)
+      .take((nClients * testData.size).toLong).runLog.unsafeRunSync()
 
     val randInts = responses.collect { case RandInt(i) => i }
     val seededs = responses.collect { case Seeded => () }
@@ -78,21 +83,21 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     Random(1, 100)
   )
 
-  def clients(port: Int, count: Int, maxConcurrent: Int = 10): Stream[Task, Response] = {
-    val cls: Stream[Task, Stream[Task, Response]] = {
+  def clients(port: Int, count: Int, maxConcurrent: Int = 10): Stream[IO, Response] = {
+    val cls: Stream[IO, Stream[IO, Response]] = {
       Stream.range(0, count).map { i =>
-        fs2.io.tcp.client[Task](Server.addr(port)).flatMap { socket =>
+        fs2.io.tcp.client[IO](Server.addr(port)).flatMap { socket =>
           val bvs: Stream[Nothing, BitVector] = Server.reqCodec.encode(Stream(testData: _*))
-          val bs: Stream[Nothing, Byte] = bvs.mapChunks { ch =>
-            Chunk.bytes(ch.foldLeft(BitVector.empty)(_ ++ _).bytes.toArray)
+          val bs: Stream[Nothing, Byte] = bvs.flatMap { bv =>
+            Stream.chunk(Chunk.bytes(bv.bytes.toArray))
           }
           val read = bs.to(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
             socket.reads(Server.bufferSize, Server.timeout).chunks.map(ch => BitVector.view(ch.toArray))
-          read.through(StreamCodecs.pipe[Task, Response])
+          read.through(StreamCodecs.pipe[IO, Response])
         }
       }
     }
 
-    fs2.concurrent.join(maxConcurrent)(cls)
+    cls.join(maxConcurrent)
   }
 }

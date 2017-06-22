@@ -20,9 +20,11 @@ import java.io.{ ByteArrayInputStream, ByteArrayOutputStream }
 
 import shapeless.record._
 
+import cats.effect.IO
+
 import org.scalatest.{ FlatSpec, Matchers }
 
-import fs2.{ Stream, Task }
+import fs2.Stream
 
 import scodec.Codec
 import scodec.bits.BitVector
@@ -48,46 +50,46 @@ class StreamingSpec extends FlatSpec with Matchers {
     Quokka("Nellie", Grey)
   )
 
-  val animalStream = Stream.emits[Task, Animal](animals)
+  val animalStream = Stream.emits[Animal](animals)
 
   val codec = StreamCodec[Animal]
 
   "Encoding/decoding" should "work correctly" in {
-    val tsk: Task[Unit] = for {
-      bv <- codec.encode(animalStream).runFold(BitVector.empty)(_ ++ _)
-      as <- codec.decode(bv).runLog
+    val tsk: IO[Unit] = for {
+      bv <- codec.encode[IO](animalStream).runFold(BitVector.empty)(_ ++ _)
+      as <- codec.decode[IO](bv).runLog
     } yield {
       as should === (animals)
     }
-    tsk.unsafeRun()
+    tsk.unsafeRunSync()
   }
 
   it should "fail with incompatible models" in {
     val mod = Reified[Record.`'Elephant -> Elephant, 'Quokka -> Quokka`.T].model
     val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail)
-    val tsk: Task[Unit] = for {
-      as <- codec.decode(bv).runLog
+    val tsk: IO[Unit] = for {
+      as <- codec.decode[IO](bv).runLog
     } yield {
       as should === (Vector.empty)
     }
 
     val ex = intercept[DecodingError] {
-      tsk.unsafeRun()
+      tsk.unsafeRunSync()
     }
     ex.err.message should include ("incompatible models")
   }
 
   "Transformation" should "work correctly" in {
-    val tsk: Task[Unit] = for {
-      ibv <- codec.encode(animalStream).runFold(BitVector.empty)(_ ++ _)
+    val tsk: IO[Unit] = for {
+      ibv <- codec.encode[IO](animalStream).runFold(BitVector.empty)(_ ++ _)
       is = new ByteArrayInputStream(ibv.toByteArray)
       os = new ByteArrayOutputStream
       _ <- Main.transform(is, os)(Main.transformer)
       obv = BitVector(os.toByteArray())
-      transformed <- codec.decode(obv).runFold(Vector.empty[Animal])(_ :+ _)
+      transformed <- codec.decode[IO](obv).runFold(Vector.empty[Animal])(_ :+ _)
     } yield {
       transformed should === (transformedAnimals)
     }
-    tsk.unsafeRun()
+    tsk.unsafeRunSync()
   }
 }

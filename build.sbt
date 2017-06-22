@@ -279,11 +279,11 @@ lazy val dependencies = new {
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
-    "org.scodec" %% "scodec-stream" % "1.0.1",
+    "org.scodec" %% "scodec-stream" % "1.1.0-M3",
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.8.1"
+  val refined = "eu.timepit" %% "refined" % "0.8.2"
 
   val laws = Seq(
     scodecCats,
@@ -292,7 +292,7 @@ lazy val dependencies = new {
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.0.1"
+    "org.scalatest" %% "scalatest" % "3.0.2"
   )
 
   val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.14"
@@ -360,13 +360,14 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
 
 lazy val exampleSettings = Seq(
   scalaVersion := "2.12.2-bin-typelevel-4",
+  crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
     "-unchecked",
     "-encoding", "UTF-8",
-    "-Xlint:-unused,_",
+    "-Xlint:_",
     "-Xfuture",
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
@@ -387,7 +388,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.15.8a"
+  val http4sVersion = "0.15.13a"
+  val fs2Version = "0.10.0-M3"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -400,17 +402,17 @@ lazy val exampleDependencies = new {
   val spire = "org.typelevel" %% "spire" % "0.14.1"
 
   val fs2 = Seq(
-    "co.fs2" %% "fs2-core" % "0.9.5",
-    "co.fs2" %% "fs2-io" % "0.9.5"
+    "co.fs2" %% "fs2-core" % fs2Version,
+    "co.fs2" %% "fs2-io" % fs2Version
   )
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.4.17",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.2",
     "org.scodec" %% "scodec-akka" % "0.3.0"
   )
 
   val streamz = Seq[Setting[_]](
     resolvers += "krasserm" at "http://dl.bintray.com/krasserm/maven",
-    libraryDependencies += "com.github.krasserm" %% "streamz-converter" % "0.7"
+    libraryDependencies += "com.github.krasserm" %% "streamz-converter" % "0.9-M1"
   )
 }
