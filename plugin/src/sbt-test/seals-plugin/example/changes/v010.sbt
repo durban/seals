@@ -40,7 +40,7 @@ lazy val example = project.in(file("."))
 lazy val commonSettings = Seq[Setting[_]](
   organization := "com.example",
   version := "0.1.0",
-  scalaVersion := "2.11.8",
+  scalaVersion := "2.11.11",
   libraryDependencies ++= Seq(
     "io.sigs" %% "seals-core" % sealsVersion,
     "org.scalatest" %% "scalatest" % "3.0.2" % Test

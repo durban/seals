@@ -126,7 +126,7 @@ object SealsPlugin extends AutoPlugin { self =>
       options = classdir.getAbsolutePath +: targetFile.getAbsolutePath +: packs,
       log = streams.log
     )
-    toError(res)
+    res.foreach(sys.error)
     assert(targetFile.exists)
   }
 
@@ -145,7 +145,7 @@ object SealsPlugin extends AutoPlugin { self =>
       options = current.getAbsolutePath :: previous.getAbsolutePath :: Nil,
       log = streams.log
     )
-    toError(res)
+    res.foreach(sys.error)
   }
 
   private def allFiles(f: File): Set[File] = {
