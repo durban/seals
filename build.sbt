@@ -389,7 +389,7 @@ lazy val exampleSettings = Seq(
 lazy val exampleDependencies = new {
 
   val http4sVersion = "0.15.13a"
-  val fs2Version = "0.10.0-M3"
+  val fs2Version = "0.10.0-M4"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
