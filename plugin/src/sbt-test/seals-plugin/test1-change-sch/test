@@ -19,14 +19,14 @@ $ copy-file changes/Test1_original.scala src/main/scala/com/example/test1/Test1.
 
 > reload
 $ copy-file changes/Test1_add_schema.scala src/main/scala/com/example/test1/Test1.scala
-> ++ 2.11.8
+> ++ 2.11.11
 -> sealsCheckSchema
-> ++ 2.12.1
+> ++ 2.12.3
 -> sealsCheckSchema
 
 > reload
 $ copy-file changes/Test1_delete_schema.scala src/main/scala/com/example/test1/Test1.scala
-> ++ 2.11.8
+> ++ 2.11.11
 -> sealsCheckSchema
-> ++ 2.12.1
+> ++ 2.12.3
 -> sealsCheckSchema

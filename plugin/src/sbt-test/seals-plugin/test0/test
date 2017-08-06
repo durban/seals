@@ -29,7 +29,7 @@ $ copy-file changes/Test0_compatible.scala src/main/scala/com/example/test0/Test
 
 > reload
 $ copy-file changes/Test0_incompatible.scala src/main/scala/com/example/test0/Test0.scala
-> ++ 2.11.8
+> ++ 2.11.11
 -> sealsCheckSchema
-> ++ 2.12.1
+> ++ 2.12.3
 -> sealsCheckSchema

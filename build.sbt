@@ -84,7 +84,7 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.2-bin-typelevel-4",
+  scalaVersion := "2.12.3-bin-typelevel-4",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
@@ -304,7 +304,7 @@ addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
 addCommandAlias("doPlugin", ";plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
-addCommandAlias("validate", """;clean;++ "2.12.2-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll;++ 2.10.6;doPlugin;reload""")
+addCommandAlias("validate", """;clean;++ "2.12.3-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll;++ 2.10.6;doPlugin;reload""")
 
 
 //////////////////////
@@ -359,7 +359,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.2-bin-typelevel-4",
+  scalaVersion := "2.12.3-bin-typelevel-4",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
