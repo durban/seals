@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016-2017 Daniel Urban
+   Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -34,12 +34,9 @@ By using it, you will be able to
   versions of a schema.
 
 Since it's a fairly new project, not all of these features are
-implemented yet. Bugs are to be expected as well. Contributions
-to improve the project, and reports about
-[issues](https://github.com/durban/seals/issues) you encounter
-are welcome.
-
-[//]: # (TODO: link to CONTRIBUTION.md)
+implemented yet. Bugs are to be expected as well.
+[Contributions](CONTRIBUTING.md) to improve the project, and reports about
+[issues](https://github.com/durban/seals/issues) you encounter are welcome.
 
 ## Getting started
 
@@ -188,7 +185,7 @@ in the shapeless documentation.)
 ## License
 
 *seals* is open source software under the [Apache License v2.0](https://www.apache.org/licenses/LICENSE-2.0).
-For details, see the [LICENSE.txt](LICENSE.txt) and [NOTICE.txt](NOTICE.txt) files.
+For details, see the [LICENSE.txt](LICENSE.txt), [NOTICE.txt](NOTICE.txt), and [AUTHORS](AUTHORS) files.
 
 [circe]: https://github.com/circe/circe
 [scodec]: https://github.com/scodec/scodec

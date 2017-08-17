@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban
+ * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ lazy val seals = project.in(file("."))
 lazy val consts = new {
   val githubOrg = "durban"
   val githubProject = "seals"
-  val additionalFiles = Seq("LICENSE.txt", "NOTICE.txt")
+  val additionalFiles = Seq("LICENSE.txt", "NOTICE.txt", "AUTHORS")
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
