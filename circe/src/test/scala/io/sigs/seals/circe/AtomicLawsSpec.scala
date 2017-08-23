@@ -49,7 +49,7 @@ class AtomicLawsSpec extends tests.BaseLawsSpec {
         }
       },
       // can contain negative zero:
-      arbDbl.arbitrary.map(d => BiggerDecimal.fromDouble(- d))
+      arbDbl.arbitrary.map(d => BiggerDecimal.fromDoubleUnsafe(- d))
     )
   }
 

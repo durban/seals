@@ -29,7 +29,7 @@ lazy val server = project
   .dependsOn(proto)
   .settings(libraryDependencies ++= Seq(
     "io.sigs" %% "seals-scodec" % sealsVersion,
-    "co.fs2" %% "fs2-io" % "0.10.0-M4"
+    "co.fs2" %% "fs2-io" % "0.10.0-M6"
   ))
 
 lazy val example = project.in(file("."))

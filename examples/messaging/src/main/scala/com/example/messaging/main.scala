@@ -16,12 +16,12 @@
 
 package com.example.messaging
 
+import fs2.Task
+
 import org.http4s._
 import org.http4s.dsl._
 import org.http4s.server.ServerApp
 import org.http4s.circe._
-
-import scalaz.concurrent.Task
 
 import io.sigs.seals._
 import io.sigs.seals.circe.Codecs._
@@ -41,20 +41,20 @@ object MyClient extends App {
 
   val pongGood = jsonEncoderOf[Envelope[Ping]].toEntity(
     Envelope(Ping(42L, Vector(1, 2, 3, 4)))
-  ).flatMap(ping).unsafePerformSync
+  ).flatMap(ping).unsafeRunSync()
   assert(pongGood == Pong(42L))
   println(pongGood)
 
   try {
     val pongBad = jsonEncoderOf[Envelope[PingIncompatible]].toEntity(
       Envelope(PingIncompatible(99L, Vector(4, 5), 0))
-    ).flatMap(ping).unsafePerformSync
+    ).flatMap(ping).unsafeRunSync()
     println(pongBad)
   } finally {
     client.shutdownNow()
   }
 
-  def ping(ping: EntityEncoder.Entity): Task[Pong] = {
+  def ping(ping: Entity): Task[Pong] = {
     for {
       pong <- client
         .expect(Request(

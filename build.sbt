@@ -262,8 +262,8 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "0.9.0"
-  val circeVersion = "0.8.0"
+  val catsVersion = "1.0.0-MF"
+  val circeVersion = "0.9.0-M1"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -275,11 +275,11 @@ lazy val dependencies = new {
   )
 
   val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.4"
-  val scodecCats = "org.scodec" %% "scodec-cats" % "0.3.0"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "0.4.0"
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
-    "org.scodec" %% "scodec-stream" % "1.1.0-M3",
+    "org.scodec" %% "scodec-stream" % "1.1.0-M6",
     scodecCats
   )
 
@@ -388,8 +388,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.15.13a"
-  val fs2Version = "0.10.0-M4"
+  val http4sVersion = "0.17.0-RC1"
+  val fs2Version = "0.10.0-M6"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -407,7 +407,7 @@ lazy val exampleDependencies = new {
   )
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.2",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.4",
     "org.scodec" %% "scodec-akka" % "0.3.0"
   )
 
