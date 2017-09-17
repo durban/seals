@@ -40,24 +40,17 @@ implemented yet. Bugs are to be expected as well.
 
 ## Getting started
 
-*seals* is currently available for Scala 2.11 and 2.12. At the moment
-there are no published JARs. Until they are available, you can depend
-directly on [this git repo](https://github.com/durban/seals.git) by putting
-the following into your `build.sbt` (this will cause `sbt` to depend on
-the `core` subproject on the `master` branch; all commits there are
-signed by key `36A8 2002 483A 4CBF A5F8 DF6F 48B2 9573 BF19 7B13`):
+*seals* is currently available for Scala 2.11 and 2.12. JARs are available
+on [Maven Central](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.sigs%22%20seals).
+To use it, put this into your `build.sbt` (see [below](#project-structure)
+for the available modules):
 
 ```scala
-dependsOn(ProjectRef(uri("git://github.com/durban/seals.git#master"), "core"))
+libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-M3"
 ```
 
-Alternatively, you can clone the repo, and run `sbt +publishLocal` in its root.
-Then you can depend on the locally published library by putting this into your
-`build.sbt`:
-
-```scala
-libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0-SNAPSHOT"
-```
+All releases (and commits on the `master` branch) are signed by key
+`36A8 2002 483A 4CBF A5F8 DF6F 48B2 9573 BF19 7B13`.
 
 ## Features
 
@@ -175,12 +168,8 @@ For testing, it also uses:
   to generate pseudorandom ADT instances.
 
 For compilation, it uses the [Typelevel Scala compiler](https://github.com/typelevel/scala).
-(This should have no effect on software using the library, since TLS is binary compatible with
-Scala 2.11/2.12. However, as TLS contains a partial fix for
-[SI-7046](https://issues.scala-lang.org/browse/SI-7046), it might be beneficial to use it
-in cases where type class materialization fails for subclasses of a sealed trait. For more
-information, see [this section](https://github.com/milessabin/shapeless#shapeless-and-typelevel-scala)
-in the shapeless documentation.)
+(In general, this should have no effect on software using the library, since TLS aims to be
+binary compatible with Scala 2.11/2.12.)
 
 ## License
 
