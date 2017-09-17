@@ -18,6 +18,9 @@
 
 # seals
 
+[![Latest version](https://index.scala-lang.org/durban/seals/seals-core/latest.svg)](
+https://index.scala-lang.org/durban/seals/seals-core)
+
 [*seals*](https://github.com/durban/seals) is an experimental project
 by [Daniel Urban](https://github.com/durban), which provides tools for
 **s**chema **e**volution **a**nd **l**anguage-integrated **s**chemata.
