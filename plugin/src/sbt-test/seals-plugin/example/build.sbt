@@ -47,4 +47,4 @@ lazy val commonSettings = Seq[Setting[_]](
   )
 )
 
-lazy val sealsVersion = "0.1.0-SNAPSHOT" // TODO: don't hardcode version
+lazy val sealsVersion = System.getProperty("plugin.version")
