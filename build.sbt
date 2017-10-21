@@ -87,6 +87,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   scalaVersion := "2.12.3-bin-typelevel-4",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
+  crossSbtVersions := Vector("0.13.16", "1.0.2"), // for some reason this has to be here for ^ to work
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -181,13 +182,13 @@ lazy val publishSettings = Seq[Setting[_]](
   releaseProcess := {
     import ReleaseTransformations._
     Seq[ReleaseStep](
-      releaseStepCommand("clean"),
+      releaseStepCommandAndRemaining("clean"),
       checkSnapshotDependencies,
       inquireVersions,
       setReleaseVersion,
       commitReleaseVersion,
       tagRelease,
-      releaseStepTask(releasePublishArtifactsAction in plugin),
+      releaseStepCommandAndRemaining("^ plugin/publishSigned"),
       publishArtifacts,
       setNextVersion,
       commitNextVersion
@@ -227,7 +228,6 @@ lazy val macroSettings = Seq[Setting[_]](
 
 lazy val pluginSettings = scriptedSettings ++ Seq[Setting[_]](
   sbtPlugin := true,
-  crossSbtVersions := Vector("0.13.16", "1.0.2"),
   scalaVersion := {
     val sbtVer = (sbtVersion in pluginCrossBuild).value
     if (sbtVer.startsWith("0.13")) "2.10.6"
