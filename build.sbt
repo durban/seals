@@ -227,8 +227,12 @@ lazy val macroSettings = Seq[Setting[_]](
 
 lazy val pluginSettings = scriptedSettings ++ Seq[Setting[_]](
   sbtPlugin := true,
-  scalaVersion := "2.10.6",
-  crossScalaVersions := Seq(scalaVersion.value),
+  crossSbtVersions := Vector("0.13.16", "1.0.2"),
+  scalaVersion := {
+    val sbtVer = (sbtVersion in pluginCrossBuild).value
+    if (sbtVer.startsWith("0.13")) "2.10.6"
+    else "2.12.3"
+  },
   scalaOrganization := "org.scala-lang",
   scalacOptions := scalacOptions.value.flatMap {
     case "-Xlint:_" => "-Xlint" :: Nil
@@ -237,7 +241,11 @@ lazy val pluginSettings = scriptedSettings ++ Seq[Setting[_]](
     case "-Ywarn-unused-import" => Nil
     case opt => opt :: Nil
   },
-  addSbtPlugin(dependencies.sbtMima),
+  libraryDependencies += Defaults.sbtPluginExtra(
+    dependencies.sbtMima,
+    (sbtBinaryVersion in pluginCrossBuild).value,
+    (scalaBinaryVersion in update).value
+  ),
   buildInfoKeys := Seq[BuildInfoKey](version),
   buildInfoPackage := "io.sigs.seals.plugin",
   releaseCrossBuild := false,
@@ -304,7 +312,13 @@ addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
 addCommandAlias("doPlugin", ";plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
-addCommandAlias("validate", """;clean;++ "2.12.3-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll;++ 2.10.6;doPlugin;reload""")
+addCommandAlias(
+  "validate",
+  """;clean;++ "2.12.3-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll""" +
+  """;++ 2.10.6;^^ 0.13.16;doPlugin""" +
+  """;++ 2.12.3;^^ 1.0.2;doPlugin""" +
+  """;reload"""
+)
 
 
 //////////////////////

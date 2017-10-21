@@ -17,6 +17,8 @@
 package io.sigs.seals
 package plugin
 
+import scala.util.{ Success, Failure }
+
 import sbt._
 import sbt.Keys._
 
@@ -49,11 +51,14 @@ object SealsPlugin extends AutoPlugin { self =>
 
   lazy val checkTask = Def.task[Unit] {
     val (curr, prevModels) = sealsExtractSchema.value
+    val strs = streams.value
+    val rnr = (runner in Compile).value
+    val fcp = (fullClasspath in Compile).value
     for (prev <- prevModels.toVector.sorted) {
       checkCompat(
-        streams.value,
-        (runner in Compile).value,
-        (fullClasspath in Compile).value,
+        strs,
+        rnr,
+        fcp,
         curr,
         prev
       )
@@ -126,7 +131,7 @@ object SealsPlugin extends AutoPlugin { self =>
       options = classdir.getAbsolutePath +: targetFile.getAbsolutePath +: packs,
       log = streams.log
     )
-    res.foreach(sys.error)
+    handleRunResult(res)
     assert(targetFile.exists)
   }
 
@@ -145,7 +150,24 @@ object SealsPlugin extends AutoPlugin { self =>
       options = current.getAbsolutePath :: previous.getAbsolutePath :: Nil,
       log = streams.log
     )
-    res.foreach(sys.error)
+    handleRunResult(res)
+  }
+
+  /** sbt cross-building hack */
+  private def handleRunResult(res: Any): Unit = res match {
+    // sbt 0.13:
+    case Some(msg: String) =>
+      sys.error(msg)
+    case None =>
+      ()
+    // sbt 1.0:
+    case Failure(ex) =>
+      throw ex
+    case Success(()) =>
+      ()
+    // this shouldn't happen:
+    case _ =>
+      throw new IllegalArgumentException(show"Not a `run` result: ${res.toString}")
   }
 
   private def allFiles(f: File): Set[File] = {
