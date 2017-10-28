@@ -87,7 +87,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   scalaVersion := "2.12.3-bin-typelevel-4",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
-  crossSbtVersions := Vector("0.13.16", "1.0.2"), // for some reason this has to be here for ^ to work
+  crossSbtVersions := Vector("0.13.16", "1.0.3"), // for some reason this has to be here for ^ to work
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -316,7 +316,7 @@ addCommandAlias(
   "validate",
   """;clean;++ "2.12.3-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll""" +
   """;++ 2.10.6;^^ 0.13.16;doPlugin""" +
-  """;++ 2.12.3;^^ 1.0.2;doPlugin""" +
+  """;++ 2.12.3;^^ 1.0.3;doPlugin""" +
   """;reload"""
 )
 
