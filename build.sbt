@@ -20,6 +20,7 @@ lazy val core = project
   .settings(coreSettings)
   .settings(macroSettings)
   .enablePlugins(TutPlugin)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(macros)
 
 lazy val macros = project
@@ -27,17 +28,20 @@ lazy val macros = project
   .settings(commonSettings)
   .settings(macrosSettings)
   .settings(macroSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
 
 lazy val laws = project
   .settings(name := "seals-laws")
   .settings(commonSettings)
   .settings(lawsSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core)
 
 lazy val tests = project
   .settings(name := "seals-tests")
   .settings(commonSettings)
   .settings(noPublishSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, laws % "test->test;compile->compile")
 
 lazy val checker = project
@@ -45,6 +49,7 @@ lazy val checker = project
   .settings(commonSettings)
   .settings(checkerSettings)
   .settings(macroSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, circe)
 
 lazy val plugin = project
@@ -57,24 +62,28 @@ lazy val circe = project
   .settings(name := s"seals-circe")
   .settings(commonSettings)
   .settings(circeSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, laws % "test->test", tests % "test->test")
 
 lazy val scodec = project
   .settings(name := s"seals-scodec")
   .settings(commonSettings)
   .settings(scodecSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, laws % "test->test", tests % "test->test")
 
 lazy val refined = project
   .settings(name := s"seals-refined")
   .settings(commonSettings)
   .settings(refinedSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, laws % "test->test", tests % "test->test")
 
 lazy val seals = project.in(file("."))
   .settings(name := "seals")
   .settings(commonSettings)
   .settings(noPublishSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .aggregate(core, macros, laws, tests, checker, circe, scodec, refined) // Note: `plugin` is intentionally missing
 
 lazy val consts = new {
@@ -226,14 +235,23 @@ lazy val macroSettings = Seq[Setting[_]](
   addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 )
 
-lazy val pluginSettings = scriptedSettings ++ Seq[Setting[_]](
+lazy val pluginSettings = Seq[Setting[_]](
   sbtPlugin := true,
   scalaVersion := {
-    val sbtVer = (sbtVersion in pluginCrossBuild).value
-    if (sbtVer.startsWith("0.13")) "2.10.6"
-    else "2.12.3"
+    (sbtBinaryVersion in pluginCrossBuild).value match {
+      case "0.13" => "2.10.6"
+      case "1.0" => "2.12.3-bin-typelevel-4"
+      case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
+    }
   },
-  scalaOrganization := "org.scala-lang",
+  crossScalaVersions := Seq(scalaVersion.value),
+  scalaOrganization := {
+    (sbtBinaryVersion in pluginCrossBuild).value match {
+      case "0.13" => "org.scala-lang"
+      case "1.0" => "org.typelevel"
+      case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
+    }
+  },
   scalacOptions := scalacOptions.value.flatMap {
     case "-Xlint:_" => "-Xlint" :: Nil
     case "-Xstrict-patmat-analysis" => Nil
@@ -312,13 +330,7 @@ addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
 addCommandAlias("doPlugin", ";plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
-addCommandAlias(
-  "validate",
-  """;clean;++ "2.12.3-bin-typelevel-4";doAll;++ "2.11.11-bin-typelevel-4";doAll""" +
-  """;++ 2.10.6;^^ 0.13.16;doPlugin""" +
-  """;++ 2.12.3;^^ 1.0.3;doPlugin""" +
-  """;reload"""
-)
+addCommandAlias("validate", ";clean;+ doAll;^ doPlugin;reload")
 
 
 //////////////////////
@@ -328,41 +340,48 @@ addCommandAlias(
 lazy val examples = project.in(file("examples"))
   .settings(name := "seals-examples")
   .settings(exampleSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .aggregate(exInvariant, exMessaging, exStreaming, exLib)
 
 lazy val exInvariant = project.in(file("examples/invariant"))
   .settings(name := "seals-examples-invariant")
   .settings(exampleSettings)
   .settings(libraryDependencies += exampleDependencies.spire)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, circe)
 
 lazy val exMessaging = project.in(file("examples/messaging"))
   .settings(name := "seals-examples-messaging")
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.http4s)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, circe)
 
 lazy val exStreaming = project.in(file("examples/streaming"))
   .settings(name := "seals-examples-streaming")
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.fs2)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, scodec)
 
 lazy val exLib = project.in(file("examples/lib"))
   .settings(name := "seals-examples-lib")
   .settings(exampleSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .aggregate(exLibProto, exLibServer, exLibClient)
 
 lazy val exLibProto = project.in(file("examples/lib/proto"))
   .settings(name := "seals-examples-lib-proto")
   .settings(exampleSettings)
   .settings(macroSettings)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core)
 
 lazy val exLibServer = project.in(file("examples/lib/server"))
   .settings(name := "seals-examples-lib-server")
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.fs2)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, scodec, exLibProto)
 
 lazy val exLibClient = project.in(file("examples/lib/client"))
@@ -370,6 +389,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.akka)
   .settings(exampleDependencies.streamz)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
