@@ -19,7 +19,7 @@ lazy val proto = project
   .settings(commonSettings)
   .settings(
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch),
-    mimaPreviousArtifacts := Set(organization.value %% name.value % "0.1.0"),
+    mimaPreviousArtifacts := Set(organization.value %% name.value % "0.1.0-SNAPSHOT"),
     sealsSchemaPackages += "com.example.proto"
   )
 
@@ -39,7 +39,7 @@ lazy val example = project.in(file("."))
 
 lazy val commonSettings = Seq[Setting[_]](
   organization := "com.example",
-  version := "0.1.0",
+  version := "0.1.0-SNAPSHOT",
   scalaVersion := "2.11.11",
   libraryDependencies ++= Seq(
     "io.sigs" %% "seals-core" % sealsVersion,

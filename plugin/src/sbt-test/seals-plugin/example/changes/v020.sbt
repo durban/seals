@@ -19,7 +19,7 @@ lazy val proto = project
   .settings(commonSettings)
   .settings(
     addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch),
-    mimaPreviousArtifacts := Set(organization.value %% name.value % "0.1.0"),
+    mimaPreviousArtifacts := Set(organization.value %% name.value % "0.1.0-SNAPSHOT"),
     sealsSchemaPackages += "com.example.proto"
   )
 
