@@ -197,6 +197,7 @@ lazy val publishSettings = Seq[Setting[_]](
       setReleaseVersion,
       commitReleaseVersion,
       tagRelease,
+      releaseStepCommandAndRemaining("plugin/clean"), // workaround for https://github.com/sbt/sbt-buildinfo/issues/108
       releaseStepCommandAndRemaining("^ plugin/publishSigned"),
       publishArtifacts,
       setNextVersion,
