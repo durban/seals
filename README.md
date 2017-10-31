@@ -49,7 +49,7 @@ To use it, put this into your `build.sbt` (see [below](#project-structure)
 for the available modules):
 
 ```scala
-libraryDependencies += "io.sigs" %% "seals-core" % "0.1.0"
+libraryDependencies += "io.sigs" %% "seals-core" % "0.1.2"
 ```
 
 All releases (and commits on the `master` branch) are signed by key
