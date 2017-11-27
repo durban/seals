@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,10 +30,11 @@ import akka.stream._
 import akka.stream.scaladsl._
 import akka.util.{ ByteString }
 
+import scodec.bits.BitVector
 import scodec.interop.akka._
 import scodec.stream.codec.StreamCodec
 
-import streamz.converter._
+import fs2.interop.reactivestreams._
 
 import io.sigs.seals.scodec.StreamCodecs._
 import io.sigs.seals.scodec.StreamCodecs.{ pipe => decPipe }
@@ -61,18 +62,27 @@ object Client {
     Tcp().outgoingConnection(addr).joinMat(logic)(Keep.right).run()
   }
 
-  def logic(implicit sys: ActorSystem, mat: Materializer): Flow[ByteString, ByteString, Future[Vector[Response]]] = {
+  def logic(implicit sys: ActorSystem): Flow[ByteString, ByteString, Future[Vector[Response]]] = {
     import sys.dispatcher
 
-    val requests = fs2.Stream(Seed(0xabcdL), Random(1, 100))
-    val source = Source.fromGraph(reqCodec.encode(requests).toSource)
+    val requests = fs2.Stream(Seed(0xabcdL), Random(1, 100)).covary[IO]
+    val source = Source.fromPublisher(reqCodec.encode(requests).toUnicastPublisher())
       .map(_.toByteVector.toByteString)
 
-    val decode: Flow[ByteString, Response, NotUsed] = Flow.fromGraph(Flow[ByteString]
-      .map(_.toByteVector.bits)
-      .toPipe(_ => ())
-      .andThen(decPipe[IO, Response])
-      .toFlow
+    // TODO: this would be much less ugly, if we had a decoder `Flow`
+    val buffer = fs2.async.unboundedQueue[IO, Option[BitVector]].unsafeRunSync()
+    val decode: Flow[ByteString, Response, NotUsed] = Flow.fromSinkAndSource(
+      Sink.onComplete { _ =>
+        buffer.enqueue1(None).unsafeRunSync()
+      }.contramap[ByteString] { x =>
+        buffer.enqueue1(Some(x.toByteVector.bits)).unsafeRunSync()
+      },
+      Source.fromPublisher(buffer
+        .dequeue
+        .unNoneTerminate
+        .through(decPipe[IO, Response])
+        .toUnicastPublisher()
+      )
     )
     val sink: Sink[ByteString, Future[Vector[Response]]] = decode.toMat(
       Sink.fold(Vector.empty[Response])(_ :+ _)

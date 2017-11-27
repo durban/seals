@@ -33,7 +33,7 @@ trait TestArbInstances extends ArbInstances {
   object forTestData {
 
     implicit val arbDefsAdt1: Arbitrary[TestTypes.adts.defs.Adt1] = {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       derivedArbitrary(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.defs.Adt1]
@@ -41,7 +41,7 @@ trait TestArbInstances extends ArbInstances {
     }
 
     implicit val cogenDefsAdt1: Cogen[TestTypes.adts.defs.Adt1] = {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       derivedCogen(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkCogen[TestTypes.adts.defs.Adt1]
@@ -49,7 +49,7 @@ trait TestArbInstances extends ArbInstances {
     }
 
     implicit val arbDefsAdt2: Arbitrary[TestTypes.adts.defs.Adt2] = {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       derivedArbitrary(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.defs.Adt2]
@@ -60,7 +60,7 @@ trait TestArbInstances extends ArbInstances {
       Recursive(Gen.const(TestTypes.adts.recursive.IntNil))
 
     implicit val arbDefsIntList: Arbitrary[TestTypes.adts.recursive.IntList] = {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       derivedArbitrary(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.recursive.IntList]
@@ -83,7 +83,7 @@ trait TestArbInstances extends ArbInstances {
       Recursive(Gen.const(TestTypes.adts.recursive.v2.IntNil))
 
     implicit val arbDefsIntListV2: Arbitrary[TestTypes.adts.recursive.v2.IntList] = {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       derivedArbitrary(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.adts.recursive.v2.IntList]
@@ -94,7 +94,7 @@ trait TestArbInstances extends ArbInstances {
       Recursive(Gen.const(TestTypes.collections.CyB))
 
     implicit val arbCollCyclic: Arbitrary[TestTypes.collections.Cyclic] = {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       derivedArbitrary(
         null : shapeless.LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[TestTypes.collections.Cyclic]

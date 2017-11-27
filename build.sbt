@@ -289,8 +289,8 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "1.0.0-MF"
-  val circeVersion = "0.9.0-M1"
+  val catsVersion = "1.0.0-RC1"
+  val circeVersion = "0.9.0-M2"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -302,11 +302,11 @@ lazy val dependencies = new {
   )
 
   val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.4"
-  val scodecCats = "org.scodec" %% "scodec-cats" % "0.4.0"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "0.5.0"
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
-    "org.scodec" %% "scodec-stream" % "1.1.0-M6",
+    "org.scodec" %% "scodec-stream" % "1.1.0-M8",
     scodecCats
   )
 
@@ -315,7 +315,7 @@ lazy val dependencies = new {
   val laws = Seq(
     scodecCats,
     "org.typelevel" %% "cats-laws" % catsVersion,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.4"
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.6"
   )
 
   val test = Seq(
@@ -329,7 +329,7 @@ addCommandAlias("testAll", ";test;examples/test")
 addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
 addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
-addCommandAlias("doPlugin", ";plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
+addCommandAlias("doPlugin", ";plugin/clean;plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
 addCommandAlias("validate", ";clean;+ doAll;^ doPlugin;reload")
 
@@ -354,7 +354,7 @@ lazy val exInvariant = project.in(file("examples/invariant"))
 lazy val exMessaging = project.in(file("examples/messaging"))
   .settings(name := "seals-examples-messaging")
   .settings(exampleSettings)
-  .settings(libraryDependencies ++= exampleDependencies.http4s)
+  .settings(libraryDependencies ++= (exampleDependencies.http4s :+ exampleDependencies.catsEffect))
   .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, circe)
 
@@ -389,7 +389,6 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .settings(name := "seals-examples-lib-client")
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.akka)
-  .settings(exampleDependencies.streamz)
   .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
@@ -423,8 +422,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.17.0-RC1"
-  val fs2Version = "0.10.0-M6"
+  val http4sVersion = "0.18.0-M5"
+  val fs2Version = "0.10.0-M8"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -441,13 +440,11 @@ lazy val exampleDependencies = new {
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.4",
-    "org.scodec" %% "scodec-akka" % "0.3.0"
-  )
+  val catsEffect = "org.typelevel" %% "cats-effect" % "0.5"
 
-  val streamz = Seq[Setting[_]](
-    resolvers += "krasserm" at "http://dl.bintray.com/krasserm/maven",
-    libraryDependencies += "com.github.krasserm" %% "streamz-converter" % "0.9-M1"
+  val akka = Seq(
+    "com.typesafe.akka" %% "akka-stream" % "2.5.6",
+    "org.scodec" %% "scodec-akka" % "0.3.0",
+    "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.2.5"
   )
 }

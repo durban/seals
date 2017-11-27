@@ -18,7 +18,6 @@ package io.sigs.seals
 package laws
 
 import cats.{ ~>, Eq, Show }
-import cats.kernel.laws._
 import cats.implicits._
 
 import org.typelevel.discipline.Laws
@@ -89,12 +88,12 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
           wir.fromWire(repr).fold(
             err => Prop.falsified :| sh"cannot decode encoded value '${x}': '${err}'",
             x2 => {
-              val objOk = x2 ?== x
+              val objOk = x2 === x
               wir.toWire(x2).fold(
                 err => Prop.falsified :| sh"cannot reencode decoded value '${x2}': '${err}'",
                 repr2 => {
-                  val reprOk = repr2 ?== repr
-                  objOk && reprOk
+                  val reprOk = repr2 === repr
+                  Prop(objOk && reprOk)
                 }
               )
             }
@@ -124,7 +123,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
                 CanonicalRepr.fold[X](x)(wirX.reified)
               )(wirY.reified).fold(
                 { err => Prop.falsified :| sh"xyx: ${err}" },
-                { transformed: Y => (y2 ?== transformed) }
+                { transformed: Y => Prop(y2 === transformed) }
               )
             }
           )
@@ -140,7 +139,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
                 CanonicalRepr.fold[Y](y)(wirY.reified)
               )(wirX.reified).fold(
                 { err => Prop.falsified :| sh"yxy: ${err}" },
-                { transformed: X => (x2 ?== transformed) }
+                { transformed: X => Prop(x2 === transformed) }
               )
             }
           )

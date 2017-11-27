@@ -22,6 +22,7 @@ import java.time.DayOfWeek
 
 import cats.Eq
 import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 import cats.implicits._
 
 import scodec.bits._
@@ -122,23 +123,23 @@ trait AtomicLaws[A] extends Laws {
   def roundtrip: this.RuleSet = new AtomicRuleSet(
     name = "roundtrip",
     "stringRepr-fromString" -> forAll { (a: A) =>
-      Atc.fromString(Atc.stringRepr(a)) ?== Either.right(a)
+      Atc.fromString(Atc.stringRepr(a)) <-> Either.right(a)
     },
     "fromString-stringRepr" -> forAll { (s: String) =>
       Atc.fromString(s).fold(
-        err => Prop.proved,
+        err => provedIsEq[String],
         a => {
-          Atc.stringRepr(a) ?== s
+          Atc.stringRepr(a) <-> s
         }
       )
     },
     "binaryRepr-fromBinary" -> forAll { (a: A) =>
-      Atc.fromBinary(Atc.binaryRepr(a)) ?== Either.right((a, ByteVector.empty))
+      Atc.fromBinary(Atc.binaryRepr(a)) <-> Either.right((a, ByteVector.empty))
     },
     "fromBinary-binaryRepr" -> forAll { (b: ByteVector) =>
       Atc.fromBinary(b).fold(
-        err => Prop.proved,
-        { case (a, r) => (Atc.binaryRepr(a) ++ r) ?== b }
+        err => provedIsEq[ByteVector],
+        { case (a, r) => (Atc.binaryRepr(a) ++ r) <-> b }
       )
     }
   )

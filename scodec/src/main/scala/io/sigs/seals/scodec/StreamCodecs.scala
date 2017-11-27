@@ -43,7 +43,7 @@ trait StreamCodecs {
   /** See https://github.com/scodec/scodec-stream/issues/12 */
   private[this] def emit[A](bits: BitVector): StreamEncoder[A] = {
     StreamEncoder.instance[A] { h =>
-      Pull.output1(bits) >> Pull.pure(Some(h -> encode.empty[A]))
+      Pull.output1(bits) *> Pull.pure(Some(h -> encode.empty[A]))
     }
   }
 
@@ -90,7 +90,7 @@ trait StreamCodecs {
           opt <- decodeOne[R](s, decoder)
           cont <- opt match {
             case Some((r, tail)) =>
-              Pull.output1(r) >> Pull.pure(Some(tail))
+              Pull.output1(r) *> Pull.pure(Some(tail))
             case None =>
               Pull.pure(None)
           }

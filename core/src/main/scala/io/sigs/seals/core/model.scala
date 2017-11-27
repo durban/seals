@@ -102,10 +102,10 @@ sealed trait Model extends Serializable {
   final override def hashCode: Int = {
     val st = this.foldImpl[State[(Int, Int), Unit]](
       hNil = _ => hash.mix(hash.hNil),
-      hCons = (_, l, o, r, h, t) => hash.mix(o) >> hash.mix(r.map(_.uuid)) >> hash.mixLht(l, h, t, hash.hCons),
+      hCons = (_, l, o, r, h, t) => hash.mix(o) *> hash.mix(r.map(_.uuid)) *> hash.mixLht(l, h, t, hash.hCons),
       cNil = _ => hash.mix(hash.cNil),
-      cCons = (_, l, r, h, t) => hash.mix(r.map(_.uuid)) >> hash.mixLht(l, h, t, hash.cCons),
-      vector = (_, r, e) => hash.mix(hash.vector) >> hash.mix(r.map(_.uuid)) >> e,
+      cCons = (_, l, r, h, t) => hash.mix(r.map(_.uuid)) *> hash.mixLht(l, h, t, hash.cCons),
+      vector = (_, r, e) => hash.mix(hash.vector) *> hash.mix(r.map(_.uuid)) *> e,
       atom = (_, a) => hash.mix(a.atomHash),
       cycle = _ => State.pure(()),
       memo = Memo.valMemo,

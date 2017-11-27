@@ -116,7 +116,7 @@ private object ModelRepr extends ModelReprBase {
   final case object HNil extends ProdRepr {
 
     private[ModelRepr] override def toProdSt: DecSt[Model.HList] =
-      EitherT.liftT(State.pure(Model.HNil))
+      EitherT.liftF(State.pure(Model.HNil))
   }
 
   final case class HCons(
@@ -151,7 +151,7 @@ private object ModelRepr extends ModelReprBase {
   final case object CNil extends SumRepr {
 
     private[ModelRepr] override def toSumSt: DecSt[Model.Coproduct] =
-      EitherT.liftT(State.pure(Model.CNil))
+      EitherT.liftF(State.pure(Model.CNil))
   }
 
   final case class CCons(

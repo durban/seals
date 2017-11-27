@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@ package io.sigs.seals
 package laws
 
 import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 import cats.kernel.instances.boolean._
 import cats.kernel.Eq
 
@@ -46,7 +47,7 @@ trait AnyLaws[A] extends Laws {
     parent = None,
     bases = List(),
     "equals-hashCode-consistent" -> forAll { (x: A, y: A) =>
-      !(x == y) ?|| (x.## == y.##)
+      ((!(x == y)) || (x.## == y.##)) <-> true
     },
     "equals-false-for-other-types" -> forAll { (x: A) =>
       val ok = (x != new Dummy)
@@ -66,7 +67,7 @@ trait AnyLaws[A] extends Laws {
     parent = Some(this.serializability),
     bases = List(),
     "equals-Eq-consistent" -> forAll { (x: A, y: A) =>
-      Equ.eqv(x, y) ?== (x == y)
+      Equ.eqv(x, y) <-> (x == y)
     }
   )
 
@@ -81,12 +82,12 @@ trait AnyLaws[A] extends Laws {
     parent = None,
     bases = List(),
     "reference-equals" -> forAll { (x: A, y: A) =>
-      (x == y) ?== (x.asInstanceOf[AnyRef] eq y.asInstanceOf[AnyRef])
+      (x == y) <-> (x.asInstanceOf[AnyRef] eq y.asInstanceOf[AnyRef])
     },
     "identity-hashCode" -> forAll { (x: A, y: A) =>
       // we ignore collisions here, as
       // they should be sufficiently rare
-      (x.## == y.##) ?== (x.asInstanceOf[AnyRef] eq y.asInstanceOf[AnyRef])
+      (x.## == y.##) <-> (x.asInstanceOf[AnyRef] eq y.asInstanceOf[AnyRef])
     }
   )
 

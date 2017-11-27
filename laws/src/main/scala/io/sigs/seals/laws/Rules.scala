@@ -20,6 +20,7 @@ package laws
 import scala.util.control.NonFatal
 import cats.kernel.Eq
 import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 import org.scalacheck.{ Arbitrary, Prop }
 import org.scalacheck.Prop._
 
@@ -38,7 +39,7 @@ object Rules extends Serialization {
     "serialize-roundtrip-Eq" -> forAll { (a: A) =>
       withCatchNonFatal {
         val r: A = roundtripSer(a)
-        r ?== a
+        r <-> a
       }
     }
   }

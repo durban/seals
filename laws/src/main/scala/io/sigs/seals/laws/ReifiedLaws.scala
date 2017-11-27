@@ -20,7 +20,6 @@ package laws
 import scala.annotation.tailrec
 
 import cats.{ Eq, Show }
-import cats.kernel.laws._
 import cats.implicits._
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
@@ -170,7 +169,7 @@ trait ReifiedLaws[A] extends Laws {
 
       x.fold(
         err => Prop.falsified :| sh"error during unfold: ${err}",
-        { case (a2, _) => (a2 ?== a) }
+        { case (a2, _) => Prop(Equ.eqv(a2, a)) }
       )
     }
   )

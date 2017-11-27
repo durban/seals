@@ -86,7 +86,7 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
         opt <- tp.unconsN(n, allowFewer = true)
         rest <- opt match {
           case Some((seg, rest)) =>
-            Pull.output(seg) >> Pull.pure(Some(rest))
+            Pull.output(seg) *> Pull.pure(Some(rest))
           case None =>
             Pull.pure(None)
         }

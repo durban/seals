@@ -20,7 +20,7 @@ package tests
 import java.util.UUID
 
 import cats.Eq
-import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 
 import org.scalatest.FunSuite
 import org.scalacheck.{ Arbitrary, Gen }
@@ -45,7 +45,7 @@ trait BaseLawsSpec
     checkAll(s"Atomic[$name].AnyLaws.any", AnyLaws[Atomic[A]].any)
     checkAll(s"Atomic[$name].AnyLaws.equalitySerializability", AnyLaws[Atomic[A]].equalitySerializability)
     checkAll(s"Atomic[$name].AnyLaws.referenceEquality", AnyLaws[Atomic[A]].referenceEquality)
-    checkAll(s"Atomic[$name].OrderLaws.eqv", OrderLaws[Atomic[A]].eqv)
+    checkAll(s"Atomic[$name].EqTests.eqv", EqTests[Atomic[A]].eqv)
     checkAll(s"Atomic[$name].AtomicLaws.roundtrip", AtomicLaws[A].roundtrip)
   }
 

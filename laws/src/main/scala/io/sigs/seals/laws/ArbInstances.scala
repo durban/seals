@@ -215,7 +215,7 @@ trait ArbInstances {
     }
 
     locally {
-      import org.scalacheck.Shapeless._
+      import org.scalacheck.ScalacheckShapeless._
       val arbModel = derivedArbitrary[Model](
         null : LowPriority, // scalastyle:ignore null
         org.scalacheck.derive.MkArbitrary[Model]

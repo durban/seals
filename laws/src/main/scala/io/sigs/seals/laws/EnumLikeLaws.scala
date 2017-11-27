@@ -19,6 +19,7 @@ package laws
 
 import cats.Eq
 import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 import cats.implicits._
 
 import org.typelevel.discipline.Laws
@@ -48,12 +49,12 @@ trait EnumLikeLaws[A] extends Laws {
     "name",
     parent = None,
     "name-fromName" -> forAll { a: A =>
-      Enu.fromName(Enu.name(a)) ?== Right(a)
+      Enu.fromName(Enu.name(a)) <-> Right(a)
     },
     "fromName-name" -> forAll { s: String =>
       Enu.fromName(s).fold(
-        _ => Prop.proved,
-        a => Enu.name(a) ?== s
+        _ => provedIsEq[String],
+        a => Enu.name(a) <-> s
       )
     }
   )
@@ -62,12 +63,12 @@ trait EnumLikeLaws[A] extends Laws {
     "index",
     parent = Some(name),
     "index-fromIndex" -> forAll { a: A =>
-      Enu.fromIndex(Enu.index(a)) ?== Right(a)
+      Enu.fromIndex(Enu.index(a)) <-> Right(a)
     },
     "fromIndex-index" -> forAll { i: Int =>
       Enu.fromIndex(i).fold(
-        _ => Prop.proved,
-        a => Enu.index(a) ?== i
+        _ => provedIsEq[Int],
+        a => Enu.index(a) <-> i
       )
     }
   )

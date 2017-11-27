@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package laws
 
 import cats.Eq
 import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 import cats.instances.all._
 import org.typelevel.discipline.Laws
 import org.scalacheck.Arbitrary
@@ -56,10 +57,10 @@ trait KleeneLaws[F[_], A] extends Laws {
   def roundtrip: this.RuleSet = new KleeneRuleSet(
     name = "roundtrip",
     "toVector-fromVector" -> forAll { (fa: F[A]) =>
-      Kle.fromVector(Kle.toVector(fa)) ?== fa
+      Kle.fromVector(Kle.toVector(fa)) <-> fa
     },
     "fromVector-toVector" -> forAll { (va: Vector[A]) =>
-      Kle.toVector(Kle.fromVector(va)) ?== va
+      Kle.toVector(Kle.fromVector(va)) <-> va
     }
   )
 

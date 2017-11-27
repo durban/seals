@@ -21,7 +21,7 @@ import java.util.UUID
 import java.math.{ MathContext, RoundingMode }
 import java.time.{ DayOfWeek, Month }
 
-import cats.kernel.laws._
+import cats.kernel.laws.discipline._
 import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
 import cats.instances.all._
@@ -109,12 +109,12 @@ class LawsSpec extends BaseLawsSpec {
 
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)
-  checkAll("Model.OrderLaws.eqv", OrderLaws[Model].eqv)
+  checkAll("Model.EqTests.eqv", EqTests[Model].eqv)
 
   def checkEnvelopeLaws[A](name: String)(implicit a: Arbitrary[A], c: Cogen[A], e: Eq[A], r: Reified[A]): Unit = {
     checkAll(s"Envelope[$name].AnyLaws.any", AnyLaws[Envelope[A]].any)
     checkAll(s"Envelope[$name].AnyLaws.equalitySerializability", AnyLaws[Envelope[A]].equalitySerializability)
-    checkAll(s"Envelope[$name].OrderLaws.eqv", OrderLaws[Envelope[A]].eqv)
+    checkAll(s"Envelope[$name].EqTests.eqv", EqTests[Envelope[A]].eqv)
   }
 
   def checkReifiedLaws[A, B, C](name: String)(
@@ -138,8 +138,8 @@ class LawsSpec extends BaseLawsSpec {
     // these require a test Eq[Reified[X]] instance:
 
     checkAll(
-      s"Reified[$name].OrderLaws.eqv",
-      OrderLaws[Reified[A]](testEqForReified, arbReified, cogenReified).eqv
+      s"Reified[$name].EqTests.eqv",
+      EqTests[Reified[A]](testEqForReified).eqv(implicitly, implicitly, testEqForReified)
     )
 
     // TODO: we pass these explicitly due to an ambiguous implicit
