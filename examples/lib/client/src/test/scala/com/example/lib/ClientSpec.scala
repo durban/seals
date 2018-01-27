@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,7 +51,8 @@ class ClientSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     Stream(Server.serve(1237).drain, Stream.eval(sem.decrement))
       .join(Int.MaxValue)
       .take(1)
-      .runLog
+      .compile
+      .drain
       .unsafeRunAsync(_ => ())
     try {
       val resp = Await.result(Client.client(1237), 2.seconds)

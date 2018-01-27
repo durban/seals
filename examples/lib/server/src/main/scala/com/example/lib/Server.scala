@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ object Server {
     val ex = Executors.newCachedThreadPool()
     val cg = ACG.withThreadPool(ex)
     try {
-      serve(1234)(cg, ExecutionContext.global).run.unsafeRunSync()
+      serve(1234)(cg, ExecutionContext.global).compile.drain.unsafeRunSync()
     } finally {
       cg.shutdown()
       ex.shutdown()

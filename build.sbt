@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,10 +93,10 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.3-bin-typelevel-4",
+  scalaVersion := "2.12.4-bin-typelevel-4",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
-  crossSbtVersions := Vector("0.13.16", "1.0.3"), // for some reason this has to be here for ^ to work
+  crossSbtVersions := Vector("0.13.16", "1.1.0"), // for some reason this has to be here for ^ to work
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -122,7 +122,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
           "-Ywarn-unused:imports",
           "-Ywarn-unused:locals",
           "-Ywarn-unused:patvars",
-          "-Ywarn-unused:privates"
+          "-Ywarn-unused:privates",
+          "-Ywarn-macros:after"
         )
       case Some((2, 11)) =>
         Seq(
@@ -136,7 +137,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
-  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.3" cross CrossVersion.binary),
+  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
 
   // We need both of these, due to https://github.com/scalastyle/scalastyle-sbt-plugin/issues/44
   scalastyleConfig in Test := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
@@ -241,7 +242,7 @@ lazy val pluginSettings = Seq[Setting[_]](
   scalaVersion := {
     (sbtBinaryVersion in pluginCrossBuild).value match {
       case "0.13" => "2.10.6"
-      case "1.0" => "2.12.3-bin-typelevel-4"
+      case "1.0" => "2.12.4-bin-typelevel-4"
       case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
     }
   },
@@ -250,6 +251,7 @@ lazy val pluginSettings = Seq[Setting[_]](
     (sbtBinaryVersion in pluginCrossBuild).value match {
       case "0.13" => "org.scala-lang"
       case "1.0" => "org.typelevel"
+      case "1.1" => "org.typelevel"
       case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
     }
   },
@@ -289,10 +291,10 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "1.0.0-RC1"
-  val circeVersion = "0.9.0-M2"
+  val catsVersion = "1.0.1"
+  val circeVersion = "0.9.1"
 
-  val shapeless = "com.chuusai" %% "shapeless" % "2.3.2"
+  val shapeless = "com.chuusai" %% "shapeless" % "2.3.3"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
 
   val circe = Seq(
@@ -302,15 +304,15 @@ lazy val dependencies = new {
   )
 
   val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.4"
-  val scodecCats = "org.scodec" %% "scodec-cats" % "0.5.0"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "0.6.0"
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
-    "org.scodec" %% "scodec-stream" % "1.1.0-M8",
+    "org.scodec" %% "scodec-stream" % "1.1.0-RC2",
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.8.4"
+  val refined = "eu.timepit" %% "refined" % "0.8.6"
 
   val laws = Seq(
     scodecCats,
@@ -319,7 +321,7 @@ lazy val dependencies = new {
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.0.2"
+    "org.scalatest" %% "scalatest" % "3.0.3"
   )
 
   val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.14"
@@ -422,8 +424,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.18.0-M5"
-  val fs2Version = "0.10.0-M8"
+  val http4sVersion = "0.18.0-M9"
+  val fs2Version = "0.10.0-RC2"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -440,11 +442,11 @@ lazy val exampleDependencies = new {
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val catsEffect = "org.typelevel" %% "cats-effect" % "0.5"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "0.8"
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.6",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.9",
     "org.scodec" %% "scodec-akka" % "0.3.0",
-    "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.2.5"
+    "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.3.0"
   )
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2017-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ lazy val server = project
   .dependsOn(proto)
   .settings(libraryDependencies ++= Seq(
     "io.sigs" %% "seals-scodec" % sealsVersion,
-    "co.fs2" %% "fs2-io" % "0.10.0-M8"
+    "co.fs2" %% "fs2-io" % "0.10.0-RC2"
   ))
 
 lazy val example = project.in(file("."))
@@ -43,7 +43,7 @@ lazy val commonSettings = Seq[Setting[_]](
   scalaVersion := "2.11.11",
   libraryDependencies ++= Seq(
     "io.sigs" %% "seals-core" % sealsVersion,
-    "org.scalatest" %% "scalatest" % "3.0.2" % Test
+    "org.scalatest" %% "scalatest" % "3.0.3" % Test
   )
 )
 

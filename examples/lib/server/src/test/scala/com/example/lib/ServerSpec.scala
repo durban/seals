@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,7 +63,7 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
     }
     val responses: Vector[Response] = str
       .join(Int.MaxValue)
-      .take((nClients * testData.size).toLong).runLog.unsafeRunSync()
+      .take((nClients * testData.size).toLong).compile.toVector.unsafeRunSync()
 
     val randInts = responses.collect { case RandInt(i) => i }
     val seededs = responses.collect { case Seeded => () }

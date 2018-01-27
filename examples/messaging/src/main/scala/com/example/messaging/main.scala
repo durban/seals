@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,14 @@
 
 package com.example.messaging
 
+import scala.concurrent.ExecutionContext.Implicits.global
+
 import cats.effect.IO
 
-import fs2.Stream
+import fs2.{ Stream, StreamApp }
 
 import org.http4s._
 import org.http4s.dsl.io._
-import org.http4s.util.{ StreamApp, ExitCode }
 import org.http4s.circe._
 
 import io.sigs.seals._
@@ -39,7 +40,7 @@ object MyClient extends App {
   import org.http4s.client.blaze._
   import Protocol._
 
-  val client = PooledHttp1Client[IO]()
+  val client = Http1Client[IO]().unsafeRunSync()
 
   val pongGood = jsonEncoderOf[IO, Envelope[Ping]].toEntity(
     Envelope(Ping(42L, Vector(1, 2, 3, 4)))
@@ -81,7 +82,7 @@ object MyServer extends StreamApp[IO] {
       } yield resp
   }
 
-  override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, ExitCode] = {
+  override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, StreamApp.ExitCode] = {
     BlazeBuilder[IO]
       .bindHttp(1234, "localhost")
       .mountService(service, "/")

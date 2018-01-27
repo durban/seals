@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -282,13 +282,16 @@ object Reified extends LowPrioReified1 {
     type Fst = Witness.`'_1`.T
     type Snd = Witness.`'_2`.T
 
-    def pure[A](a: A): Reified[A] =
+    override def unit: Reified[Unit] =
+      point(())
+
+    override def point[A](a: A): Reified[A] =
       Reified[HNil].imap(_ => a)(_ => HNil)
 
-    def imap[A, B](fa: Reified[A])(f: A => B)(g: B => A): Reified[B] =
+    override def imap[A, B](fa: Reified[A])(f: A => B)(g: B => A): Reified[B] =
       fa.imap(f)(g)
 
-    def product[A, B](fa: Reified[A], fb: Reified[B]): Reified[(A, B)] = {
+    override def product[A, B](fa: Reified[A], fb: Reified[B]): Reified[(A, B)] = {
       implicit val ra: Reified[A] = fa
       implicit val rb: Reified[B] = fb
       Reified[FieldType[Fst, A] :: FieldType[Snd, B] :: HNil].imap[(A, B)] { hl =>

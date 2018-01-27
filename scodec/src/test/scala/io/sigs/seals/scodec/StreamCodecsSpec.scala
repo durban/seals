@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -63,9 +63,9 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
         ex.err.message should include ("incompatible models")
       }
       forAll(genTaskStream(bits)) { src: Stream[IO, BitVector] =>
-        src.through(StreamCodecs.pipe[IO, Adt2]).runLog.unsafeRunSync() should === (data2)
+        src.through(StreamCodecs.pipe[IO, Adt2]).compile.toVector.unsafeRunSync() should === (data2)
         val ex = intercept[DecodingError] {
-          src.through(StreamCodecs.pipe[IO, Int]).runLog.unsafeRunSync()
+          src.through(StreamCodecs.pipe[IO, Int]).compile.toVector.unsafeRunSync()
         }
         ex.err.message should include ("incompatible models")
       }
@@ -86,7 +86,7 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
         opt <- tp.unconsN(n, allowFewer = true)
         rest <- opt match {
           case Some((seg, rest)) =>
-            Pull.output(seg) *> Pull.pure(Some(rest))
+            Pull.output(seg) >> Pull.pure(Some(rest))
           case None =>
             Pull.pure(None)
         }

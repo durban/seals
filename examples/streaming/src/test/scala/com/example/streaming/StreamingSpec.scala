@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -56,8 +56,8 @@ class StreamingSpec extends FlatSpec with Matchers {
 
   "Encoding/decoding" should "work correctly" in {
     val tsk: IO[Unit] = for {
-      bv <- codec.encode[IO](animalStream).runFold(BitVector.empty)(_ ++ _)
-      as <- codec.decode[IO](bv).runLog
+      bv <- codec.encode[IO](animalStream).compile.fold(BitVector.empty)(_ ++ _)
+      as <- codec.decode[IO](bv).compile.toVector
     } yield {
       as should === (animals)
     }
@@ -68,7 +68,7 @@ class StreamingSpec extends FlatSpec with Matchers {
     val mod = Reified[Record.`'Elephant -> Elephant, 'Quokka -> Quokka`.T].model
     val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail)
     val tsk: IO[Unit] = for {
-      as <- codec.decode[IO](bv).runLog
+      as <- codec.decode[IO](bv).compile.toVector
     } yield {
       as should === (Vector.empty)
     }
@@ -81,12 +81,12 @@ class StreamingSpec extends FlatSpec with Matchers {
 
   "Transformation" should "work correctly" in {
     val tsk: IO[Unit] = for {
-      ibv <- codec.encode[IO](animalStream).runFold(BitVector.empty)(_ ++ _)
+      ibv <- codec.encode[IO](animalStream).compile.fold(BitVector.empty)(_ ++ _)
       is = new ByteArrayInputStream(ibv.toByteArray)
       os = new ByteArrayOutputStream
       _ <- Main.transform(is, os)(Main.transformer)
       obv = BitVector(os.toByteArray())
-      transformed <- codec.decode[IO](obv).runFold(Vector.empty[Animal])(_ :+ _)
+      transformed <- codec.decode[IO](obv).compile.fold(Vector.empty[Animal])(_ :+ _)
     } yield {
       transformed should === (transformedAnimals)
     }

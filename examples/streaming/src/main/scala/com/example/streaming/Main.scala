@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ object Main {
     val sOut: Stream[IO, Unit] = StreamCodec[Animal].encode(sIn).flatMap { bv =>
       Stream.chunk(Chunk.bytes(bv.bytes.toArray))
     }.to(fs2.io.writeOutputStream(IO.pure(to)))
-    sOut.run
+    sOut.compile.drain
   }
 
   val transformer: Animal => Stream[Pure, Animal] = {

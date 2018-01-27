@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,7 @@ trait StreamCodecs {
 
   def streamEncoderFromReified[A](implicit A: Reified[A]): StreamEncoder[A] = {
     Codecs.encoderFromReified[Model].encode(A.model).fold(
-      err => { encode.fail(err) },
+      err => { encode.raiseError(err) },
       bv => {
         emit[A](bv) ++ encode.many[A](Codecs.encoderFromReified(A))
       }
@@ -43,7 +43,7 @@ trait StreamCodecs {
   /** See https://github.com/scodec/scodec-stream/issues/12 */
   private[this] def emit[A](bits: BitVector): StreamEncoder[A] = {
     StreamEncoder.instance[A] { h =>
-      Pull.output1(bits) *> Pull.pure(Some(h -> encode.empty[A]))
+      Pull.output1(bits) >> Pull.pure(Some(h -> encode.empty[A]))
     }
   }
 
@@ -53,7 +53,7 @@ trait StreamCodecs {
         // TODO: manyChunked?
         decode.many(Codecs.decoderFromReified(A))
       } else {
-        decode.fail(Err(sh"incompatible models: expected '${A.model}', got '${model}'"))
+        decode.raiseError(Err(sh"incompatible models: expected '${A.model}', got '${model}'"))
       }
     }
   }
@@ -71,7 +71,7 @@ trait StreamCodecs {
                 case Attempt.Failure(Err.InsufficientBits(_, _, _)) =>
                   go(data, rest)
                 case Attempt.Failure(err) =>
-                  Pull.fail(DecodingError(err)) : Pull[F, Nothing, Option[(R, Stream[F, BitVector])]]
+                  Pull.raiseError(DecodingError(err)) : Pull[F, Nothing, Option[(R, Stream[F, BitVector])]]
                 case Attempt.Successful(DecodeResult(a, rem)) =>
                   Pull.pure(Some((a, Stream(rem) ++ rest)))
               }
@@ -90,7 +90,7 @@ trait StreamCodecs {
           opt <- decodeOne[R](s, decoder)
           cont <- opt match {
             case Some((r, tail)) =>
-              Pull.output1(r) *> Pull.pure(Some(tail))
+              Pull.output1(r) >> Pull.pure(Some(tail))
             case None =>
               Pull.pure(None)
           }
@@ -104,10 +104,10 @@ trait StreamCodecs {
           if (model compatible A.model) {
             decodeMany(Codecs.decoderFromReified[A])(tail)
           } else {
-            Pull.fail(DecodingError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
+            Pull.raiseError(DecodingError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
           }
         case None =>
-          Pull.fail(DecodingError(Err("invalid stream: no model header found")))
+          Pull.raiseError(DecodingError(Err("invalid stream: no model header found")))
       }
     }
 
