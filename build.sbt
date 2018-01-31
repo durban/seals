@@ -241,7 +241,7 @@ lazy val pluginSettings = Seq[Setting[_]](
   sbtPlugin := true,
   scalaVersion := {
     (sbtBinaryVersion in pluginCrossBuild).value match {
-      case "0.13" => "2.10.6"
+      case "0.13" => "2.10.7"
       case "1.0" => "2.12.4-bin-typelevel-4"
       case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
     }
@@ -308,11 +308,11 @@ lazy val dependencies = new {
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.10.3",
-    "org.scodec" %% "scodec-stream" % "1.1.0-RC2",
+    "org.scodec" %% "scodec-stream" % "1.1.0",
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.8.6"
+  val refined = "eu.timepit" %% "refined" % "0.8.7"
 
   val laws = Seq(
     scodecCats,
@@ -324,7 +324,7 @@ lazy val dependencies = new {
     "org.scalatest" %% "scalatest" % "3.0.3"
   )
 
-  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.14"
+  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.18"
 }
 
 addCommandAlias("testAll", ";test;examples/test")
@@ -395,7 +395,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.3-bin-typelevel-4",
+  scalaVersion := "2.12.4-bin-typelevel-4",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
   scalaOrganization := "org.typelevel",
   scalacOptions ++= Seq(
@@ -425,14 +425,14 @@ lazy val exampleSettings = Seq(
 lazy val exampleDependencies = new {
 
   val http4sVersion = "0.18.0-M9"
-  val fs2Version = "0.10.0-RC2"
+  val fs2Version = "0.10.0"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
     "org.http4s" %% "http4s-circe" % http4sVersion,
     "org.http4s" %% "http4s-blaze-server" % http4sVersion,
     "org.http4s" %% "http4s-blaze-client" % http4sVersion,
-    "org.slf4j" % "slf4j-simple" % "1.7.22"
+    "org.slf4j" % "slf4j-simple" % "1.7.25"
   )
 
   val spire = "org.typelevel" %% "spire" % "0.14.1"
@@ -447,6 +447,6 @@ lazy val exampleDependencies = new {
   val akka = Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.9",
     "org.scodec" %% "scodec-akka" % "0.3.0",
-    "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.3.0"
+    "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.4.0"
   )
 }
