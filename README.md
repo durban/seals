@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+   Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -116,8 +116,9 @@ see [this example](core/src/main/tut/Compat.md).
 By using the `seals-plugin` module (which is an sbt plugin), we can
 check in our build whether our current schemata are compatible with
 previously released versions. (Similarly to how [MiMa] checks binary
-compatibility with previous versions.) For how to use the sbt plugin,
-see [this example](plugin/src/sbt-test/seals-plugin/example).
+compatibility with previous versions.) For how to do this, see
+[this example](plugin/src/sbt-test/seals-plugin/example). The plugin
+is available for sbt 0.13 and 1.x.
 
 ### Other features
 
@@ -155,11 +156,14 @@ The subprojects are as follows:
   functional programming tools which complement the Scala standard library.
 - [scodec-bits](https://github.com/scodec/scodec-bits) provides an
   immutable `ByteVector` datatype.
+- [MiMa] provides some utilities for working with artifacts in `seals-plugin`.
 
 Currently there are interop modules for the following projects:
 
 - [circe] provides the JSON framework for which `seals` derives encoders and decoders.
 - [scodec] provides a binary encoding/serialization framework for which `seals` derives codecs.
+  - [FS2](https://github.com/functional-streams-for-scala/fs2) enables streaming encoding
+    and decoding of data with scodec.
 - [refined] provides refinement types, some of which are supported by `seals`.
 
 For testing, it also uses:
