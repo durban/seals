@@ -424,7 +424,7 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.18.0-M9"
+  val http4sVersion = "0.18.0"
   val fs2Version = "0.10.0"
 
   val http4s = Seq(
