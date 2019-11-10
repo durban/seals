@@ -231,7 +231,7 @@ object Atomic {
     final override def binaryRepr(a: A): ByteVector = {
       val buf = ByteBuffer.allocate(len)
       br(buf, a)
-      buf.rewind()
+      (buf : java.nio.Buffer).rewind() // upcast for JVM 8 compatibility
       ByteVector.view(buf)
     }
 

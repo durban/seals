@@ -40,3 +40,7 @@ bin/
 # Ensime specific
 .ensime
 .ensime_cache
+
+# metals specific
+.bloop/
+.metals/

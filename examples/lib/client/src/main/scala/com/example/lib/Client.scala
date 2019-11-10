@@ -31,7 +31,6 @@ import akka.stream.scaladsl._
 import akka.util.{ ByteString }
 
 import scodec.bits.BitVector
-import scodec.interop.akka._
 import scodec.stream.codec.StreamCodec
 
 import fs2.interop.reactivestreams._
@@ -66,8 +65,9 @@ object Client {
     import sys.dispatcher
 
     val requests = fs2.Stream(Seed(0xabcdL), Random(1, 100)).covary[IO]
-    val source = Source.fromPublisher(reqCodec.encode(requests).toUnicastPublisher())
-      .map(_.toByteVector.toByteString)
+    val source = Source
+      .fromPublisher(reqCodec.encode(requests).toUnicastPublisher())
+      .map(bv => ByteString.fromArrayUnsafe(bv.toByteArray))
 
     // TODO: this would be much less ugly, if we had a decoder `Flow`
     val buffer = fs2.async.unboundedQueue[IO, Option[BitVector]].unsafeRunSync()
@@ -75,7 +75,7 @@ object Client {
       Sink.onComplete { _ =>
         buffer.enqueue1(None).unsafeRunSync()
       }.contramap[ByteString] { x =>
-        buffer.enqueue1(Some(x.toByteVector.bits)).unsafeRunSync()
+        buffer.enqueue1(Some(BitVector.view(x.toArray))).unsafeRunSync()
       },
       Source.fromPublisher(buffer
         .dequeue

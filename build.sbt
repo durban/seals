@@ -93,10 +93,10 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.4-bin-typelevel-4",
-  crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
-  scalaOrganization := "org.typelevel",
-  crossSbtVersions := Vector("0.13.16", "1.1.0"), // for some reason this has to be here for ^ to work
+  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq(scalaVersion.value, "2.11.12"),
+  scalaOrganization := "org.scala-lang",
+  crossSbtVersions := Vector("0.13.18", "1.1.0"), // for some reason this has to be here for ^ to work
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -105,7 +105,6 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     "-language:higherKinds,experimental.macros",
     "-Xfuture",
     "-Xfatal-warnings",
-    "-Xstrict-patmat-analysis",
     "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
@@ -127,8 +126,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
         )
       case Some((2, 11)) =>
         Seq(
-          // TODO: has false positives (https://github.com/typelevel/scala/issues/149)
-          "-Xlint:-strict-unsealed-patmat,_",
+          "-Xlint",
           "-Ywarn-unused-import"
         )
       case _ =>
@@ -242,19 +240,12 @@ lazy val pluginSettings = Seq[Setting[_]](
   scalaVersion := {
     (sbtBinaryVersion in pluginCrossBuild).value match {
       case "0.13" => "2.10.7"
-      case "1.0" => "2.12.4-bin-typelevel-4"
+      case "1.0" => "2.12.10"
       case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
     }
   },
   crossScalaVersions := Seq(scalaVersion.value),
-  scalaOrganization := {
-    (sbtBinaryVersion in pluginCrossBuild).value match {
-      case "0.13" => "org.scala-lang"
-      case "1.0" => "org.typelevel"
-      case "1.1" => "org.typelevel"
-      case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
-    }
-  },
+  scalaOrganization := "org.scala-lang",
   scalacOptions := scalacOptions.value.flatMap {
     case "-Xlint:_" => "-Xlint" :: Nil
     case "-Xstrict-patmat-analysis" => Nil
@@ -395,9 +386,9 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.4-bin-typelevel-4",
-  crossScalaVersions := Seq(scalaVersion.value, "2.11.11-bin-typelevel-4"),
-  scalaOrganization := "org.typelevel",
+  scalaVersion := "2.12.10",
+  crossScalaVersions := Seq(scalaVersion.value, "2.11.12"),
+  scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -442,11 +433,10 @@ lazy val exampleDependencies = new {
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val catsEffect = "org.typelevel" %% "cats-effect" % "0.8"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "1.0.0-RC"
 
   val akka = Seq(
     "com.typesafe.akka" %% "akka-stream" % "2.5.9",
-    "org.scodec" %% "scodec-akka" % "0.3.0",
     "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.4.0"
   )
 }
