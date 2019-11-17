@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2019 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -96,7 +96,6 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   scalaVersion := "2.12.10",
   crossScalaVersions := Seq(scalaVersion.value, "2.11.12"),
   scalaOrganization := "org.scala-lang",
-  crossSbtVersions := Vector("0.13.18", "1.1.0"), // for some reason this has to be here for ^ to work
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
@@ -135,7 +134,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
-  addCompilerPlugin("org.spire-math" % "kind-projector" % "0.9.5" cross CrossVersion.binary),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.0" cross CrossVersion.full),
 
   // We need both of these, due to https://github.com/scalastyle/scalastyle-sbt-plugin/issues/44
   scalastyleConfig in Test := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",
@@ -197,7 +196,7 @@ lazy val publishSettings = Seq[Setting[_]](
       commitReleaseVersion,
       tagRelease,
       releaseStepCommandAndRemaining("plugin/clean"), // workaround for https://github.com/sbt/sbt-buildinfo/issues/108
-      releaseStepCommandAndRemaining("^ plugin/publishSigned"),
+      releaseStepCommandAndRemaining("plugin/publishSigned"),
       publishArtifacts,
       setNextVersion,
       commitNextVersion
@@ -232,27 +231,14 @@ lazy val checkerSettings = Seq[Setting[_]](
 
 lazy val macroSettings = Seq[Setting[_]](
   libraryDependencies += scalaOrganization.value % "scala-reflect" % scalaVersion.value,
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
 )
 
 lazy val pluginSettings = Seq[Setting[_]](
   sbtPlugin := true,
-  scalaVersion := {
-    (sbtBinaryVersion in pluginCrossBuild).value match {
-      case "0.13" => "2.10.7"
-      case "1.0" => "2.12.10"
-      case x => sys.error(s"Unknown sbtBinaryVersion: ${x}")
-    }
-  },
+  scalaVersion := "2.12.10",
   crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
-  scalacOptions := scalacOptions.value.flatMap {
-    case "-Xlint:_" => "-Xlint" :: Nil
-    case "-Xstrict-patmat-analysis" => Nil
-    case "-Ypartial-unification" => Nil
-    case "-Ywarn-unused-import" => Nil
-    case opt => opt :: Nil
-  },
   libraryDependencies += Defaults.sbtPluginExtra(
     dependencies.sbtMima,
     (sbtBinaryVersion in pluginCrossBuild).value,
@@ -324,7 +310,7 @@ addCommandAlias("tutAll", "core/tut")
 addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
 addCommandAlias("doPlugin", ";plugin/clean;plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
-addCommandAlias("validate", ";clean;+ doAll;^ doPlugin;reload")
+addCommandAlias("validate", ";clean;+ doAll;doPlugin;reload")
 
 
 //////////////////////
