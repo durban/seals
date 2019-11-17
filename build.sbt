@@ -54,9 +54,10 @@ lazy val checker = project
 
 lazy val plugin = project
   .settings(name := "seals-plugin")
+  .enablePlugins(BuildInfoPlugin)
+  .enablePlugins(ScriptedPlugin)
   .settings(commonSettings)
   .settings(pluginSettings)
-  .enablePlugins(BuildInfoPlugin)
 
 lazy val circe = project
   .settings(name := s"seals-circe")
@@ -422,7 +423,7 @@ lazy val exampleDependencies = new {
   val catsEffect = "org.typelevel" %% "cats-effect" % "1.0.0-RC"
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.9",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.26",
     "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.4.0"
   )
 }
