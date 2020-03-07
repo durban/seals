@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,13 @@
 package io.sigs.seals
 package tests
 
-import org.scalatest.Matchers
-import org.scalatest.FreeSpecLike
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.freespec.AnyFreeSpecLike
 import org.scalatest.Inside
 import org.scalactic.TypeCheckedTripleEquals
 
 trait BaseSpec
-  extends FreeSpecLike
+  extends AnyFreeSpecLike
   with Matchers
   with Inside
   with TypeCheckedTripleEquals

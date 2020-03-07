@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,11 +23,11 @@ import shapeless._
 import shapeless.syntax.singleton._
 import shapeless.record._
 
-import org.scalatest.FlatSpec
-import org.scalatest.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalacheck.Arbitrary
 
-class ReifiedEqSpec extends FlatSpec with Matchers {
+class ReifiedEqSpec extends AnyFlatSpec with Matchers {
 
   def reifiedEq[A: Arbitrary]: Eq[Reified[A]] =
     ReifiedEqSpec.Helper.testEqForReified

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,7 +95,7 @@ lazy val consts = new {
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq(scalaVersion.value, "2.11.12"),
+  crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
@@ -123,11 +123,6 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
           "-Ywarn-unused:patvars",
           "-Ywarn-unused:privates",
           "-Ywarn-macros:after"
-        )
-      case Some((2, 11)) =>
-        Seq(
-          "-Xlint",
-          "-Ywarn-unused-import"
         )
       case _ =>
         Seq()
@@ -269,8 +264,8 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "1.0.1"
-  val circeVersion = "0.9.1"
+  val catsVersion = "2.1.0"
+  val circeVersion = "0.13.0-RC1"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.3"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -281,16 +276,16 @@ lazy val dependencies = new {
     "io.circe" %% "circe-parser" % circeVersion
   )
 
-  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.4"
-  val scodecCats = "org.scodec" %% "scodec-cats" % "0.6.0"
+  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.12"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "1.0.0"
   val scodec = Seq(
     scodecBits,
-    "org.scodec" %% "scodec-core" % "1.10.3",
-    "org.scodec" %% "scodec-stream" % "1.1.0",
+    "org.scodec" %% "scodec-core" % "1.11.4",
+    "org.scodec" %% "scodec-stream" % "2.0.0",
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.8.7"
+  val refined = "eu.timepit" %% "refined" % "0.9.10"
 
   val laws = Seq(
     scodecCats,
@@ -299,10 +294,11 @@ lazy val dependencies = new {
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.0.3"
+    "org.scalatest" %% "scalatest" % "3.1.0",
+    "org.typelevel" %% "discipline-scalatest" % "1.0.0-RC4"
   )
 
-  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.1.18"
+  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.6.1"
 }
 
 addCommandAlias("testAll", ";test;examples/test")
@@ -370,11 +366,11 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .settings(exampleSettings)
   .settings(libraryDependencies ++= exampleDependencies.akka)
   .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
-  .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile")
+  .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile;test->test")
 
 lazy val exampleSettings = Seq(
   scalaVersion := "2.12.10",
-  crossScalaVersions := Seq(scalaVersion.value, "2.11.12"),
+  crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
@@ -402,8 +398,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.18.0"
-  val fs2Version = "0.10.0"
+  val http4sVersion = "0.21.0-RC1"
+  val fs2Version = "2.2.1"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -413,17 +409,17 @@ lazy val exampleDependencies = new {
     "org.slf4j" % "slf4j-simple" % "1.7.25"
   )
 
-  val spire = "org.typelevel" %% "spire" % "0.14.1"
+  val spire = "org.typelevel" %% "spire" % "0.17.0-M1"
 
   val fs2 = Seq(
     "co.fs2" %% "fs2-core" % fs2Version,
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val catsEffect = "org.typelevel" %% "cats-effect" % "1.0.0-RC"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "2.0.0"
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.26",
-    "com.github.zainab-ali" %% "fs2-reactive-streams" % "0.4.0"
+    "com.typesafe.akka" %% "akka-stream" % "2.5.27",
+    "co.fs2" %% "fs2-reactive-streams" % fs2Version
   )
 }

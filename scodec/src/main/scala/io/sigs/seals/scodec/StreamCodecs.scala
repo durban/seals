@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,48 +17,42 @@
 package io.sigs.seals
 package scodec
 
-import fs2.{ Stream, Pull, Pipe }
+import cats.implicits._
+
+import fs2.{ Stream, Pull, Pipe, RaiseThrowable }
 
 import _root_.scodec.{ Err, Attempt, Decoder, DecodeResult }
 import _root_.scodec.bits.BitVector
-import _root_.scodec.stream.{ StreamEncoder, StreamDecoder, StreamCodec, decode, encode }
-import decode.DecodingError
+import _root_.scodec.stream.{ StreamEncoder, StreamDecoder }
+import _root_.scodec.stream.CodecError
 
 object StreamCodecs extends StreamCodecs
 
 trait StreamCodecs {
 
-  implicit def streamCodecFromReified[A](implicit A: Reified[A]): StreamCodec[A] =
-    StreamCodec.instance(streamEncoderFromReified(A), streamDecoderFromReified(A))
-
+  // TODO: implicit?
   def streamEncoderFromReified[A](implicit A: Reified[A]): StreamEncoder[A] = {
     Codecs.encoderFromReified[Model].encode(A.model).fold(
-      err => { encode.raiseError(err) },
+      err => { StreamEncoder.raiseError(err) },
       bv => {
-        emit[A](bv) ++ encode.many[A](Codecs.encoderFromReified(A))
+        StreamEncoder.emit[A](bv) ++ StreamEncoder.many[A](Codecs.encoderFromReified(A))
       }
     )
   }
 
-  /** See https://github.com/scodec/scodec-stream/issues/12 */
-  private[this] def emit[A](bits: BitVector): StreamEncoder[A] = {
-    StreamEncoder.instance[A] { h =>
-      Pull.output1(bits) >> Pull.pure(Some(h -> encode.empty[A]))
-    }
-  }
-
+  // TODO: implicit?
   def streamDecoderFromReified[A](implicit A: Reified[A]): StreamDecoder[A] = {
-    decode.once(Codecs.decoderFromReified[Model]).flatMap { model =>
+    StreamDecoder.once(Codecs.decoderFromReified[Model]).flatMap { model =>
       if (model compatible A.model) {
         // TODO: manyChunked?
-        decode.many(Codecs.decoderFromReified(A))
+        StreamDecoder.many(Codecs.decoderFromReified(A))
       } else {
-        decode.raiseError(Err(sh"incompatible models: expected '${A.model}', got '${model}'"))
+        StreamDecoder.raiseError(Err(sh"incompatible models: expected '${A.model}', got '${model}'"))
       }
     }
   }
 
-  def pipe[F[_], A](implicit A: Reified[A]): Pipe[F, BitVector, A] = {
+  def pipe[F[_], A](implicit A: Reified[A], F: RaiseThrowable[F]): Pipe[F, BitVector, A] = {
 
     def decodeOne[R](s: Stream[F, BitVector], decoder: Decoder[R]): Pull[F, Nothing, Option[(R, Stream[F, BitVector])]] = {
       def go(buff: BitVector, s: Stream[F, BitVector]): Pull[F, Nothing, Option[(R, Stream[F, BitVector])]] = {
@@ -71,7 +65,7 @@ trait StreamCodecs {
                 case Attempt.Failure(Err.InsufficientBits(_, _, _)) =>
                   go(data, rest)
                 case Attempt.Failure(err) =>
-                  Pull.raiseError(DecodingError(err)) : Pull[F, Nothing, Option[(R, Stream[F, BitVector])]]
+                  Pull.raiseError(CodecError(err)) : Pull[F, Nothing, Option[(R, Stream[F, BitVector])]]
                 case Attempt.Successful(DecodeResult(a, rem)) =>
                   Pull.pure(Some((a, Stream(rem) ++ rest)))
               }
@@ -84,7 +78,7 @@ trait StreamCodecs {
       go(BitVector.empty, s)
     }
 
-    def decodeMany[R](decoder: Decoder[R]): Stream[F, BitVector] => Pull[F, R, Option[Stream[F, BitVector]]] = {
+    def decodeMany[R](decoder: Decoder[R]): Stream[F, BitVector] => Pull[F, R, Unit] = {
       Pull.loop[F, R, Stream[F, BitVector]] { s =>
         for {
           opt <- decodeOne[R](s, decoder)
@@ -95,19 +89,19 @@ trait StreamCodecs {
               Pull.pure(None)
           }
         } yield cont
-      }
+      }.map(_.void) // Pull.loop always finishes with None, so we can ignore the result
     }
 
-    def decode(s: Stream[F, BitVector]): Pull[F, A, Option[Stream[F, BitVector]]] = {
+    def decode(s: Stream[F, BitVector]): Pull[F, A, Unit] = {
       decodeOne[Model](s, Codecs.decoderFromReified[Model]).flatMap {
         case Some((model, tail)) =>
           if (model compatible A.model) {
             decodeMany(Codecs.decoderFromReified[A])(tail)
           } else {
-            Pull.raiseError(DecodingError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
+            Pull.raiseError(CodecError(Err(sh"incompatible models: expected '${A.model}', got '${model}'")))
           }
         case None =>
-          Pull.raiseError(DecodingError(Err("invalid stream: no model header found")))
+          Pull.raiseError(CodecError(Err("invalid stream: no model header found")))
       }
     }
 

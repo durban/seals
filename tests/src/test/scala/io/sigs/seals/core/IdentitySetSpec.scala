@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,9 @@ package core
 import scala.annotation.tailrec
 import scala.util.Random
 import org.scalacheck.{ Arbitrary, Gen }
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-class IdentitySetSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks {
+class IdentitySetSpec extends tests.BaseSpec with ScalaCheckDrivenPropertyChecks {
 
   import IdentitySetSpec._
 

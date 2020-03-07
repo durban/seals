@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,15 +18,14 @@ package com.example.streaming
 
 import java.io.{ InputStream, OutputStream, FileInputStream, FileOutputStream }
 
-import cats.effect.IO
+import cats.implicits._
+import cats.effect.{ IO, IOApp, Blocker, ExitCode }
 
 import fs2.{ Stream, Chunk, Pure }
 
-import scodec.stream.StreamCodec
-
 import io.sigs.seals.scodec.StreamCodecs._
 
-object Main {
+object Main extends IOApp {
 
   sealed trait Color
   final case object Brown extends Color
@@ -38,11 +37,22 @@ object Main {
   final case class Quagga(name: String, speed: Double) extends Animal
 
   def transform(from: InputStream, to: OutputStream)(f: Animal => Stream[Pure, Animal]): IO[Unit] = {
-    val sIn: Stream[IO, Animal] = StreamCodec[Animal].decodeInputStream[IO](from).flatMap(f.andThen(_.covary[IO]))
-    val sOut: Stream[IO, Unit] = StreamCodec[Animal].encode(sIn).flatMap { bv =>
-      Stream.chunk(Chunk.bytes(bv.bytes.toArray))
-    }.to(fs2.io.writeOutputStream(IO.pure(to)))
-    sOut.compile.drain
+    Blocker[IO].use { blocker =>
+      val input = fs2.io.readInputStream(
+        IO.pure(from),
+        chunkSize = 1024,
+        blocker = blocker
+      )
+      val sIn: Stream[IO, Animal] = input.through(streamDecoderFromReified[Animal].toPipeByte[IO]).flatMap(f)
+      val sOut: Stream[IO, Unit] = streamEncoderFromReified[Animal].encode(sIn).flatMap { bv =>
+        Stream.chunk(Chunk.bytes(bv.bytes.toArray))
+      }.through(fs2.io.writeOutputStream(
+        IO.pure(to),
+        blocker = blocker,
+        closeAfterUse = true
+      ))
+      sOut.compile.drain
+    }
   }
 
   val transformer: Animal => Stream[Pure, Animal] = {
@@ -52,17 +62,17 @@ object Main {
     case Quagga(_, _) => Stream.empty
   }
 
-  def main(args: Array[String]): Unit = {
+  override def run(args: List[String]): IO[ExitCode] = {
     val (from, to) = args match {
-      case Array(from, to, _*) =>
+      case List(from, to, _*) =>
         (from, to)
-      case Array(from) =>
+      case List(from) =>
         (from, "out.bin")
       case _ =>
         ("in.bin", "out.bin")
     }
 
     val task = transform(new FileInputStream(from), new FileOutputStream(to))(transformer)
-    task.unsafeRunSync()
+    task.as(ExitCode.Success)
   }
 }

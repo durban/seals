@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,16 +22,18 @@ import java.util.UUID
 import cats.Eq
 import cats.kernel.laws.discipline._
 
-import org.scalatest.FunSuite
+import org.scalatest.funsuite.AnyFunSuite
+import org.scalatest.prop.Configuration
 import org.scalacheck.{ Arbitrary, Gen }
 import org.scalacheck.util.Buildable
-import org.typelevel.discipline.scalatest.Discipline
+import org.typelevel.discipline.scalatest.FunSuiteDiscipline
 
 import laws.{ AnyLaws, AtomicLaws }
 
 trait BaseLawsSpec
-  extends FunSuite
-  with Discipline
+  extends AnyFunSuite
+  with FunSuiteDiscipline
+  with Configuration
   with laws.TestEqInstances
   with laws.TestArbInstances {
 

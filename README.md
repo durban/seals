@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+   Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -43,7 +43,7 @@ implemented yet. Bugs are to be expected as well.
 
 ## Getting started
 
-*seals* is currently available for Scala 2.11 and 2.12. JARs are available
+*seals* is currently available for Scala 2.12. JARs are available
 on [Maven Central](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.sigs%22%20seals).
 To use it, put this into your `build.sbt` (see [below](#project-structure)
 for the available modules):
@@ -173,10 +173,6 @@ For testing, it also uses:
   property-based testing,
 - and [scalacheck-shapeless](https://github.com/alexarchambault/scalacheck-shapeless)
   to generate pseudorandom ADT instances.
-
-For compilation, it uses the [Typelevel Scala compiler](https://github.com/typelevel/scala).
-(In general, this should have no effect on software using the library, since TLS aims to be
-binary compatible with Scala 2.11/2.12.)
 
 ## License
 

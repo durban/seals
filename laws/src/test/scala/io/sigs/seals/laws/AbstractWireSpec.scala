@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,9 @@ import cats.implicits._
 
 import org.typelevel.discipline.scalatest.Discipline
 
-trait AbstractWireSpec[R, E] { this: Discipline =>
+import org.scalatest.prop.Configuration
+
+trait AbstractWireSpec[R, E] { this: Discipline with Configuration =>
 
   import TestArbInstances.forTestData._
   import TestTypes.adts.defs.{ Adt1, Adt2 }

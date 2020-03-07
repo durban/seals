@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package tests
 import java.util.UUID
 
 import org.scalatest.Inside
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import cats.implicits._
 
@@ -29,7 +29,7 @@ import laws.TestArbInstances.arbUuid
 import laws.TestInstances.atomic._
 import laws.TestTypes.{ CaseClass, Whatever }
 
-class AtomicSpec extends BaseSpec with GeneratorDrivenPropertyChecks with Inside {
+class AtomicSpec extends BaseSpec with ScalaCheckDrivenPropertyChecks with Inside {
 
   val atomic = Atomic[MyUUID]
   val whatever = Atomic[Whatever.type]

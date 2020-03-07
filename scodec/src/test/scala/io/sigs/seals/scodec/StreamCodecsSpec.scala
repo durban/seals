@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,14 +24,13 @@ import cats.effect.IO
 import fs2.{ Stream, Pure, Pipe, Pull }
 
 import _root_.scodec.bits._
-import _root_.scodec.stream.codec.StreamCodec
-import _root_.scodec.stream.decode.DecodingError
+import _root_.scodec.stream.CodecError
 
-import org.scalatest.prop.GeneratorDrivenPropertyChecks
+import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import org.scalacheck.Gen
 
-class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks {
+class StreamCodecsSpec extends tests.BaseSpec with ScalaCheckDrivenPropertyChecks {
 
   import StreamCodecs._
 
@@ -41,30 +40,30 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
   "Streaming" - {
 
     "roundtrip" in {
-      val bits = StreamCodec[Adt1].encodeAllValid(data1)
-      StreamCodec[Adt2].decodeAllValid(bits) should === (data2)
+      val bits = streamEncoderFromReified[Adt1].encodeAllValid(data1)
+      streamDecoderFromReified[Adt2].decode(Stream(bits).covary[IO]).compile.toVector.unsafeRunSync() should === (data2)
     }
 
     "incompatible models" in {
-      val bits = StreamCodec[Adt1].encodeAllValid(data1)
-      val ex = intercept[DecodingError] {
-        StreamCodec[Int].decodeAllValid(bits)
+      val bits = streamEncoderFromReified[Adt1].encodeAllValid(data1)
+      val ex = intercept[CodecError] {
+        streamDecoderFromReified[Int].decode(Stream(bits).covary[IO]).compile.toVector.unsafeRunSync()
       }
       ex.err.message should include ("incompatible models")
     }
 
     "pipe" in {
-      val bits = StreamCodec[Adt1].encodeAllValid(data1)
+      val bits = streamEncoderFromReified[Adt1].encodeAllValid(data1)
       forAll(genStream(bits)) { src: Stream[Pure, BitVector] =>
-        src.through(StreamCodecs.pipe[Pure, Adt2]).toVector should === (data2)
-        val ex = intercept[DecodingError] {
-          src.through(StreamCodecs.pipe[Pure, Int]).toVector
+        src.through(StreamCodecs.pipe[IO, Adt2]).compile.toVector.unsafeRunSync() should === (data2)
+        val ex = intercept[CodecError] {
+          src.through(StreamCodecs.pipe[IO, Int]).compile.toVector.unsafeRunSync()
         }
         ex.err.message should include ("incompatible models")
       }
       forAll(genTaskStream(bits)) { src: Stream[IO, BitVector] =>
         src.through(StreamCodecs.pipe[IO, Adt2]).compile.toVector.unsafeRunSync() should === (data2)
-        val ex = intercept[DecodingError] {
+        val ex = intercept[CodecError] {
           src.through(StreamCodecs.pipe[IO, Int]).compile.toVector.unsafeRunSync()
         }
         ex.err.message should include ("incompatible models")
@@ -78,7 +77,7 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
   def genTaskStream(data: BitVector): Gen[Stream[IO, BitVector]] =
     genStream(data).map(taskify)
 
-  def randomizeChunks[F[_], A](chunkSize: Gen[Long]): Pipe[F, A, A] = {
+  def randomizeChunks[F[_], A](chunkSize: Gen[Int]): Pipe[F, A, A] = {
 
     def doIt(tp: Stream.ToPull[F, A]): Pull[F, A, Option[Stream[F, A]]] = {
       val n = chunkSize.sample.getOrElse(fail("cannot generate chunk size"))
@@ -108,10 +107,10 @@ class StreamCodecsSpec extends tests.BaseSpec with GeneratorDrivenPropertyChecks
     }
   }
 
-  val chunkSize: Gen[Long] = Gen.oneOf(
-    Gen.choose(0L, 10L),
-    Gen.choose(11L, 100L),
-    Gen.choose(101L, Int.MaxValue.toLong)
+  val chunkSize: Gen[Int] = Gen.oneOf(
+    Gen.choose(0, 10),
+    Gen.choose(11, 100),
+    Gen.choose(101, Int.MaxValue)
   )
 
   def taskify[A](s: Stream[Pure, A]): Stream[IO, A] = {

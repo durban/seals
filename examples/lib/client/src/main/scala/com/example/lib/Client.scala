@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2019 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@ import scala.concurrent.Future
 import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import cats.effect.IO
+import cats.effect.{ IO, ContextShift }
 
 import akka.NotUsed
 import akka.actor.ActorSystem
@@ -31,7 +31,7 @@ import akka.stream.scaladsl._
 import akka.util.{ ByteString }
 
 import scodec.bits.BitVector
-import scodec.stream.codec.StreamCodec
+import scodec.stream.{ StreamEncoder, StreamDecoder }
 
 import fs2.interop.reactivestreams._
 
@@ -42,8 +42,8 @@ import Protocol.v1.{ Request, Response, Seed, Random }
 
 object Client {
 
-  val reqCodec: StreamCodec[Request] = StreamCodec[Request]
-  val resCodec: StreamCodec[Response] = StreamCodec[Response]
+  val reqCodec: StreamEncoder[Request] = streamEncoderFromReified[Request]
+  val resCodec: StreamDecoder[Response] = streamDecoderFromReified[Response]
 
   def main(args: Array[String]): Unit = {
     implicit val sys: ActorSystem = ActorSystem("ClientSystem")
@@ -62,7 +62,8 @@ object Client {
   }
 
   def logic(implicit sys: ActorSystem): Flow[ByteString, ByteString, Future[Vector[Response]]] = {
-    import sys.dispatcher
+
+    implicit val cs: ContextShift[IO] = IO.contextShift(sys.dispatcher)
 
     val requests = fs2.Stream(Seed(0xabcdL), Random(1, 100)).covary[IO]
     val source = Source
@@ -70,7 +71,7 @@ object Client {
       .map(bv => ByteString.fromArrayUnsafe(bv.toByteArray))
 
     // TODO: this would be much less ugly, if we had a decoder `Flow`
-    val buffer = fs2.async.unboundedQueue[IO, Option[BitVector]].unsafeRunSync()
+    val buffer = fs2.concurrent.Queue.unbounded[IO, Option[BitVector]].unsafeRunSync()
     val decode: Flow[ByteString, Response, NotUsed] = Flow.fromSinkAndSource(
       Sink.onComplete { _ =>
         buffer.enqueue1(None).unsafeRunSync()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,9 @@ import java.nio.channels.AsynchronousChannelGroup
 import java.util.concurrent.Executors
 
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import cats.implicits._
-import cats.effect.IO
+import cats.effect.{ IO, IOApp, ExitCode, Resource, Blocker }
 
 import fs2.{ Stream, Chunk }
 import fs2.io.tcp
@@ -37,7 +35,7 @@ import io.sigs.seals.scodec.Codecs._
 
 import com.example.proto._
 
-object Server {
+object Server extends IOApp {
 
   final val bufferSize = 32 * 1024
   final val timeout = Some(2.seconds)
@@ -49,43 +47,36 @@ object Server {
   def addr(port: Int): InetSocketAddress =
     new InetSocketAddress(InetAddress.getLoopbackAddress, port)
 
-  def main(args: Array[String]): Unit = {
-    val ex = Executors.newCachedThreadPool()
-    implicit val cg = AsynchronousChannelGroup.withThreadPool(ex)
-    try {
-      serve(port).collect { case Right(_) => () }.run.unsafeRunSync()
-    } finally {
-      cg.shutdown()
-      ex.shutdown()
+  override def run(args: List[String]): IO[ExitCode] = {
+    Blocker[IO].use { bl =>
+      tcp.SocketGroup[IO](bl).use { sg =>
+        serve(port, sg).compile.drain.as(ExitCode.Success)
+      }
     }
   }
 
-  def serve(port: Int)(implicit acg: AsynchronousChannelGroup, ec: ExecutionContext): Stream[IO, Either[Int, Unit]] = {
-    val s: Stream[IO, Stream[IO, Either[Int, Unit]]] = tcp.serverWithLocalAddress[IO](addr(port)).flatMap {
-      case Left(localAddr) =>
-        Stream.emit(Stream.emit(Left(localAddr.getPort) : Either[Int, Unit]).covary[IO]).covary[IO]
-      case Right(sockets) =>
-        Stream.emit(sockets.flatMap { socket =>
-          val bvs: Stream[IO, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
-          val tsk: IO[BitVector] = bvs.runLog.map(_.foldLeft(BitVector.empty)(_ ++ _))
-          val request: IO[Request] = tsk.flatMap { bv =>
-            Codec[Request].decode(bv).fold(
-              err => IO.raiseError(new Exception(err.toString)),
-              result => IO.pure(result.value)
-            )
-          }
-
-          val response: IO[Response] = request.flatMap(logic)
-          val encoded: Stream[IO, Byte] = Stream.eval(response)
-            .map(r => Codec[Response].encode(r).require)
-            .flatMap { bv =>
-              Stream.chunk(Chunk.bytes(bv.bytes.toArray))
+  def serve(port: Int, sg: tcp.SocketGroup): Stream[IO, Unit] = {
+    Stream.resource(sg.serverResource[IO](addr(port))).flatMap {
+      case (localAddr, sockets) =>
+        val s = sockets.map { socket =>
+          Stream.resource(socket).flatMap { socket =>
+            val bvs: Stream[IO, BitVector] = socket.reads(bufferSize, timeout).chunks.map(ch => BitVector.view(ch.toArray))
+            val tsk: IO[BitVector] = bvs.compile.toVector.map(_.foldLeft(BitVector.empty)(_ ++ _))
+            val request: IO[Request] = tsk.flatMap { bv =>
+              Codec[Request].decode(bv).fold(
+                err => IO.raiseError(new Exception(err.toString)),
+                result => IO.pure(result.value)
+              )
             }
-
-          encoded.to(socket.writes(timeout)).onFinalize(socket.endOfOutput).map(Right(_))
-        })
+            val response: IO[Response] = request.flatMap(logic)
+            val encoded: Stream[IO, Byte] = Stream.eval(response)
+              .map(r => Codec[Response].encode(r).require)
+              .flatMap { bv => Stream.chunk(Chunk.bytes(bv.bytes.toArray)) }
+            encoded.through(socket.writes(timeout)).onFinalize(socket.endOfOutput)
+          }
+        }
+        s.parJoin[IO, Unit](maxClients)
     }
-    s.join(maxClients)
   }
 
   def logic(req: Request): IO[Response] = req match {

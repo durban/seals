@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 package com.example.server
 
 import java.util.concurrent.Executors
-import java.nio.channels.{ AsynchronousChannelGroup => ACG }
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 
-import cats.effect.IO
+import cats.effect.{ IO, Blocker, ContextShift }
 
 import org.scalatest.{ FlatSpec, Matchers, BeforeAndAfterAll }
 
@@ -36,32 +35,34 @@ import com.example.proto._
 
 class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
 
+  implicit val cs: ContextShift[IO] = IO.contextShift(ExecutionContext.global)
+
   val ex = Executors.newCachedThreadPool()
-  implicit val cg = ACG.withThreadPool(ex)
+  val ec = ExecutionContext.fromExecutor(ex)
+  val bl = Blocker.liftExecutionContext(ec)
+  val (sg, closeSg) = fs2.io.tcp.SocketGroup[IO](bl).allocated.unsafeRunSync()
 
   override def afterAll(): Unit = {
     super.afterAll()
-    cg.shutdown()
+    closeSg.unsafeRunSync()
     ex.shutdown()
   }
 
   "Server" should "respond to a request" in {
-    val responses: Vector[Response] = Server.serve(0).map[Stream[IO, Response]] {
-      case Left(port) =>
-        client(port)
-      case Right(_) =>
-        Stream.empty
-    }.join(Int.MaxValue).take(1L).runLog.unsafeRunSync()
+    val responses: Vector[Response] = Stream(
+      Server.serve(Server.port, sg).drain,
+      client(Server.port)
+    ).parJoin(Int.MaxValue).take(1L).compile.toVector.unsafeRunSync()
     responses should === (Vector(Ok))
   }
 
   def client(port: Int): Stream[IO, Response] = {
-    fs2.io.tcp.client[IO](Server.addr(port)).flatMap { socket =>
-      val bvs: Stream[Nothing, BitVector] = Stream(Codec[Request].encode(ReSeed(56)).require)
-      val bs: Stream[Nothing, Byte] = bvs.flatMap { bv =>
+    Stream.resource(sg.client[IO](Server.addr(port))).flatMap { socket =>
+      val bvs: Stream[IO, BitVector] = Stream(Codec[Request].encode(ReSeed(56)).require)
+      val bs: Stream[IO, Byte] = bvs.flatMap { bv =>
         Stream.chunk(Chunk.bytes(bv.bytes.toArray))
       }
-      val read = bs.to(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
+      val read = bs.through(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
         socket.reads(Server.bufferSize, Server.timeout).chunks.map(ch => BitVector.view(ch.toArray))
       read.fold(BitVector.empty)(_ ++ _).map(bv => Codec[Response].decode(bv).require.value)
     }

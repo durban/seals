@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,14 @@
 package io.sigs.seals
 package checker
 
-import org.scalatest.{ FlatSpec, Matchers }
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import io.circe.{ Decoder, JsonObject }
 
 import circe.Codecs._
 
-class ExtractorSpec extends FlatSpec with Matchers {
+class ExtractorSpec extends AnyFlatSpec with Matchers {
 
   val decoder = Decoder[Model]
   val pack = this.getClass.getPackage.getName

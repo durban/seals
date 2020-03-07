@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,10 +21,11 @@ import java.util.UUID
 
 import shapeless.test.{ typed, illTyped }
 
-import org.scalatest.{ FlatSpec, Matchers }
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 import org.scalactic.TypeCheckedTripleEquals
 
-class UUIDMacroSpec extends FlatSpec with Matchers with TypeCheckedTripleEquals {
+class UUIDMacroSpec extends AnyFlatSpec with Matchers with TypeCheckedTripleEquals {
 
   def uuid: Nothing = sys.error("this should never be invoked")
 

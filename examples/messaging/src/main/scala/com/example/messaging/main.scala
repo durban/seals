@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,16 @@ package com.example.messaging
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import cats.effect.IO
-
-import fs2.{ Stream, StreamApp }
+import cats.implicits._
+import cats.effect.{ IO, IOApp, ExitCode }
 
 import org.http4s._
 import org.http4s.dsl.io._
+import org.http4s.client.Client
 import org.http4s.circe._
+import org.http4s.server.blaze.BlazeServerBuilder
+import org.http4s.server.Router
+import org.http4s.implicits._
 
 import io.sigs.seals._
 import io.sigs.seals.circe.Codecs._
@@ -35,29 +38,28 @@ object Protocol {
   final case class PingIncompatible(seqNr: Long, payload: Vector[Int], flags: Int)
 }
 
-object MyClient extends App {
+object MyClient extends IOApp {
 
   import org.http4s.client.blaze._
   import Protocol._
 
-  val client = Http1Client[IO]().unsafeRunSync()
-
-  val pongGood = jsonEncoderOf[IO, Envelope[Ping]].toEntity(
-    Envelope(Ping(42L, Vector(1, 2, 3, 4)))
-  ).flatMap(ping).unsafeRunSync()
-  assert(pongGood == Pong(42L))
-  println(pongGood)
-
-  try {
-    val pongBad = jsonEncoderOf[IO, Envelope[PingIncompatible]].toEntity(
-      Envelope(PingIncompatible(99L, Vector(4, 5), 0))
-    ).flatMap(ping).unsafeRunSync()
-    println(pongBad)
-  } finally {
-    client.shutdownNow()
+  override def run(args: List[String]): IO[ExitCode] = {
+    BlazeClientBuilder[IO](global).resource.use { client =>
+      for {
+        pongGood <- ping(client, jsonEncoderOf[IO, Envelope[Ping]].toEntity(
+          Envelope(Ping(42L, Vector(1, 2, 3, 4)))
+        ))
+        _ <- IO { assert(pongGood == Pong(42L)) }
+        _ <- IO { println(pongGood) }
+        pongBad <- ping(client, jsonEncoderOf[IO, Envelope[PingIncompatible]].toEntity(
+          Envelope(PingIncompatible(99L, Vector(4, 5), 0))
+        ))
+        _ <- IO { println(pongBad) }
+      } yield ExitCode.Success
+    }
   }
 
-  def ping(ping: Entity[IO]): IO[Pong] = {
+  def ping(client: Client[IO], ping: Entity[IO]): IO[Pong] = {
     for {
       pong <- client
         .expect(Request(
@@ -69,12 +71,12 @@ object MyClient extends App {
   }
 }
 
-object MyServer extends StreamApp[IO] {
+object MyServer extends IOApp {
 
   import org.http4s.server.blaze._
   import Protocol._
 
-  val service = HttpService[IO] {
+  val service = HttpRoutes.of[IO] {
     case p @ POST -> Root / "test" =>
       for {
         env <- p.as(implicitly, jsonOf[IO, Envelope[Ping]])
@@ -82,10 +84,13 @@ object MyServer extends StreamApp[IO] {
       } yield resp
   }
 
-  override def stream(args: List[String], requestShutdown: IO[Unit]): Stream[IO, StreamApp.ExitCode] = {
-    BlazeBuilder[IO]
+  override def run(args: List[String]): IO[ExitCode] = {
+    BlazeServerBuilder[IO]
       .bindHttp(1234, "localhost")
-      .mountService(service, "/")
+      .withHttpApp(Router("/" -> service).orNotFound)
       .serve
+      .compile
+      .drain
+      .as(ExitCode.Success)
   }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,20 +22,20 @@ import shapeless.record._
 
 import cats.effect.IO
 
-import org.scalatest.{ FlatSpec, Matchers }
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
 
 import fs2.Stream
 
 import scodec.Codec
 import scodec.bits.BitVector
-import scodec.stream.StreamCodec
-import scodec.stream.decode.DecodingError
+import scodec.stream.CodecError
 
 import io.sigs.seals._
 import io.sigs.seals.scodec.Codecs._
 import io.sigs.seals.scodec.StreamCodecs._
 
-class StreamingSpec extends FlatSpec with Matchers {
+class StreamingSpec extends AnyFlatSpec with Matchers {
 
   import Main.{ Animal, Elephant, Quokka, Quagga, Grey }
 
@@ -50,14 +50,15 @@ class StreamingSpec extends FlatSpec with Matchers {
     Quokka("Nellie", Grey)
   )
 
-  val animalStream = Stream.emits[Animal](animals)
+  val animalStream = Stream.emits[IO, Animal](animals)
 
-  val codec = StreamCodec[Animal]
+  val encoder = streamEncoderFromReified[Animal]
+  val decoder = streamDecoderFromReified[Animal]
 
   "Encoding/decoding" should "work correctly" in {
     val tsk: IO[Unit] = for {
-      bv <- codec.encode[IO](animalStream).compile.fold(BitVector.empty)(_ ++ _)
-      as <- codec.decode[IO](bv).compile.toVector
+      bv <- encoder.encode[IO](animalStream).compile.fold(BitVector.empty)(_ ++ _)
+      as <- decoder.decode[IO](Stream(bv)).compile.toVector
     } yield {
       as should === (animals)
     }
@@ -68,12 +69,12 @@ class StreamingSpec extends FlatSpec with Matchers {
     val mod = Reified[Record.`'Elephant -> Elephant, 'Quokka -> Quokka`.T].model
     val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail)
     val tsk: IO[Unit] = for {
-      as <- codec.decode[IO](bv).compile.toVector
+      as <- decoder.decode[IO](Stream(bv)).compile.toVector
     } yield {
       as should === (Vector.empty)
     }
 
-    val ex = intercept[DecodingError] {
+    val ex = intercept[CodecError] {
       tsk.unsafeRunSync()
     }
     ex.err.message should include ("incompatible models")
@@ -81,12 +82,12 @@ class StreamingSpec extends FlatSpec with Matchers {
 
   "Transformation" should "work correctly" in {
     val tsk: IO[Unit] = for {
-      ibv <- codec.encode[IO](animalStream).compile.fold(BitVector.empty)(_ ++ _)
+      ibv <- encoder.encode[IO](animalStream).compile.fold(BitVector.empty)(_ ++ _)
       is = new ByteArrayInputStream(ibv.toByteArray)
       os = new ByteArrayOutputStream
       _ <- Main.transform(is, os)(Main.transformer)
       obv = BitVector(os.toByteArray())
-      transformed <- codec.decode[IO](obv).compile.fold(Vector.empty[Animal])(_ :+ _)
+      transformed <- decoder.decode[IO](Stream(obv)).compile.fold(Vector.empty[Animal])(_ :+ _)
     } yield {
       transformed should === (transformedAnimals)
     }

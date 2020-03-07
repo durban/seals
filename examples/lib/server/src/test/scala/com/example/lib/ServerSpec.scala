@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@ import scala.concurrent.ExecutionContext
 
 import cats.effect.IO
 
-import org.scalatest.{ FlatSpec, Matchers, BeforeAndAfterAll }
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
 
 import fs2.{ Stream, Chunk }
 
@@ -33,11 +34,11 @@ import Protocol.v1.{ Response, Request, Random, RandInt, Seed, Seeded }
 
 import io.sigs.seals.scodec.StreamCodecs
 
-class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
+class ServerSpec extends AnyFlatSpec with Matchers with TcpTest {
 
   val ex = Executors.newCachedThreadPool()
   implicit val cg = ACG.withThreadPool(ex)
-  implicit val ec = ExecutionContext.global
+  implicit override lazy val ec = ExecutionContext.global
 
   override def afterAll(): Unit = {
     super.afterAll()
@@ -55,14 +56,11 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
       case Seed(_) => true
       case _ => false
     }
-    val str: Stream[IO, Stream[IO, Response]] = Server.serveAddr(0).map {
-      case Left(localAddr) =>
-        clients(localAddr.getPort, nClients)
-      case Right(_) =>
-        Stream.empty
+    val str: Stream[IO, Stream[IO, Response]] = Server.serveAddr(0, this.sockGroup).map { localAddr =>
+      clients(localAddr.getPort, nClients)
     }
     val responses: Vector[Response] = str
-      .join(Int.MaxValue)
+      .parJoin(Int.MaxValue)
       .take((nClients * testData.size).toLong).compile.toVector.unsafeRunSync()
 
     val randInts = responses.collect { case RandInt(i) => i }
@@ -86,18 +84,18 @@ class ServerSpec extends FlatSpec with Matchers with BeforeAndAfterAll {
   def clients(port: Int, count: Int, maxConcurrent: Int = 10): Stream[IO, Response] = {
     val cls: Stream[IO, Stream[IO, Response]] = {
       Stream.range(0, count).map { i =>
-        fs2.io.tcp.client[IO](Server.addr(port)).flatMap { socket =>
-          val bvs: Stream[Nothing, BitVector] = Server.reqCodec.encode(Stream(testData: _*))
-          val bs: Stream[Nothing, Byte] = bvs.flatMap { bv =>
+        Stream.resource(this.sockGroup.client[IO](Server.addr(port))).flatMap { socket =>
+          val bvs: Stream[IO, BitVector] = StreamCodecs.streamEncoderFromReified[Request].encode(Stream.emits(testData).covary[IO])
+          val bs: Stream[IO, Byte] = bvs.flatMap { bv =>
             Stream.chunk(Chunk.bytes(bv.bytes.toArray))
           }
-          val read = bs.to(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
+          val read = bs.through(socket.writes(Server.timeout)).drain.onFinalize(socket.endOfOutput) ++
             socket.reads(Server.bufferSize, Server.timeout).chunks.map(ch => BitVector.view(ch.toArray))
           read.through(StreamCodecs.pipe[IO, Response])
         }
       }
     }
 
-    cls.join(maxConcurrent)
+    cls.parJoin(maxConcurrent)
   }
 }

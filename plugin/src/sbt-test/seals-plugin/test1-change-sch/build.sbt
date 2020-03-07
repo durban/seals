@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,9 +20,7 @@ organization := "com.example"
 
 version := "0.1.0-SNAPSHOT"
 
-scalaVersion := "2.11.11"
-
-crossScalaVersions := Seq(scalaVersion.value, "2.12.3")
+scalaVersion := "2.12.10"
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 
