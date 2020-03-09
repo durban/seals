@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,9 +21,17 @@ lazy val core = project
   .settings(commonSettings)
   .settings(coreSettings)
   .settings(macroSettings)
-  .enablePlugins(TutPlugin)
   .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(macros)
+
+lazy val doc = project
+  .settings(name := "seals-doc")
+  .settings(commonSettings)
+  .settings(noPublishSettings)
+  .settings(scalacOptions -= "-Xfatal-warnings")
+  .enablePlugins(MdocPlugin)
+  .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
+  .dependsOn(core)
 
 lazy val macros = project
   .settings(name := "seals-macros")
@@ -303,8 +313,8 @@ lazy val dependencies = new {
 
 addCommandAlias("testAll", ";test;examples/test")
 addCommandAlias("scalastyleAll", ";scalastyle;test:scalastyle;examples/scalastyle;examples/test:scalastyle")
-addCommandAlias("tutAll", "core/tut")
-addCommandAlias("doAll", ";testAll;scalastyleAll;tutAll;publishLocal")
+addCommandAlias("mdocAll", "doc/mdoc")
+addCommandAlias("doAll", ";testAll;scalastyleAll;mdocAll;publishLocal")
 addCommandAlias("doPlugin", ";plugin/clean;plugin/test;plugin/scalastyle;plugin/test:scalastyle;plugin/scripted")
 
 addCommandAlias("validate", ";clean;+ doAll;doPlugin;reload")

@@ -1,6 +1,8 @@
 <!--
 
    Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+   Copyright 2020 Nokia
+   SPDX-License-Identifier: Apache-2.0
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -61,14 +63,14 @@ All releases (and commits on the `master` branch) are signed by key
 
 By using `seals-core`, you can define a schema simply by creating an ADT:
 
-```tut:silent
+```scala mdoc:silent
 final case class User(id: Int, name: String)
 ```
 
 An abstract representation of this schema can be retrieved by requesting
 an instance of the `Reified` type class.
 
-```tut
+```scala mdoc
 import io.sigs.seals.Reified
 Reified[User]
 ```
@@ -81,14 +83,14 @@ This abstract representation is used to implement the following features.
 In the next version of the schema defined above, you may want to add a new field
 (with a default value):
 
-```tut:silent
+```scala mdoc:silent
 final case class UserV2(id: Int, name: String, age: Int = 42)
 ```
 
 Thanks to the default value, these two versions are compatible with
 each other. We can assert this by using the `Compat` type class:
 
-```tut
+```scala mdoc
 import io.sigs.seals.Compat
 Compat[User, UserV2]
 ```
@@ -97,14 +99,14 @@ If they wouldn't be compatible, we would get a *compile time* error
 (because there would be no `Compat` instance available). For example,
 if we define a new schema like this:
 
-```tut:silent
+```scala mdoc:silent
 final case class UserV3(id: Int, name: String, age: Int) // no default `age`
 ```
 
 Then there will be no `Compat` instance available, since the schemata
 are not compatible:
 
-```tut:fail
+```scala mdoc:fail
 Compat[User, UserV3] // error: could not find implicit value for ...
 ```
 
