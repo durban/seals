@@ -1,6 +1,8 @@
 <!--
 
    Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+   Copyright 2020 Nokia
+   SPDX-License-Identifier: Apache-2.0
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -31,7 +33,7 @@ change renders the whole ADT incompatible).
 
 ### Imports
 
-```tut:silent
+```scala mdoc:silent
 import io.sigs.seals.Compat
 ```
 
@@ -39,7 +41,7 @@ import io.sigs.seals.Compat
 
 Suppose that in the past we modeled legal persons like this:
 
-```tut:silent
+```scala mdoc:silent
 object v1 {
   sealed trait LegalPerson
   final case class NaturalPerson(
@@ -55,7 +57,7 @@ object v1 {
 
 But now we want to add an address field to artificial persons too:
 
-```tut:silent
+```scala mdoc:silent
 object v2 {
   sealed trait LegalPerson
   final case class NaturalPerson(
@@ -72,13 +74,13 @@ object v2 {
 
 Since `address` has no default value, this is not a compatible change:
 
-```tut:fail
+```scala mdoc:fail
 Compat[v1.LegalPerson, v2.LegalPerson] // error: could not find implicit value for ...
 ```
 
 But if we define it with a default (in this case `None`):
 
-```tut:silent
+```scala mdoc:silent
 object v11 {
   sealed trait LegalPerson
   final case class NaturalPerson(
@@ -95,7 +97,7 @@ object v11 {
 
 it will be compatible:
 
-```tut
+```scala mdoc
 Compat[v1.LegalPerson, v11.LegalPerson]
 ```
 
