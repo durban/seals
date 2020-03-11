@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2018 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -404,6 +406,12 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
         override def from(s: String) = Right(Symbol(s))
         override def to(sym: Symbol) = sym.name
       })
+  }
+
+  implicit def reifiedForSet[A](implicit A: Reified[A]): Reified.Aux[Set[A], Model.Vector, FFirst] = {
+    Reified
+      .reifiedFromKleene[Vector, A](Kleene.kleeneForVector, A)
+      .refined(Refinement.uniqueSet[Vector, A])
   }
 
   /** Cached here to avoid always rematerializing */

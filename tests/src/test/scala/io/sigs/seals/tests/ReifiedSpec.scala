@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -178,6 +180,12 @@ class ReifiedSpec extends BaseSpec {
       "Vector" in {
         Reified[Vector[Boolean]].model should === (Model.Vector(atom[Boolean]))
         Reified[WithVector].model should === (WithVector.expModel)
+      }
+
+      "Set" in {
+        val cbr = Model.CanBeRefined[Model.Vector]
+        val expMod = cbr.refine(Model.Vector(atom[Boolean]), Refinement.Semantics.unique)
+        Reified[Set[Boolean]].model should === (expMod)
       }
 
       "Inside ADTs" in {

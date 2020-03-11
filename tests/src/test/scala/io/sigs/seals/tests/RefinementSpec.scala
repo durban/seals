@@ -1,5 +1,7 @@
 /*
  * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -95,6 +97,12 @@ class RefinementSpec extends BaseSpec {
       checkNotEqHash(tricky2, g1a)
       checkNotEqHash(tricky2, g2)
       checkNotEqHash(tricky1, tricky2)
+    }
+
+    "unique" in {
+      checkEqHash(Refinement.Semantics.unique, Refinement.Semantics.unique)
+      checkNotEqHash(Refinement.Semantics.unique, Refinement.Semantics.greater[Foo](Foo(5, "ert")))
+      Refinement.Semantics.unique.repr.repr("?") should === ("unique{?}")
     }
   }
 
