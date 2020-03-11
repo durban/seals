@@ -1,5 +1,7 @@
 /*
  * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,6 +123,9 @@ object Refinement {
       Semantics((root / lt / repr).uuid, ReprFormat("", true, sh" < ${than}"))
     }
 
+    val unique: Semantics =
+      Semantics((root / uq).uuid, ReprFormat("unique{", true, "}"))
+
     implicit val eqForSemantics: Eq[Semantics] =
       Eq.fromUniversalEquals
 
@@ -170,6 +175,7 @@ object Refinement {
   private[this] final val gt = uuid"ff6383db-8d2e-4507-a571-f6f0f73f1fe8"
   private[this] final val lt = uuid"95d56687-589e-4e8a-8857-0707ad3cd60b"
   private[this] final val en = uuid"5c7fe757-72c0-4114-9ed0-06e8a8d34c04"
+  private[this] final val uq = uuid"76fabf3e-5531-4f66-8d35-be6c79c2b070"
 
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int
@@ -177,5 +183,18 @@ object Refinement {
     override def repr = Refinement.ReprFormat("0 ≤ ", true, sh" ≤ ${A.maxIndex}")
     def from(idx: Int) = A.fromIndex(idx)
     def to(a: A) = A.index(a)
+  }
+
+  def uniqueSet[F[_], A](implicit k: Kleene[F]): Refinement.Aux[Set[A], F[A]] = new Refinement[Set[A]] {
+    override type Repr = F[A]
+    override val uuid = Semantics.unique.uuid
+    override def repr = Semantics.unique.repr
+    def from(fa: F[A]) = {
+      val vec = k.toVector(fa)
+      val set = vec.toSet
+      if (set.size === vec.size) Right(set)
+      else Left("duplicate elements")
+    }
+    def to(set: Set[A]): F[A] = k.fromVector(set.toVector)
   }
 }
