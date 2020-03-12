@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ object SealsPlugin extends AutoPlugin { self =>
     sealsSchemaTarget := crossTarget.value / namespace,
     sealsCheckSchema := checkTask.value,
     sealsExtractSchema := extractTask.value,
-    libraryDependencies += "io.sigs" %% "seals-checker" % BuildInfo.version % "compile-internal"
+    libraryDependencies += "dev.tauri" %% "seals-checker" % BuildInfo.version % "compile-internal"
   )
 
   lazy val checkTask = Def.task[Unit] {

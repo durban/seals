@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,4 +20,4 @@ val pluginVersion = System.getProperty("plugin.version") match {
   case str => str
 }
 
-addSbtPlugin("io.sigs" % "seals-plugin" % pluginVersion)
+addSbtPlugin("dev.tauri" % "seals-plugin" % pluginVersion)

@@ -153,8 +153,8 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     ),
     (dependencies.test ++ dependencies.circe).map(_ % "test-internal")
   ).flatten,
-  organization := "io.sigs",
-  organizationHomepage := Some(url("http://sigs.io")),
+  organization := "dev.tauri",
+  organizationHomepage := Some(url("https://tauri.dev")),
   homepage := Some(url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}")),
   scmInfo := Some(ScmInfo(
     url(s"https://github.com/${consts.githubOrg}/${consts.githubProject}"),

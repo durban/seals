@@ -24,7 +24,7 @@ scalaVersion := "2.12.10"
 
 addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch)
 
-libraryDependencies += "io.sigs" %% "seals-core" % System.getProperty("plugin.version")
+libraryDependencies += "dev.tauri" %% "seals-core" % System.getProperty("plugin.version")
 
 sealsSchemaPackages += "com.example.test0"
 

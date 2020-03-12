@@ -28,7 +28,7 @@ lazy val server = project
   .settings(commonSettings)
   .dependsOn(proto)
   .settings(libraryDependencies ++= Seq(
-    "io.sigs" %% "seals-scodec" % sealsVersion,
+    "dev.tauri" %% "seals-scodec" % sealsVersion,
     "co.fs2" %% "fs2-io" % "2.2.1"
   ))
 
@@ -42,7 +42,7 @@ lazy val commonSettings = Seq[Setting[_]](
   version := "0.1.0-SNAPSHOT",
   scalaVersion := "2.12.10",
   libraryDependencies ++= Seq(
-    "io.sigs" %% "seals-core" % sealsVersion,
+    "dev.tauri" %% "seals-core" % sealsVersion,
     "org.scalatest" %% "scalatest" % "3.0.3" % Test
   )
 )
