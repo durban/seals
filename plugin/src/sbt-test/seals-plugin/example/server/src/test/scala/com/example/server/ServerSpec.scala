@@ -29,7 +29,7 @@ import fs2.{ Stream, Chunk }
 import scodec.bits._
 import scodec.Codec
 
-import io.sigs.seals.scodec.Codecs._
+import dev.tauri.seals.scodec.Codecs._
 
 import com.example.proto._
 

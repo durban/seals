@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+   Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
    Copyright 2020 Nokia
    SPDX-License-Identifier: Apache-2.0
 
@@ -34,7 +34,7 @@ change renders the whole ADT incompatible).
 ### Imports
 
 ```scala mdoc:silent
-import io.sigs.seals.Compat
+import dev.tauri.seals.Compat
 ```
 
 ### Example

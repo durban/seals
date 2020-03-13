@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@ import spire.syntax.eq._
 import io.circe._
 import io.circe.syntax._
 
-import io.sigs.seals.Reified
-import io.sigs.seals.circe.Codecs._
+import dev.tauri.seals.Reified
+import dev.tauri.seals.circe.Codecs._
 
 object Main extends App with PolySupport {
 

@@ -29,8 +29,8 @@ import fs2.io.tcp
 import scodec.bits.BitVector
 import scodec.stream.{ StreamEncoder, StreamDecoder }
 
-import io.sigs.seals.scodec.StreamCodecs._
-import io.sigs.seals.scodec.StreamCodecs.{ pipe => decPipe }
+import dev.tauri.seals.scodec.StreamCodecs._
+import dev.tauri.seals.scodec.StreamCodecs.{ pipe => decPipe }
 
 import Protocol.v1.{ Request, Response, Random, Seed, RandInt, Seeded }
 

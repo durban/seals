@@ -31,9 +31,9 @@ import scodec.Codec
 import scodec.bits.BitVector
 import scodec.stream.CodecError
 
-import io.sigs.seals._
-import io.sigs.seals.scodec.Codecs._
-import io.sigs.seals.scodec.StreamCodecs._
+import dev.tauri.seals._
+import dev.tauri.seals.scodec.Codecs._
+import dev.tauri.seals.scodec.StreamCodecs._
 
 class StreamingSpec extends AnyFlatSpec with Matchers {
 

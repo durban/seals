@@ -251,7 +251,7 @@ lazy val pluginSettings = Seq[Setting[_]](
     (scalaBinaryVersion in update).value
   ),
   buildInfoKeys := Seq[BuildInfoKey](version),
-  buildInfoPackage := "io.sigs.seals.plugin",
+  buildInfoPackage := "dev.tauri.seals.plugin",
   releaseCrossBuild := false,
   scriptedLaunchOpts ++= Seq("-Dplugin.version=" + version.value, "-Xmx1024M"),
   scriptedBufferLog := false

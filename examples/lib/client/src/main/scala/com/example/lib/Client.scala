@@ -35,8 +35,8 @@ import scodec.stream.{ StreamEncoder, StreamDecoder }
 
 import fs2.interop.reactivestreams._
 
-import io.sigs.seals.scodec.StreamCodecs._
-import io.sigs.seals.scodec.StreamCodecs.{ pipe => decPipe }
+import dev.tauri.seals.scodec.StreamCodecs._
+import dev.tauri.seals.scodec.StreamCodecs.{ pipe => decPipe }
 
 import Protocol.v1.{ Request, Response, Seed, Random }
 

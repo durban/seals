@@ -27,8 +27,8 @@ import fs2.{ Stream, Chunk }
 import scodec.bits._
 import scodec.stream.StreamEncoder
 
-import io.sigs.seals.scodec.StreamCodecs
-import io.sigs.seals.scodec.StreamCodecs._
+import dev.tauri.seals.scodec.StreamCodecs
+import dev.tauri.seals.scodec.StreamCodecs._
 
 import Protocol.v2
 import Protocol.v1.Seed

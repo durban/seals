@@ -29,8 +29,8 @@ import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.Router
 import org.http4s.implicits._
 
-import io.sigs.seals._
-import io.sigs.seals.circe.Codecs._
+import dev.tauri.seals._
+import dev.tauri.seals.circe.Codecs._
 
 object Protocol {
   final case class Ping(seqNr: Long, payload: Vector[Int])

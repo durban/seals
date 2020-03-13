@@ -32,7 +32,7 @@ import scodec.bits._
 
 import Protocol.v1.{ Response, Request, Random, RandInt, Seed, Seeded }
 
-import io.sigs.seals.scodec.StreamCodecs
+import dev.tauri.seals.scodec.StreamCodecs
 
 class ServerSpec extends AnyFlatSpec with Matchers with TcpTest {
 

@@ -31,7 +31,7 @@ import fs2.io.tcp
 import scodec.bits.BitVector
 import scodec.Codec
 
-import io.sigs.seals.scodec.Codecs._
+import dev.tauri.seals.scodec.Codecs._
 
 import com.example.proto._
 

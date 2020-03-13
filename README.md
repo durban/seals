@@ -46,12 +46,12 @@ implemented yet. Bugs are to be expected as well.
 ## Getting started
 
 *seals* is currently available for Scala 2.12. JARs are available
-on [Maven Central](https://search.maven.org/#search%7Cga%7C1%7Cg%3A%22io.sigs%22%20seals).
+on [Maven Central](https://search.maven.org/search?q=g:dev.tauri%20seals).
 To use it, put this into your `build.sbt` (see [below](#project-structure)
 for the available modules):
 
 ```scala
-libraryDependencies += "io.sigs" %% "seals-core" % "0.2.0"
+libraryDependencies += "dev.tauri" %% "seals-core" % "0.4.0-M1"
 ```
 
 All releases (and commits on the `master` branch) are signed by key
@@ -71,7 +71,7 @@ An abstract representation of this schema can be retrieved by requesting
 an instance of the `Reified` type class.
 
 ```scala mdoc
-import io.sigs.seals.Reified
+import dev.tauri.seals.Reified
 Reified[User]
 ```
 
@@ -91,7 +91,7 @@ Thanks to the default value, these two versions are compatible with
 each other. We can assert this by using the `Compat` type class:
 
 ```scala mdoc
-import io.sigs.seals.Compat
+import dev.tauri.seals.Compat
 Compat[User, UserV2]
 ```
 

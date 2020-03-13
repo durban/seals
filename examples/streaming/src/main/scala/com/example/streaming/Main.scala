@@ -23,7 +23,7 @@ import cats.effect.{ IO, IOApp, Blocker, ExitCode }
 
 import fs2.{ Stream, Chunk, Pure }
 
-import io.sigs.seals.scodec.StreamCodecs._
+import dev.tauri.seals.scodec.StreamCodecs._
 
 object Main extends IOApp {
 
