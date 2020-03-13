@@ -51,7 +51,7 @@ To use it, put this into your `build.sbt` (see [below](#project-structure)
 for the available modules):
 
 ```scala
-libraryDependencies += "dev.tauri" %% "seals-core" % "0.4.0-M1"
+libraryDependencies += "dev.tauri" %% "seals-core" % "0.4.0-M2"
 ```
 
 All releases (and commits on the `master` branch) are signed by key
