@@ -29,8 +29,8 @@ import shapeless.test.typed
 
 import scodec.bits._
 
-import core.Refinement
-import laws.{ CanonicalRepr, TestInstances, TestTypes }
+import core.{ Refinement, CanonicalRepr }
+import laws.{ TestInstances, TestTypes }
 
 class ReifiedSpec extends BaseSpec {
 

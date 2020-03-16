@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +27,7 @@ import org.scalacheck.Arbitrary
 import org.scalacheck.Prop
 import org.scalacheck.Prop._
 
-import dev.tauri.seals.core.Wire
+import core.{ Wire, CanonicalRepr }
 
 object WireLaws {
 

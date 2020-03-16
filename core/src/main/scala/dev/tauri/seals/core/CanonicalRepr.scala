@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,12 +17,10 @@
  */
 
 package dev.tauri.seals
-package laws
+package core
 
-import cats.Eq
+import cats.Order
 import cats.implicits._
-
-import core.symbolEq
 
 sealed trait CanonicalRepr extends Serializable
 
@@ -43,8 +43,38 @@ object CanonicalRepr {
     )
   }
 
-  implicit val eqForCanonicalRepr: Eq[CanonicalRepr] =
-    Eq.fromUniversalEquals
+  implicit val orderForCanonicalRepr: Order[CanonicalRepr] = {
+    case (Atom(x), Atom(y)) =>
+      Order[String].compare(x, y)
+    case (Atom(_), _) =>
+      -1
+    case (HNil, Atom(_)) =>
+      1
+    case (HNil, HNil) =>
+      0
+    case (HNil, _) =>
+      -1
+    case (HCons(_, _, _), Atom(_) | HNil) =>
+      1
+    case (HCons(xl, xh, xt), HCons(yl, yh, yt)) =>
+      cats.instances.tuple.catsKernelStdOrderForTuple3(
+        Order[Symbol],
+        orderForCanonicalRepr,
+        orderForCanonicalRepr
+      ).compare((xl, xh, xt), (yl, yh, yt))
+    case (HCons(_, _, _), _) =>
+      -1
+    case (Sum(_, _), Atom(_) | HNil | HCons(_, _, _)) =>
+      1
+    case (Sum(xl, xv), Sum(yl, yv)) =>
+      if (xl === yl) orderForCanonicalRepr.compare(xv, yv) else Order[Symbol].compare(xl, yl)
+    case (Sum(_, _), _) =>
+      -1
+    case (Vect(_), Atom(_) | HNil | HCons(_, _, _) | Sum(_, _)) =>
+      1
+    case (Vect(x), Vect(y)) =>
+      cats.instances.vector.catsKernelStdOrderForVector(orderForCanonicalRepr).compare(x, y)
+  }
 
   val folder: Reified.Folder[CanonicalRepr, CanonicalRepr] = Reified.Folder.simple(
     atom = a => Atom(a.stringRepr),

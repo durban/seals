@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,15 +17,17 @@
  */
 
 package dev.tauri.seals
-package laws
+package tests
 
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
-import TestArbInstances.arbModel
-import TestArbInstances.forTestData.arbDefsAdt1
-import TestTypes.adts.defs.Adt1
+import core.CanonicalRepr
+
+import laws.TestArbInstances.arbModel
+import laws.TestArbInstances.forTestData.arbDefsAdt1
+import laws.TestTypes.adts.defs.Adt1
 
 class CanonicalReprSpec
     extends AnyFlatSpec

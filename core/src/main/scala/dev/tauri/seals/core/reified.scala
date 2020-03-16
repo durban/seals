@@ -22,7 +22,7 @@ package core
 import java.util.UUID
 import java.math.{ MathContext, RoundingMode }
 
-import cats.{ Monad, InvariantMonoidal }
+import cats.{ Monad, InvariantMonoidal, Order }
 import cats.implicits._
 
 import shapeless._
@@ -173,6 +173,13 @@ object Reified extends LowPrioReified1 {
     def prod(t: T): B
     def sum(l: Symbol, b: B): B
     def vector(v: Vector[B]): B
+
+    /** For ordering `B` elements (if necessary)
+     *
+     * The default implementation will order based on the
+     * `CanonicalRepr` of the elements.
+     */
+    def orderB: Option[Order[B]] = None
   }
 
   object Folder {
@@ -183,16 +190,18 @@ object Reified extends LowPrioReified1 {
       hCons: (Symbol, B, T) => T,
       prod: T => B,
       sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Folder[B, T] = new FolderImpl[B, T](atom, hNil, hCons, prod, sum, vector)
+      vector: Vector[B] => B,
+      orderB: Order[B] = null // scalastyle:ignore null
+    ): Folder[B, T] = new FolderImpl[B, T](atom, hNil, hCons, prod, sum, vector, Option(orderB))
 
     def simple[B](
       atom: AtomRepr => B,
       hNil: () => B,
       hCons: (Symbol, B, B) => B,
       sum: (Symbol, B) => B,
-      vector: Vector[B] => B
-    ): Folder[B, B] = instance[B, B](atom, hNil, hCons, identity, sum, vector)
+      vector: Vector[B] => B,
+      orderB: Order[B] = null // scalastyle:ignore null
+    ): Folder[B, B] = instance[B, B](atom, hNil, hCons, identity, sum, vector, orderB)
 
     private final class FolderImpl[B, T](
         a: AtomRepr => B,
@@ -200,7 +209,8 @@ object Reified extends LowPrioReified1 {
         hc: (Symbol, B, T) => T,
         p: T => B,
         s: (Symbol, B) => B,
-        vec: Vector[B] => B
+        vec: Vector[B] => B,
+        ordB: Option[Order[B]]
     ) extends Folder[B, T] {
       override def atom(repr: AtomRepr): B = a(repr)
       override def hNil: T = hn()
@@ -208,6 +218,7 @@ object Reified extends LowPrioReified1 {
       override def prod(t: T): B = p(t)
       override def sum(l: Symbol, b: B): B = s(l, b)
       override def vector(v: Vector[B]): B = vec(v)
+      override val orderB = ordB
     }
   }
 
@@ -340,23 +351,63 @@ object Reified extends LowPrioReified1 {
     }
     override def close[B, T](x: Fold[B, T], f: T => B): B =
       x
-    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (F[A], B)] = {
-      u.vectorInit(b).flatMap { case (b, s) =>
-        val rec = Monad[Either[E, ?]].tailRecM((b, s, Vector.empty[A])) { case (b, s, v) =>
-          u.vectorFold(b, s).flatMap {
-            case Some((b, s)) =>
-              val b2 = R.unfold[B, E, S](u)(b)
-              b2.map { case (a, b) =>
-                Left((b, s, v :+ a))
-              }
-            case None =>
-              Either.right(Right((b, s, v)))
-          }
-        }
+    override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (F[A], B)] =
+      unfoldKleene[A, B, E, S](u)(b).map { case (vec, b) => (F.fromVector(vec), b) }
+  }
 
-        rec.map { case (b, _, v) =>
-          (F.fromVector(v), b)
+  implicit def reifiedFromExtSet[F[_], A](
+    implicit
+    F: ExtSet[F],
+    R: Reified[A]
+  ): Reified.Aux[F[A], Model.Vector, FFirst] = {
+    new Reified[F[A]] {
+      override type Mod = Model.Vector
+      override type Fold[B, T] = B
+      private[core] override val modelComponent =
+        Model.Vector(R.modelComponent, Some(Refinement.Semantics.unique))
+      override def fold[B, T](fa: F[A])(f: Folder[B, T]): B = {
+        val sortedBs: Vector[B] = f.orderB match {
+          case Some(ordB) =>
+            val bs = F.toVector(fa).map(x => R.close(R.fold[B, T](x)(f), f.prod))
+            bs.sorted(ordB.toOrdering)
+          case None =>
+            val sortedAs = F.toVector(fa).sortWith { (x, y) =>
+              val rx = R.foldClose(x)(CanonicalRepr.folder)
+              val ry = R.foldClose(y)(CanonicalRepr.folder)
+              CanonicalRepr.orderForCanonicalRepr.lt(rx, ry)
+            }
+            sortedAs.map(x => R.close(R.fold[B, T](x)(f), f.prod))
         }
+        f.vector(sortedBs)
+      }
+      override def close[B, T](x: Fold[B, T], f: T => B): B =
+        x
+      override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (F[A], B)] = {
+        unfoldKleene[A, B, E, S](u)(b).flatMap { case (vec, b) =>
+          F.fromVector(vec).leftMap(u.unknownError).map { fa => (fa, b) }
+        }
+      }
+    }
+  }
+
+  private def unfoldKleene[A, B, E, S](u: Unfolder[B, E, S])(b: B)(
+    implicit R: Reified[A]
+  ): Either[E, (Vector[A], B)] = {
+    u.vectorInit(b).flatMap { case (b, s) =>
+      val rec = Monad[Either[E, ?]].tailRecM((b, s, Vector.empty[A])) { case (b, s, v) =>
+        u.vectorFold(b, s).flatMap {
+          case Some((b, s)) =>
+            val b2 = R.unfold[B, E, S](u)(b)
+            b2.map { case (a, b) =>
+              Left((b, s, v :+ a))
+            }
+          case None =>
+            Either.right(Right((b, s, v)))
+        }
+      }
+
+      rec.map { case (b, _, v) =>
+        (v, b)
       }
     }
   }
@@ -406,12 +457,6 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
         override def from(s: String) = Right(Symbol(s))
         override def to(sym: Symbol) = sym.name
       })
-  }
-
-  implicit def reifiedForSet[A](implicit A: Reified[A]): Reified.Aux[Set[A], Model.Vector, FFirst] = {
-    Reified
-      .reifiedFromKleene[Vector, A](Kleene.kleeneForVector, A)
-      .refined(Refinement.uniqueSet[Vector, A])
   }
 
   /** Cached here to avoid always rematerializing */
@@ -660,7 +705,7 @@ object Derived {
   /**
    * Provides a `Derived` instance for case classes
    *
-   * A `Reified` instgance will be provided based on
+   * A `Reified` instance will be provided based on
    * this by `LowPrioReified2#fromDerived`.
    */
   implicit def reifiedFromGenericProductWithDefaults[A, GA <: HList, DA <: HList, MA <: Model.HList, FA[_, _]](

@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +25,7 @@ import eu.timepit.refined.api._
 import eu.timepit.refined.auto._
 import eu.timepit.refined.numeric._
 
-import laws.CanonicalRepr
+import core.CanonicalRepr
 import tests.BaseSpec
 
 class RefinedSpec extends BaseSpec {
