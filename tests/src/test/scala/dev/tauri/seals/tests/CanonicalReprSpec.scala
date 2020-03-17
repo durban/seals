@@ -19,13 +19,15 @@
 package dev.tauri.seals
 package tests
 
+import cats.Order
+
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.scalacheck.ScalaCheckDrivenPropertyChecks
 
 import core.CanonicalRepr
 
-import laws.TestArbInstances.arbModel
+import laws.TestArbInstances.{ arbModel, arbCanonicalRepr, arbSymbol }
 import laws.TestArbInstances.forTestData.arbDefsAdt1
 import laws.TestTypes.adts.defs.Adt1
 
@@ -33,6 +35,8 @@ class CanonicalReprSpec
     extends AnyFlatSpec
     with Matchers
     with ScalaCheckDrivenPropertyChecks {
+
+  val ord = Order[CanonicalRepr]
 
   "fold-unfold" should "be an identity" in {
     forAll { x: Int => foldUnfold(x) should === (x) }
@@ -43,4 +47,14 @@ class CanonicalReprSpec
 
   def foldUnfold[A](a: A)(implicit r: Reified[A]): A =
     CanonicalRepr.roundtrip(a)(r)
+
+  "Order[CanonicalRepr]" should "be consistent with .equals" in {
+    forAll { (x: CanonicalRepr, y: CanonicalRepr) =>
+      if (ord.eqv(x, y)) {
+        x should === (y)
+      } else {
+        x should !== (y)
+      }
+    }
+  }
 }
