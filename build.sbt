@@ -258,7 +258,8 @@ lazy val pluginSettings = Seq[Setting[_]](
 )
 
 lazy val circeSettings = Seq[Setting[_]](
-  libraryDependencies ++= dependencies.circe
+  libraryDependencies ++= dependencies.circe,
+  libraryDependencies += dependencies.circeTesting % "test-internal"
 )
 
 lazy val scodecSettings = Seq[Setting[_]](
@@ -285,6 +286,8 @@ lazy val dependencies = new {
     "io.circe" %% "circe-generic" % circeVersion,
     "io.circe" %% "circe-parser" % circeVersion
   )
+
+  val circeTesting = "io.circe" %% "circe-testing" % circeVersion
 
   val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.12"
   val scodecCats = "org.scodec" %% "scodec-cats" % "1.0.0"

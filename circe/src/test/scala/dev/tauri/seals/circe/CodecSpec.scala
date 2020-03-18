@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +18,8 @@
 
 package dev.tauri.seals
 package circe
+
+import scala.collection.immutable.ListSet
 
 import cats.implicits._
 
@@ -95,6 +99,17 @@ class CodecSpec extends BaseJsonSpec {
           fooBarJson(None)
         )
       ))
+    }
+
+    "Sorted JSON array for sets" in {
+      val unsorted: Vector[String] = Vector("j", "l", "d", "f", "h", "g", "b", "i", "e", "a", "k", "c")
+      val sorted: Vector[String] = unsorted.sorted
+      val data: Set[String] = unsorted.foldLeft(ListSet.empty[String]) { _ + _ }
+      data.asJson should === (Json.arr(
+        sorted.map(atomJson): _*
+      ))
+      // sanity check: ListSet preserves insertion order
+      data.toVector should === (unsorted)
     }
   }
 
