@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -195,6 +197,17 @@ class SerializableSpec extends BaseSpec {
 
     "custom" in {
       roundtripSer(core.EnumLike[EnumLikeSpec.Switch])
+    }
+  }
+
+  "Support type classes" - {
+
+    "Kleene" in {
+      roundtripSer(core.Kleene[List])
+    }
+
+    "ExtSet" in {
+      roundtripSer(core.ExtSet[Set])
     }
   }
 
