@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +20,8 @@ package dev.tauri.seals
 package scodec
 
 import java.nio.ByteBuffer
+
+import scala.collection.immutable.ListSet
 
 import shapeless.record._
 import shapeless.union._
@@ -89,6 +93,12 @@ class CodecsSpec extends tests.BaseSpec {
       )
       encoderFromReified[WithList].encode(WithList(42, List(42.0f))) should === (
         Attempt.successful(hex"A2 ${vl(4)} ${ci(42)}  A2 ${vl(8)} 0000 0001 ${cf(42.0f)}  A1".bits)
+      )
+    }
+
+    "Sets" in {
+      encoderFromReified[Set[Int]].encode(ListSet.empty[Int] + 5 + 3 + 2 + 4 + 1) should === (
+        Attempt.successful(hex"0000 0005 ${ci(1)} ${ci(2)} ${ci(3)} ${ci(4)} ${ci(5)}".bits)
       )
     }
   }

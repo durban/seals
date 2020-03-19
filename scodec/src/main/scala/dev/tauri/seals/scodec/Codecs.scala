@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,8 +21,10 @@ package scodec
 
 import java.nio.charset.StandardCharsets
 
+import scala.annotation.tailrec
+
 import cats.implicits._
-import cats.{ Traverse, Monad }
+import cats.{ Traverse, Monad, Order }
 
 import _root_.scodec.{ Codec, Encoder, Decoder, Attempt, SizeBound, DecodeResult, Err }
 import _root_.scodec.codecs.{
@@ -74,6 +78,50 @@ trait Codecs {
   implicit def codecFromReified[A](implicit A: Reified[A]): Codec[A] =
     Codec(encoderFromReified[A], decoderFromReified[A])
 
+  /** We only need this for technical reasons.
+   *
+   * Comparing only by the message and context is not
+   * exactly correct. However, the worst that could
+   * happen is that two different `Err`s compare as equal;
+   * in that case we lose one of them, but the encoding
+   * will halt anyway.
+   */
+  implicit private val orderForErr: Order[Err] =
+    Order.by { err => (err.message, err.context) }
+
+  implicit private[scodec] val orderForBitVector: Order[BitVector] = { (x, y) =>
+    val ySize = y.size
+    if (x.sizeLessThan(ySize)) {
+      -1
+    } else if (x.sizeGreaterThan(ySize)) {
+      1
+    } else {
+      // they have the same size
+      @tailrec
+      def go(idx: Long): Int = {
+        val left: Int = (ySize - idx) match {
+          case x if x >= 64 =>
+            64
+          case x =>
+            x.toInt
+        }
+        if (left > 0) {
+          val xc = x.sliceToLong(start = idx, bits = left, signed = false, ordering = ByteOrdering.BigEndian)
+          val yc = y.sliceToLong(start = idx, bits = left, signed = false, ordering = ByteOrdering.BigEndian)
+          if (xc > yc) 1
+          else if (xc < yc) -1
+          else go(idx + left)
+        } else {
+          0
+        }
+      }
+      go(0L)
+    }
+  }
+
+  implicit private def orderForAttempt[A : Order]: Order[Attempt[A]] =
+    Order.by { att => att.fold[Either[Err, A]](Left(_), Right(_)) }
+
   def encoderFromReified[A](implicit A: Reified[A]): Encoder[A] = new Encoder[A] {
 
     override def encode(value: A): Attempt[BitVector] = {
@@ -93,7 +141,8 @@ trait Codecs {
         vector = els => for {
           vec <- Traverse[Vector].sequence(els)
           len <- int32.encode(vec.length)
-        } yield len ++ BitVector.concat(vec)
+        } yield len ++ BitVector.concat(vec),
+        orderB = orderForAttempt[BitVector]
       ))
     }
 

@@ -77,6 +77,9 @@ trait ArbInstances {
     )
   }
 
+  implicit def cogenBitVector(implicit cogenArr: Cogen[Array[Byte]]): Cogen[BitVector] =
+    cogenArr.contramap[BitVector](_.toByteArray)
+
   implicit def arbCanonicalRepr(implicit arbStr: Arbitrary[String], arbSym: Arbitrary[Symbol]): Arbitrary[CanonicalRepr] = {
     Arbitrary { genCanonicalRepr(arbStr, arbSym) }
   }
