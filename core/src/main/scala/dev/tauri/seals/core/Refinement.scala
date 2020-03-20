@@ -184,17 +184,4 @@ object Refinement {
     def from(idx: Int) = A.fromIndex(idx)
     def to(a: A) = A.index(a)
   }
-
-  def uniqueSet[F[_], A](implicit k: Kleene[F]): Refinement.Aux[Set[A], F[A]] = new Refinement[Set[A]] {
-    override type Repr = F[A]
-    override val uuid = Semantics.unique.uuid
-    override def repr = Semantics.unique.repr
-    def from(fa: F[A]) = {
-      val vec = k.toVector(fa)
-      val set = vec.toSet
-      if (set.size === vec.size) Right(set)
-      else Left("duplicate elements")
-    }
-    def to(set: Set[A]): F[A] = k.fromVector(set.toVector)
-  }
 }
