@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -120,6 +122,11 @@ class CompatSpec extends BaseSpec {
       import TestTypes.adts.rename._
       illTyped("Compat[v1.Adt, v2.Adt]", notFound)
       illTyped("Compat[v2.Adt, v1.Adt]", notFound)
+    }
+
+    "List and Set are different" in {
+      import TestTypes.collections.{ WithList, WithSet }
+      illTyped("Compat[WithList, WithSet]", notFound)
     }
   }
 }

@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,8 +35,8 @@ import scodec.interop.cats._
 
 import org.scalacheck.{ Arbitrary, Cogen }
 
-import dev.tauri.seals.core.EnumLike
-import dev.tauri.seals.laws._
+import core.{ EnumLike, CanonicalRepr }
+import laws._
 
 class LawsSpec extends BaseLawsSpec {
 
@@ -48,6 +50,8 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[TestTypes.adts.recursive.IntList, Int, Int]("IntList")
   checkReifiedLaws[Envelope[TestTypes.adts.defs.Adt1], Int, Int]("Envelope[Adt1]")
   checkReifiedLaws[Envelope[TestTypes.adts.recursive.IntList], Int, Int]("Envelope[IntList]")
+  checkReifiedLaws[List[String], Boolean, Float]("List[String]")
+  checkReifiedLaws[Set[Int], String, Double]("Set[Int]")
   checkReifiedLaws[Option[Int], String, Float]("Option[Int]")
   checkReifiedLaws[Month, String, Float]("java.time.Month")
   checkReifiedLaws[Symbol, Float, Option[Int]]("scala.Symbol")
@@ -110,6 +114,8 @@ class LawsSpec extends BaseLawsSpec {
   checkAll("Model.AnyLaws.any", AnyLaws[Model].any)
   checkAll("Model.AnyLaws.equalitySerializability", AnyLaws[Model].equalitySerializability)
   checkAll("Model.EqTests.eqv", EqTests[Model].eqv)
+
+  checkCanonicalReprLaws()
 
   def checkEnvelopeLaws[A](name: String)(implicit a: Arbitrary[A], c: Cogen[A], e: Eq[A], r: Reified[A]): Unit = {
     checkAll(s"Envelope[$name].AnyLaws.any", AnyLaws[Envelope[A]].any)
@@ -185,5 +191,9 @@ class LawsSpec extends BaseLawsSpec {
   ): Unit = {
     checkAll(s"EnumLike[$name].AnyLaws.serializability", AnyLaws[EnumLike[A]].serializability)
     checkAll(s"EnumLike[$name].all", EnumLikeLaws[A].all)
+  }
+
+  def checkCanonicalReprLaws(): Unit = {
+    checkAll("CanonicalRepr.Order", OrderTests[CanonicalRepr].order)
   }
 }

@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +20,7 @@ package dev.tauri.seals
 package circe
 
 import io.circe._
+import cats.Order
 import cats.implicits._
 
 object Codecs extends Codecs
@@ -36,7 +39,8 @@ trait Codecs {
         hCons = (l, h, t) => (l.name, h) +: t,
         prod = Json.fromJsonObject,
         sum = (l, v) => Json.obj(l.name -> v),
-        vector = v => Json.arr(v: _*)
+        vector = v => Json.arr(v: _*),
+        orderB = orderForJson
       ))
       A.close(obj, Json.fromJsonObject)
     }
@@ -101,5 +105,40 @@ trait Codecs {
 
       x.map { case (a, _) => a }
     }
+  }
+
+  private[circe] val orderForJson: Order[Json] = { (x: Json, y: Json) =>
+    x.fold(
+      jsonNull = {
+        if (y.isNull) 0 else -1
+      },
+      jsonBoolean = { xb =>
+        if (y.isNull) 1
+        else y.asBoolean.fold(-1)(yb => Order[Boolean].compare(xb, yb))
+      },
+      jsonNumber = { xn =>
+        if (y.isNull || y.isBoolean) 1
+        else y.asNumber.fold(-1)(yn => Order[String].compare(x.spaces2, y.spaces2))
+      },
+      jsonString = { xs =>
+        if (y.isNull || y.isBoolean || y.isNumber) 1
+        else y.asString.fold(-1)(ys => Order[String].compare(xs, ys))
+      },
+      jsonArray = { xv =>
+        if (y.isNull || y.isBoolean || y.isNumber || y.isString) 1
+        else y.asArray.fold(-1)(yv => cats.instances.vector.catsKernelStdOrderForVector(orderForJson).compare(xv, yv))
+      },
+      jsonObject = { xo =>
+        if (y.isNull || y.isBoolean || y.isNumber || y.isString || y.isArray) 1
+        else y.asObject.fold(core.impossible(sh"impossible JSON: ${y}"))(yo => compareJsonObject(xo, yo))
+      }
+    )
+  }
+
+  private def compareJsonObject(x: JsonObject, y: JsonObject): Int = {
+    val xv = x.toVector
+    val yv = y.toVector
+    val ord = cats.instances.tuple.catsKernelStdOrderForTuple2[String, Json](implicitly, orderForJson)
+    cats.instances.vector.catsKernelStdOrderForVector[(String, Json)](ord).compare(xv, yv)
   }
 }

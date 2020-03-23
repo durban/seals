@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,6 +31,7 @@ import org.scalacheck.{ Arbitrary, Gen, Cogen }
 import org.scalacheck.derive.Recursive
 
 import core.Refinement.{ Semantics, ReprFormat }
+import core.CanonicalRepr
 
 object ArbInstances extends ArbInstances
 
@@ -73,6 +76,37 @@ trait ArbInstances {
       } yield bytes.bits ++ BitVector.fromByte(byte, 8).take(slice)
     )
   }
+
+  implicit def cogenBitVector(implicit cogenArr: Cogen[Array[Byte]]): Cogen[BitVector] =
+    cogenArr.contramap[BitVector](_.toByteArray)
+
+  implicit def arbCanonicalRepr(implicit arbStr: Arbitrary[String], arbSym: Arbitrary[Symbol]): Arbitrary[CanonicalRepr] = {
+    Arbitrary { genCanonicalRepr(arbStr, arbSym) }
+  }
+
+  private def genCanonicalRepr(implicit arbStr: Arbitrary[String], arbSym: Arbitrary[Symbol]): Gen[CanonicalRepr] = {
+    Gen.choose(1, 5).flatMap {
+      case 1 => arbStr.arbitrary.map(CanonicalRepr.Atom(_))
+      case 2 => Gen.const(CanonicalRepr.HNil)
+      case 3 => for {
+        sym <- arbSym.arbitrary
+        h <- Gen.lzy(genCanonicalRepr(arbStr, arbSym))
+        t <- Gen.lzy(genCanonicalRepr(arbStr, arbSym))
+      } yield CanonicalRepr.HCons(sym, h, t)
+      case 4 => for {
+         l <- arbSym.arbitrary
+        v <- Gen.lzy(genCanonicalRepr(arbStr, arbSym))
+      } yield CanonicalRepr.Sum(l, v)
+      case 5 => for {
+        len <- Gen.choose(0, 3) // no reason to test with long vectors
+        lst <- Gen.listOfN(len, Gen.lzy(genCanonicalRepr(arbStr, arbSym)))
+      } yield CanonicalRepr.Vect(lst.toVector)
+      case _ => throw new IllegalStateException
+    }
+  }
+
+  implicit def cogenCanonicalRepr: Cogen[CanonicalRepr] =
+    Cogen[String].contramap(_.toString)
 
   implicit def arbEnvelope[A: Reified](implicit A: Arbitrary[A]): Arbitrary[Envelope[A]] = {
     Arbitrary {

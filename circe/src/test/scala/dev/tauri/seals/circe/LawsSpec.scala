@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +20,17 @@ package dev.tauri.seals
 package circe
 
 import cats.Eq
+import cats.implicits._
 
+import io.circe.Json
 import io.circe.numbers.BiggerDecimal
+import io.circe.testing.instances.{ arbitraryJson, cogenJson }
 
 import org.scalacheck.{ Arbitrary, Gen }
 
-class AtomicLawsSpec extends tests.BaseLawsSpec {
+import cats.kernel.laws.discipline.OrderTests
+
+class LawsSpec extends tests.BaseLawsSpec {
 
   import Atoms._
 
@@ -54,4 +61,6 @@ class AtomicLawsSpec extends tests.BaseLawsSpec {
   }
 
   checkAtomicLaws[BiggerDecimal]("BiggerDecimal")
+
+  checkAll("Codecs.orderForJson.Order", OrderTests[Json](Codecs.orderForJson).order)
 }

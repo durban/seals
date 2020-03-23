@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,9 +20,12 @@ package dev.tauri.seals
 package scodec
 
 import cats.Eq
+import cats.kernel.laws.discipline.OrderTests
+import cats.implicits._
 
 import _root_.scodec.bits.BitVector
 import _root_.scodec.Err
+import _root_.scodec.interop.cats.BitVectorEqInstance
 
 class ScodecWireSpec
     extends tests.BaseLawsSpec
@@ -41,4 +46,6 @@ class ScodecWireSpec
 
   override def mkWire[A](r: Reified[A]): Wire.Aux[A, BitVector, Err] =
     Wires.wireFromReified(r)
+
+  checkAll("Order[BitVector]", OrderTests[BitVector](Codecs.orderForBitVector).order)
 }

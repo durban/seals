@@ -29,8 +29,8 @@ import shapeless.test.typed
 
 import scodec.bits._
 
-import core.Refinement
-import laws.{ CanonicalRepr, TestInstances, TestTypes }
+import core.{ Refinement, CanonicalRepr }
+import laws.{ TestInstances, TestTypes }
 
 class ReifiedSpec extends BaseSpec {
 
@@ -183,9 +183,25 @@ class ReifiedSpec extends BaseSpec {
       }
 
       "Set" in {
+        import scala.collection.immutable.ListSet
         val cbr = Model.CanBeRefined[Model.Vector]
         val expMod = cbr.refine(Model.Vector(atom[Boolean]), Refinement.Semantics.unique)
         Reified[Set[Boolean]].model should === (expMod)
+        Reified[Set[Boolean]].model should !== (Reified[Vector[Boolean]].model)
+        // sorting:
+        final case class Wrap(r: CanonicalRepr)
+        val folder = Reified.Folder.simple[Wrap](
+          atom = a => Wrap(CanonicalRepr.Atom(a.stringRepr)),
+          hNil = () => Wrap(CanonicalRepr.HNil),
+          hCons = (l, h, t) => Wrap(CanonicalRepr.HCons(l, h.r, t.r)),
+          sum = (l, v) => Wrap(CanonicalRepr.Sum(l, v.r)),
+          vector = e => Wrap(CanonicalRepr.Vect(e.map(_.r)))
+          // no Order[Wrap]
+        )
+        val r = Reified[Set[Int]].foldClose(ListSet.empty[Int] + 3 + 1 + 2)(folder)
+        r should === (Wrap(CanonicalRepr.Vect(Vector(
+          CanonicalRepr.Atom("1"), CanonicalRepr.Atom("2"), CanonicalRepr.Atom("3")
+        ))))
       }
 
       "Inside ADTs" in {
@@ -338,13 +354,26 @@ class ReifiedSpec extends BaseSpec {
       val r1 = r0.refined(Refinement.enum[MyTestEnum]) // 3 elements
       val r2 = r1.refined(ReifiedSpec.refineEnumToBool)
       r2.toString should === ("Reified[(0 ≤ Int ≤ 2){?}]")
+      final case object Foo
+      val r3 = r2.refined(new Refinement[Foo.type] {
+        override type Repr = Boolean
+        override val uuid = Refinement.Semantics.unique.uuid
+        override val repr = Refinement.Semantics.unique.repr
+        def from(a: Boolean): Either[String, Foo.type] = if (a) Right(Foo) else Left("err")
+        def to(a: Foo.type): Boolean = true
+      })
+      r3.toString should === ("Reified[unique{(0 ≤ Int ≤ 2){?}}]")
       // sanity-check types:
       locally { r1 : Reified[MyTestEnum] }
       locally { r2 : Reified[Boolean] }
+      locally { r3 : Reified[Foo.type] }
       // check models:
       assert(!r0.model.compatible(r1.model))
       assert(!r0.model.compatible(r2.model))
+      assert(!r0.model.compatible(r3.model))
       assert(!r1.model.compatible(r2.model))
+      assert(!r1.model.compatible(r3.model))
+      assert(!r2.model.compatible(r3.model))
     }
 
     "Descriptions" in {

@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,6 +24,8 @@ import java.util.UUID
 import cats.{ Eq, Show }
 
 import org.scalacheck.{ Arbitrary, Gen }
+
+import core.Refinement
 
 final case class MyUUID(uuid: UUID)
 
@@ -242,9 +246,13 @@ object TestTypes {
           'WithList,
           WithList.expModel,
           Model.CCons(
-            'WithVector,
-            WithVector.expModel,
-            Model.CNil
+            'WithSet,
+            WithSet.expModel,
+            Model.CCons(
+              'WithVector,
+              WithVector.expModel,
+              Model.CNil
+            )
           )
         )
       }
@@ -278,6 +286,11 @@ object TestTypes {
     final case class WithList(i: Int, l: List[Float]) extends Adt
     object WithList {
       val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float]) :: Model.HNil
+    }
+
+    final case class WithSet(i: Int, l: Set[Float]) extends Adt
+    object WithSet {
+      val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float], Some(Refinement.Semantics.unique)) :: Model.HNil
     }
 
     final case class WithVector(els: Vector[Adt]) extends Adt

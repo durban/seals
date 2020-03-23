@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +21,7 @@ package core
 
 import java.util.UUID
 import java.security.MessageDigest
-import java.nio.ByteBuffer
+import java.nio.{ ByteBuffer, Buffer }
 import java.nio.charset.StandardCharsets
 
 import scodec.bits.ByteVector
@@ -42,7 +44,7 @@ private[seals] object NsUUID {
   private def uuid5bytes(ns: UUID, name: ByteBuffer): UUID = {
     val buf = ByteBuffer.allocate(16) // network byte order by default
     putUUIDToBuf(ns, buf)
-    buf.rewind()
+    (buf : Buffer).rewind()
     val h = sha1()
     h.update(buf)
     h.update(name)
@@ -51,9 +53,9 @@ private[seals] object NsUUID {
     arr(6) = (arr(6) | 0x50).toByte // version 5
     arr(8) = (arr(8) & 0x3f).toByte // clear variant
     arr(8) = (arr(8) | 0x80).toByte // variant RFC4122
-    buf.rewind()
+    (buf : Buffer).rewind()
     buf.put(arr)
-    buf.rewind()
+    (buf : Buffer).rewind()
     val msl = buf.getLong()
     val lsl = buf.getLong()
     new UUID(msl, lsl)
@@ -74,9 +76,9 @@ private[seals] object NsUUID {
     val buf = ByteBuffer.allocate(16)
     nss.foldLeft(ns1) { (st, u) =>
       putUUIDToBuf(u, buf)
-      buf.rewind()
+      (buf : Buffer).rewind()
       val r = uuid5bytes(st, buf)
-      buf.rewind()
+      (buf : Buffer).rewind()
       r
     }
   }
@@ -89,7 +91,7 @@ private[seals] object NsUUID {
   def bvFromUUID(u: UUID): ByteVector = {
     val buf = ByteBuffer.allocate(16)
     putUUIDToBuf(u, buf)
-    buf.rewind()
+    (buf : Buffer).rewind()
     ByteVector.view(buf)
   }
 
