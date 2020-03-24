@@ -207,7 +207,7 @@ class SerializableSpec extends BaseSpec {
     }
 
     "ExtSet" in {
-      roundtripSer(core.ExtSet[Set])
+      roundtripSer(core.ExtSet[Set, String])
     }
   }
 

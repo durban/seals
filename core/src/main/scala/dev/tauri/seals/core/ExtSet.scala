@@ -19,36 +19,35 @@
 package dev.tauri.seals
 package core
 
-import cats.~>
 import cats.implicits._
 
 /** Type class for (extensional) set-like data stuctures */
-trait ExtSet[F[_]] extends Serializable {
+trait ExtSet[F[_], A] extends Serializable {
 
   /** Unique, but not necessarily sorted elements */
-  def toVector[A](fa: F[A]): Vector[A]
+  def toVector(fa: F[A]): Vector[A]
 
   /** Must reject if there are duplicate elements */
-  def fromVector[A](v: Vector[A]): Either[String, F[A]]
+  def fromVector(v: Vector[A]): Either[String, F[A]]
 }
 
 final object ExtSet {
 
-  def apply[F[_]](implicit inst: ExtSet[F]): ExtSet[F] =
+  def apply[F[_], A](implicit inst: ExtSet[F, A]): ExtSet[F, A] =
     inst
 
-  def instance[F[_]](toVect: F ~> Vector, fromVect: Vector ~> λ[a => Either[String, F[a]]]): ExtSet[F] = {
-    new ExtSet[F] {
-      override def toVector[A](fa: F[A]): Vector[A] =
+  def instance[F[_], A](toVect: F[A] => Vector[A], fromVect: Vector[A] => Either[String, F[A]]): ExtSet[F, A] = {
+    new ExtSet[F, A] {
+      override def toVector(fa: F[A]): Vector[A] =
         toVect(fa)
-      override def fromVector[A](v: Vector[A]): Either[String, F[A]] =
+      override def fromVector(v: Vector[A]): Either[String, F[A]] =
         fromVect(v)
     }
   }
 
-  implicit val setLikeForSet: ExtSet[Set] = instance(
-    λ[Set ~> Vector](_.toVector),
-    λ[Vector ~> λ[a => Either[String, Set[a]]]] { vec =>
+  implicit def setLikeForSet[A]: ExtSet[Set, A] = instance(
+    _.toVector,
+    { vec =>
       val set = vec.toSet
       if (set.size === vec.size) Right(set)
       else Left("duplicate elements")

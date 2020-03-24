@@ -357,7 +357,7 @@ object Reified extends LowPrioReified1 {
 
   implicit def reifiedFromExtSet[F[_], A](
     implicit
-    F: ExtSet[F],
+    F: ExtSet[F, A],
     R: Reified[A]
   ): Reified.Aux[F[A], Model.Vector, FFirst] = {
     new Reified[F[A]] {
