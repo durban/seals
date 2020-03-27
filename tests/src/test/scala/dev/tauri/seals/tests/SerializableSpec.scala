@@ -142,6 +142,8 @@ class SerializableSpec extends BaseSpec {
 
     "Refined instances" in {
       roundtripSer(Reified[Int].refined(Refinement.enum[DayOfWeek]))
+      roundtripSer(Reified[Set[Int]])
+      roundtripSer(Reified[Map[Int, String]])
     }
   }
 
@@ -208,6 +210,10 @@ class SerializableSpec extends BaseSpec {
 
     "ExtSet" in {
       roundtripSer(core.ExtSet[Set, String])
+    }
+
+    "ExtMap" in {
+      roundtripSer(core.ExtMap[Map, String, Boolean])
     }
   }
 

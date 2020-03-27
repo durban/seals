@@ -128,5 +128,9 @@ class CompatSpec extends BaseSpec {
       import TestTypes.collections.{ WithList, WithSet }
       illTyped("Compat[WithList, WithSet]", notFound)
     }
+
+    "Set and Map are different" in {
+      illTyped("Compat[Set[(Int, String)], Map[Int, String]]", notFound)
+    }
   }
 }

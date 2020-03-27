@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,10 +27,6 @@ import scala.reflect.io.AbstractFile
 
 import cats.implicits._
 
-import io.circe.{ Json, Encoder }
-
-import circe.Codecs._
-
 object Extractor {
 
   final val classExt = ".class"
@@ -39,10 +37,11 @@ object Extractor {
   def main(args: Array[String]): Unit = {
     val jarOrDir :: target :: packs = args.toList
     val main = apply(this.getClass.getClassLoader, new java.io.File(jarOrDir))
-    val res = main.extractAllPackages(packs.toVector)
+    val modelSet = main.extractAllPackages(packs.toVector)
+    val json = io.circe.syntax.EncoderOps(modelSet).asJson
     java.nio.file.Files.write(
       java.nio.file.Paths.get(target),
-      List(res.spaces2).asJava
+      List(json.spaces2).asJava
     )
   }
 }
@@ -54,8 +53,6 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
 
   val mirror = runtimeMirror(classloader)
   val root = AbstractFile.getDirectory(new scala.reflect.io.File(jarOrDir)(Codec.UTF8))
-
-  val encoder = Encoder[Model]
 
   def allClasses(pack: String): Vector[String] = {
     val p = findPack(root, pack).getOrElse(throw new IllegalArgumentException(sh"no such package: '${pack}'"))
@@ -81,17 +78,17 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
   def lookupSubdir(from: AbstractFile, subdir: String): Option[AbstractFile] =
     from.iterator.find(f => (f.name === subdir) && f.isDirectory)
 
-  def extractAllPackages(packs: Vector[String]): Json = {
-    Json.obj(packs.map { pack =>
+  def extractAllPackages(packs: Vector[String]): ModelSet = {
+    val models = packs.map { pack =>
       pack -> extractAll(pack)
-    }: _*)
+    }.toMap
+    ModelSet(models)
   }
 
-  def extractAll(pack: String): Json = {
-    val models = allSchemasOfPackage(pack).map { sym =>
+  def extractAll(pack: String): Map[String, Model] = {
+    allSchemasOfPackage(pack).map { sym =>
       sym.fullName -> extract(sym)
-    }
-    Json.obj(models: _*)
+    }.toMap
   }
 
   def allSchemasOfPackage(pack: String): Vector[Symbol] = {
@@ -153,7 +150,7 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
     }
   }
 
-  def extract(cls: Symbol): Json = {
+  def extract(cls: Symbol): Model = {
     require(cls.isType)
     val compSym = cls.companion
     val reified = if (compSym.isModule) {
@@ -180,12 +177,11 @@ class Extractor(classloader: ClassLoader, jarOrDir: java.io.File) {
     } else {
       core.impossible(sh"${cls} has no companion object")
     }
-    val model = reified match {
+    reified match {
       case reified: Reified[_] =>
         reified.model
       case x: Any =>
         core.impossible(sh"expected a Reified instance, got a(n) '${x.getClass.getName}'")
     }
-    encoder.apply(model)
   }
 }

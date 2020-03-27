@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,8 +29,6 @@ import cats.implicits._
 
 import io.circe.parser
 
-import circe.Codecs._
-
 object Checker {
 
   type ErrorMsg = String
@@ -55,20 +55,20 @@ object Checker {
     Console.println(sh"All ${nModels} checked models are compatible.") // scalastyle:ignore regex
   }
 
-  def loadModels(path: String): Map[String, Map[String, Model]] = {
+  def loadModels(path: String): ModelSet = {
     val str = Files.readAllLines(Paths.get(path), StandardCharsets.UTF_8).asScala.mkString
-    parser.decode[Map[String, Map[String, Model]]](str).fold(
+    parser.decode[ModelSet](str).fold(
       err => throw new IllegalArgumentException(sh"error while decoding '${path}': ${err}"),
       models => models
     )
   }
 
-  def compareModelSet(currModels: Map[String, Map[String, Model]], prevModels: Map[String, Map[String, Model]]): Report = {
-    assertSameKeys("packages", currModels, prevModels)
-    (for (pack <- currModels.keys) yield {
-      val curr = currModels(pack)
-      val prev = prevModels(pack)
-      pack -> comparePackage(curr, prev)
+  def compareModelSet(curr: ModelSet, prev: ModelSet): Report = {
+    assertSameKeys("packages", curr.models, prev.models)
+    (for (pack <- curr.models.keys) yield {
+      val currPak = curr.models(pack)
+      val prevPak = prev.models(pack)
+      pack -> comparePackage(currPak, prevPak)
     }).toMap
   }
 

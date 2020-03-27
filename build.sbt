@@ -68,6 +68,15 @@ lazy val plugin = project
   .enablePlugins(ScriptedPlugin)
   .settings(commonSettings)
   .settings(pluginSettings)
+  .settings(scriptedDependencies := {
+    scriptedDependencies.value
+    // workaround for https://github.com/sbt/sbt/issues/3248
+    (checker / publishLocal).value
+    (core / publishLocal).value
+    (circe / publishLocal).value
+    (macros / publishLocal).value
+    (scodec / publishLocal).value // due to the scripted test "seals-plugin / example"
+  })
 
 lazy val circe = project
   .settings(name := s"seals-circe")

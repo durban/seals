@@ -290,7 +290,7 @@ object TestTypes {
 
     final case class WithSet(i: Int, l: Set[Float]) extends Adt
     object WithSet {
-      val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float], Some(Refinement.Semantics.unique)) :: Model.HNil
+      val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float], Some(Refinement.Semantics.set)) :: Model.HNil
     }
 
     final case class WithVector(els: Vector[Adt]) extends Adt

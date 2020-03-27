@@ -43,6 +43,10 @@ object CanonicalRepr {
     )
   }
 
+  def product(els: (Symbol, CanonicalRepr)*): CanonicalRepr = {
+    els.foldRight[CanonicalRepr](CanonicalRepr.HNil) { case ((lab, r), acc) => CanonicalRepr.HCons(lab, r, acc) }
+  }
+
   implicit val orderForCanonicalRepr: Order[CanonicalRepr] = {
     case (Atom(x), Atom(y)) =>
       Order[String].compare(x, y)

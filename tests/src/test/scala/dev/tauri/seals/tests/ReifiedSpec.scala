@@ -60,6 +60,17 @@ class ReifiedSpec extends BaseSpec {
       }
     }
 
+    "for tuples" - {
+
+      "should exist" in {
+        Reified[Tuple1[Int]].model should === ('_1 -> atom[Int] :: Model.HNil)
+        Reified[Tuple2[Int, String]].model should === ('_1 -> atom[Int] :: '_2 -> atom[String] :: Model.HNil)
+        Reified[Tuple5[Int, Int, Float, Unit, Int]].model should === (
+          '_1 -> atom[Int] :: '_2 -> atom[Int] :: '_3 -> atom[Float] :: '_4 -> atom[Unit] :: '_5 -> atom[Int] :: Model.HNil
+        )
+      }
+    }
+
     "derived with Generic" - {
 
       "for simple ADTs" - {
@@ -182,25 +193,45 @@ class ReifiedSpec extends BaseSpec {
         Reified[WithVector].model should === (WithVector.expModel)
       }
 
-      "Set" in {
-        import scala.collection.immutable.ListSet
-        val cbr = Model.CanBeRefined[Model.Vector]
-        val expMod = cbr.refine(Model.Vector(atom[Boolean]), Refinement.Semantics.unique)
-        Reified[Set[Boolean]].model should === (expMod)
-        Reified[Set[Boolean]].model should !== (Reified[Vector[Boolean]].model)
-        // sorting:
-        final case class Wrap(r: CanonicalRepr)
+      /** Type for testing default sorting */
+      final case class Wrap(r: CanonicalRepr)
+      final object Wrap {
         val folder = Reified.Folder.simple[Wrap](
           atom = a => Wrap(CanonicalRepr.Atom(a.stringRepr)),
           hNil = () => Wrap(CanonicalRepr.HNil),
           hCons = (l, h, t) => Wrap(CanonicalRepr.HCons(l, h.r, t.r)),
           sum = (l, v) => Wrap(CanonicalRepr.Sum(l, v.r)),
           vector = e => Wrap(CanonicalRepr.Vect(e.map(_.r)))
-          // no Order[Wrap]
+          // Note: no Order[Wrap], so default will be used
         )
-        val r = Reified[Set[Int]].foldClose(ListSet.empty[Int] + 3 + 1 + 2)(folder)
+      }
+
+      "Set" in {
+        import scala.collection.immutable.ListSet
+        val cbr = Model.CanBeRefined[Model.Vector]
+        val expMod = cbr.refine(Model.Vector(atom[Boolean]), Refinement.Semantics.set)
+        Reified[Set[Boolean]].model should === (expMod)
+        Reified[Set[Boolean]].model should !== (Reified[Vector[Boolean]].model)
+        val r = Reified[Set[Int]].foldClose(ListSet.empty[Int] + 3 + 1 + 2)(Wrap.folder)
         r should === (Wrap(CanonicalRepr.Vect(Vector(
           CanonicalRepr.Atom("1"), CanonicalRepr.Atom("2"), CanonicalRepr.Atom("3")
+        ))))
+      }
+
+      "Map" in {
+        import scala.collection.immutable.ListMap
+        val cbr = Model.CanBeRefined[Model.Vector]
+        val expMod = cbr.refine(Model.Vector('_1 -> atom[Int] :: '_2 -> atom[Boolean] :: Model.HNil), Refinement.Semantics.map)
+        Reified[Map[Int, Boolean]].model should === (expMod)
+        Reified[Map[Int, Boolean]].model should !== (Reified[Vector[Boolean]].model)
+        Reified[Map[Int, Boolean]].model should !== (Reified[Set[(Int, Boolean)]].model)
+        val r = Reified[Map[Int, Boolean]].foldClose(
+          ListMap.empty[Int, Boolean] + (3 -> true) + (1 -> true) + (2 -> false)
+        )(Wrap.folder)
+        r should === (Wrap(CanonicalRepr.Vect(Vector(
+          CanonicalRepr.product('_1 -> CanonicalRepr.Atom("1"), '_2 -> CanonicalRepr.Atom("true")),
+          CanonicalRepr.product('_1 -> CanonicalRepr.Atom("2"), '_2 -> CanonicalRepr.Atom("false")),
+          CanonicalRepr.product('_1 -> CanonicalRepr.Atom("3"), '_2 -> CanonicalRepr.Atom("true"))
         ))))
       }
 
@@ -357,12 +388,12 @@ class ReifiedSpec extends BaseSpec {
       final case object Foo
       val r3 = r2.refined(new Refinement[Foo.type] {
         override type Repr = Boolean
-        override val uuid = Refinement.Semantics.unique.uuid
-        override val repr = Refinement.Semantics.unique.repr
+        override val uuid = Refinement.Semantics.set.uuid
+        override val repr = Refinement.Semantics.set.repr
         def from(a: Boolean): Either[String, Foo.type] = if (a) Right(Foo) else Left("err")
         def to(a: Foo.type): Boolean = true
       })
-      r3.toString should === ("Reified[unique{(0 ≤ Int ≤ 2){?}}]")
+      r3.toString should === ("Reified[set{(0 ≤ Int ≤ 2){?}}]")
       // sanity-check types:
       locally { r1 : Reified[MyTestEnum] }
       locally { r2 : Reified[Boolean] }

@@ -21,35 +21,37 @@ package core
 
 import cats.implicits._
 
-/** Type class for (extensional) set-like data stuctures */
-trait ExtSet[F[_], A] extends Serializable {
+trait ExtMap[F[_, _], K, V] extends Serializable {
 
-  /** Unique, but not necessarily sorted elements */
-  def toVector(fa: F[A]): Vector[A]
+  /** Unique keys, not necessarily sorted key-value pairs */
+  def toVector(fa: F[K, V]): Vector[(K, V)]
 
-  /** Must return `None` iff there are duplicate elements */
-  def fromVector(v: Vector[A]): Option[F[A]]
+  /** Must return `None` iff there are duplicate keys */
+  def fromVector(v: Vector[(K, V)]): Option[F[K, V]]
 }
 
-final object ExtSet {
+final object ExtMap {
 
-  def apply[F[_], A](implicit inst: ExtSet[F, A]): ExtSet[F, A] =
+  def apply[F[_, _], K, V](implicit inst: ExtMap[F, K, V]): ExtMap[F, K, V] =
     inst
 
-  def instance[F[_], A](toVect: F[A] => Vector[A], fromVect: Vector[A] => Option[F[A]]): ExtSet[F, A] = {
-    new ExtSet[F, A] {
-      override def toVector(fa: F[A]): Vector[A] =
+  def instance[F[_, _], K, V](
+    toVect: F[K, V] => Vector[(K, V)],
+    fromVect: Vector[(K, V)] => Option[F[K, V]]
+  ): ExtMap[F, K, V] = {
+    new ExtMap[F, K, V] {
+      override def toVector(fa: F[K, V]): Vector[(K, V)] =
         toVect(fa)
-      override def fromVector(v: Vector[A]): Option[F[A]] =
+      override def fromVector(v: Vector[(K, V)]): Option[F[K, V]] =
         fromVect(v)
     }
   }
 
-  implicit def extSetForSet[A]: ExtSet[Set, A] = instance(
+  implicit def extMapForMap[K, V]: ExtMap[Map, K, V] = instance(
     _.toVector,
     { vec =>
-      val set = vec.toSet
-      if (set.size === vec.size) Some(set)
+      val map = vec.toMap
+      if (map.size === vec.size) Some(map)
       else None
     }
   )

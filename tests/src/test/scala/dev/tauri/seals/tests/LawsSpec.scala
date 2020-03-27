@@ -52,6 +52,7 @@ class LawsSpec extends BaseLawsSpec {
   checkReifiedLaws[Envelope[TestTypes.adts.recursive.IntList], Int, Int]("Envelope[IntList]")
   checkReifiedLaws[List[String], Boolean, Float]("List[String]")
   checkReifiedLaws[Set[Int], String, Double]("Set[Int]")
+  checkReifiedLaws[Map[Int, Float], String, Double]("Map[Int, Float]")
   checkReifiedLaws[Option[Int], String, Float]("Option[Int]")
   checkReifiedLaws[Month, String, Float]("java.time.Month")
   checkReifiedLaws[Symbol, Float, Option[Int]]("scala.Symbol")
