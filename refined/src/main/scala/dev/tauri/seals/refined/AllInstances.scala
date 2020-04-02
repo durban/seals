@@ -17,14 +17,8 @@
  */
 
 package dev.tauri.seals
+package refined
 
-import cats.Show
-
-import shapeless.Nat
-import shapeless.ops.nat.ToInt
-
-package object refined extends AllInstances {
-
-  implicit def catsShowForShapelessNat[N <: Nat](implicit ti: ToInt[N], si: Show[Int]): Show[N] =
-    Show.show(_ => si.show(ti()))
-}
+trait AllInstances
+  extends Refinements
+  with ReifiedInstances
