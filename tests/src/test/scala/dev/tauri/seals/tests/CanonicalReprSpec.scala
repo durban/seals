@@ -57,4 +57,28 @@ class CanonicalReprSpec
       }
     }
   }
+
+  "product" should "create correct HCons/HNil" in {
+    import CanonicalRepr.{ HCons, HNil }
+    val act = CanonicalRepr.product(
+      'a -> CanonicalRepr.Atom("1"),
+      'b -> CanonicalRepr.Atom("2"),
+      'c -> CanonicalRepr.Atom("3")
+    )
+    val exp = HCons(
+      'a,
+      CanonicalRepr.Atom("1"),
+      HCons(
+        'b,
+        CanonicalRepr.Atom("2"),
+        HCons(
+          'c,
+          CanonicalRepr.Atom("3"),
+          HNil
+        )
+      )
+    )
+    act should === (exp)
+    CanonicalRepr.product() should === (HNil)
+  }
 }

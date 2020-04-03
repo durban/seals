@@ -140,6 +140,21 @@ class CodecsSpec extends tests.BaseSpec {
         Attempt.successful(DecodeResult(WithList(42, List(42.0f)), hex"ff".bits))
       )
     }
+
+    "Duplicates must be rejected" - {
+
+      "Sets" in {
+        decoderFromReified[Set[Int]].decode(
+          hex"0000 0002  ${ci(42)}  ${ci(42)}   dead".bits
+        ).toEither.swap.getOrElse(fail).message should === ("duplicate elements")
+      }
+
+      "Maps" in {
+        decoderFromReified[Map[Int, Int]].decode(
+          hex"0000 0002  A2 ${vl(4)} ${ci(42)}  A2 ${vl(4)} ${ci(0)}  A1   A2 ${vl(4)} ${ci(42)}  A2 ${vl(4)} ${ci(1)}  A1  dead".bits
+        ).toEither.swap.getOrElse(fail).message should === ("duplicate keys")
+      }
+    }
   }
 
   "Roundtrip" - {
@@ -152,6 +167,8 @@ class CodecsSpec extends tests.BaseSpec {
       Codec.decode[U](Codec.encode[U](Union[U](b = 42)).getOrElse(fail)).getOrElse(fail).value should === (Union[U](b = 42))
       Codec.decode[Adt1](Codec.encode[Adt1](Adt1.C(42)).getOrElse(fail)).getOrElse(fail).value should === (Adt1.C(42))
       Codec.decode[Vector[Int]](Codec.encode[Vector[Int]](Vector(42, 43)).getOrElse(fail)).getOrElse(fail).value should === (Vector(42, 43))
+      Codec.decode[Set[Int]](Codec.encode[Set[Int]](Set(1, 3, 4)).getOrElse(fail)).getOrElse(fail).value should === (Set(1, 3, 4))
+      Codec.decode[Map[Int, Int]](Codec.encode[Map[Int, Int]](Map(1 -> 2, 3 -> 6)).getOrElse(fail)).getOrElse(fail).value should === (Map(1 -> 2, 3 -> 6))
       Codec.decode[WithList](Codec.encode[WithList](WithList(42, List(42.0f))).getOrElse(fail)).getOrElse(fail).value should === (WithList(42, List(42.0f)))
     }
 

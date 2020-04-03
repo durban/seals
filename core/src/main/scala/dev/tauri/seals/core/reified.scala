@@ -360,11 +360,35 @@ object Reified extends LowPrioReified1 {
     F: ExtSet[F, A],
     R: Reified[A]
   ): Reified.Aux[F[A], Model.Vector, FFirst] = {
+    reifiedFromSetOrMap[F, A](isMap = false)(F, R)
+  }
+
+  implicit def reifiedFromExtMap[F[_, _], K, V](
+    implicit
+    F: ExtMap[F, K, V],
+    K: Reified[K],
+    V: Reified[V]
+  ): Reified.Aux[F[K, V], Model.Vector, FFirst] = {
+    type Synth[_] = F[K, V]
+    val synthExtSet = new ExtSet[Synth, (K, V)] {
+      def toVector(fa: F[K, V]): Vector[(K, V)] = F.toVector(fa)
+      def fromVector(v: Vector[(K, V)]): Option[F[K, V]] = F.fromVector(v)
+    }
+    reifiedFromSetOrMap[Synth, (K, V)](isMap = true)(synthExtSet, Reified[(K, V)])
+  }
+
+  private def reifiedFromSetOrMap[F[_], A](isMap: Boolean)(
+    implicit
+    F: ExtSet[F, A],
+    R: Reified[A]
+  ): Reified.Aux[F[A], Model.Vector, FFirst] = {
+    val semantics = if (isMap) Refinement.Semantics.map else Refinement.Semantics.set
+    val errMsg = if (isMap) "duplicate keys" else "duplicate elements"
     new Reified[F[A]] {
       override type Mod = Model.Vector
       override type Fold[B, T] = B
       private[core] override val modelComponent =
-        Model.Vector(R.modelComponent, Some(Refinement.Semantics.unique))
+        Model.Vector(R.modelComponent, Some(semantics))
       override def fold[B, T](fa: F[A])(f: Folder[B, T]): B = {
         val sortedBs: Vector[B] = f.orderB match {
           case Some(ordB) =>
@@ -384,7 +408,9 @@ object Reified extends LowPrioReified1 {
         x
       override def unfold[B, E, S](u: Unfolder[B, E, S])(b: B): Either[E, (F[A], B)] = {
         unfoldKleene[A, B, E, S](u)(b).flatMap { case (vec, b) =>
-          F.fromVector(vec).leftMap(u.unknownError).map { fa => (fa, b) }
+          F.fromVector(vec).fold[Either[E, (F[A], B)]](Left(u.unknownError(errMsg))) { fa =>
+            Right((fa, b))
+          }
         }
       }
     }

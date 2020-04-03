@@ -99,10 +99,14 @@ class RefinementSpec extends BaseSpec {
       checkNotEqHash(tricky1, tricky2)
     }
 
-    "unique" in {
-      checkEqHash(Refinement.Semantics.unique, Refinement.Semantics.unique)
-      checkNotEqHash(Refinement.Semantics.unique, Refinement.Semantics.greater[Foo](Foo(5, "ert")))
-      Refinement.Semantics.unique.repr.repr("?") should === ("unique{?}")
+    "set/map" in {
+      checkEqHash(Refinement.Semantics.set, Refinement.Semantics.set)
+      checkEqHash(Refinement.Semantics.map, Refinement.Semantics.map)
+      checkNotEqHash(Refinement.Semantics.set, Refinement.Semantics.map)
+      checkNotEqHash(Refinement.Semantics.set, Refinement.Semantics.greater[Foo](Foo(5, "ert")))
+      checkNotEqHash(Refinement.Semantics.map, Refinement.Semantics.greater[Foo](Foo(5, "ert")))
+      Refinement.Semantics.set.repr.repr("?") should === ("set{?}")
+      Refinement.Semantics.map.repr.repr("?") should === ("map{?}")
     }
   }
 

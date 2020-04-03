@@ -19,7 +19,7 @@
 package dev.tauri.seals
 package circe
 
-import scala.collection.immutable.ListSet
+import scala.collection.immutable.{ ListSet, ListMap }
 
 import cats.implicits._
 
@@ -111,6 +111,17 @@ class CodecSpec extends BaseJsonSpec {
       // sanity check: ListSet preserves insertion order
       data.toVector should === (unsorted)
     }
+
+    "Sorted JSON array for maps" in {
+      val unsorted: Vector[String] = Vector("j", "l", "d", "f", "h", "g", "b", "i", "e", "a", "k", "c")
+      val sorted: Vector[String] = unsorted.sorted
+      val data: Map[String, Int] = unsorted.foldLeft(ListMap.empty[String, Int]) { (a, b) => a + (b -> 42) }
+      data.asJson should === (Json.arr(
+        sorted.map(k => Json.obj("_1" -> atomJson(k), "_2" -> atomJson("42"))): _*
+      ))
+      // sanity check: ListMap preserves insertion order
+      data.toVector.map(_._1) should === (unsorted)
+    }
   }
 
   "Decoding" - {
@@ -188,9 +199,36 @@ class CodecSpec extends BaseJsonSpec {
           fail(s"unexpected success: ${r}")
       }
     }
+
+    "Duplicates rejected" - {
+
+      "For sets" in {
+        val json = Json.arr(atomJson("1"), atomJson("1"), atomJson("2"))
+        json.as[Set[Int]] match {
+          case Left(err) =>
+            err.message should include ("duplicate elements")
+          case Right(r) =>
+            fail(s"unexpected success: ${r}")
+        }
+      }
+
+      "For maps" in {
+        val json = Json.arr(
+          Json.obj("_1" -> atomJson("1"), "_2" -> atomJson("42")),
+          Json.obj("_1" -> atomJson("1"), "_2" -> atomJson("42")),
+          Json.obj("_1" -> atomJson("2"), "_2" -> atomJson("43"))
+        )
+        json.as[Map[Int, Int]] match {
+          case Left(err) =>
+            err.message should include ("duplicate keys")
+          case Right(r) =>
+            fail(s"unexpected success: ${r}")
+        }
+      }
+    }
   }
 
-  "Roundtrip" - {
+  "Roundtrip" in {
     val x = FooBarU(Foo(42), MyUUID(uuid"69fd9ed5-4789-4290-b55c-f5f1a773265a"))
     val j = x.asJson
     val y = j.as[FooBarU]

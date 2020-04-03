@@ -123,8 +123,11 @@ object Refinement {
       Semantics((root / lt / repr).uuid, ReprFormat("", true, sh" < ${than}"))
     }
 
-    val unique: Semantics =
-      Semantics((root / uq).uuid, ReprFormat("unique{", true, "}"))
+    val set: Semantics =
+      Semantics((root / setId).uuid, ReprFormat("set{", true, "}"))
+
+    val map: Semantics =
+      Semantics((root / mapId).uuid, ReprFormat("map{", true, "}"))
 
     implicit val eqForSemantics: Eq[Semantics] =
       Eq.fromUniversalEquals
@@ -175,7 +178,8 @@ object Refinement {
   private[this] final val gt = uuid"ff6383db-8d2e-4507-a571-f6f0f73f1fe8"
   private[this] final val lt = uuid"95d56687-589e-4e8a-8857-0707ad3cd60b"
   private[this] final val en = uuid"5c7fe757-72c0-4114-9ed0-06e8a8d34c04"
-  private[this] final val uq = uuid"76fabf3e-5531-4f66-8d35-be6c79c2b070"
+  private[this] final val setId = uuid"76fabf3e-5531-4f66-8d35-be6c79c2b070"
+  private[this] final val mapId = uuid"b59c7b70-19df-42c6-8e91-081d0790e1b9"
 
   def enum[A](implicit A: EnumLike[A]): Refinement.Aux[A, Int] = new Refinement[A] {
     override type Repr = Int
