@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -93,9 +95,18 @@ class ModelCodecSpec extends BaseJsonSpec {
     )
   }
 
-  def ref(id: Int): Json = {
+  def sumRef(id: Int): Json =
+    mkRef(id, "SumRef")
+
+  def prodRef(id: Int): Json =
+    mkRef(id, "ProdRef")
+
+  def otherRef(id: Int): Json =
+    mkRef(id, "OtherRef")
+
+  def mkRef(id: Int, name: String): Json = {
     Json.obj(
-      "Ref" -> Json.obj(
+      name -> Json.obj(
         "id" -> Json.fromString(id.toString)
       )
     )
@@ -227,9 +238,9 @@ class ModelCodecSpec extends BaseJsonSpec {
         "HCons" -> Json.obj(
           "id" -> Json.fromString("0"),
           "label" -> Json.fromString("m"),
-          "refinement" -> jNone,
           "optional" -> jfalse,
-          "head" -> ref(2),
+          "refinement" -> jNone,
+          "head" -> sumRef(2),
           "tail" -> Json.obj(
             "HNil" -> Json.obj()
           )
@@ -307,26 +318,26 @@ class ModelCodecSpec extends BaseJsonSpec {
   "Encoding" - {
 
     "atoms" in {
-      a1.asJson should === (atom[Int])
-      a2.asJson should === (atom[String])
+      a1.asJson.spaces2 should === (atom[Int].spaces2)
+      a2.asJson.spaces2 should === (atom[String].spaces2)
     }
 
     "simple models" in {
-      m1.asJson should === (m1json)
-      m2.asJson should === (m2json)
+      m1.asJson.spaces2 should === (m1json.spaces2)
+      m2.asJson.spaces2 should === (m2json.spaces2)
     }
 
     "cyclic models" in {
-      cy1.asJson should === (cy1json)
-      cy2.asJson should === (cy2json)
+      cy1.asJson.spaces2 should === (cy1json.spaces2)
+      cy2.asJson.spaces2 should === (cy2json.spaces2)
     }
 
     "optional fields" in {
-      optMod.asJson should === (optJson)
+      optMod.asJson.spaces2 should === (optJson.spaces2)
     }
 
     "refined models" in {
-      m1r.asJson should === (m1rJson)
+      m1r.asJson.spaces2 should === (m1rJson.spaces2)
     }
   }
 
@@ -448,7 +459,7 @@ class ModelCodecSpec extends BaseJsonSpec {
             "optional" -> jfalse,
             "refinement" -> jNone,
             "head" -> Json.obj(
-              "Ref" -> Json.obj(
+              "ProdRef" -> Json.obj(
                 "id" -> Json.fromString("0")
               )
             ),
@@ -470,7 +481,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "optional" -> jfalse,
               "refinement" -> jNone,
               "head" -> Json.obj(
-                "Ref" -> Json.obj(
+                "ProdRef" -> Json.obj(
                   "id" -> Json.fromInt(56) // not string
                 )
               ),
@@ -491,7 +502,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "optional" -> jfalse,
               "refinement" -> jNone,
               "head" -> Json.obj(
-                "Ref" -> Json.obj(
+                "ProdRef" -> Json.obj(
                   "id" -> Json.fromString("abc") // NumberFormatException
                 )
               ),
@@ -512,7 +523,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "optional" -> jfalse,
               "refinement" -> jNone,
               "head" -> Json.obj(
-                "Ref" -> Json.obj(
+                "ProdRef" -> Json.obj(
                   "id" -> Json.fromString("999") // no target
                 )
               ),
@@ -533,7 +544,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "optional" -> jfalse,
               "refinement" -> jNone,
               "head" -> Json.obj(
-                "Ref" -> Json.obj(
+                "ProdRef" -> Json.obj(
                   "id" -> Json.fromString("-1") // no target
                 )
               ),
@@ -573,7 +584,7 @@ class ModelCodecSpec extends BaseJsonSpec {
               "optional" -> jfalse,
               "refinement" -> jNone,
               "head" -> Json.obj(
-                "Ref" -> Json.obj(
+                "ProdRef" -> Json.obj(
                   "id" -> Json.fromString("0") // forward ref
                 )
               ),
