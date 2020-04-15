@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,9 +19,11 @@
 package dev.tauri.seals
 package core
 
+import java.util.UUID
+
 import scala.annotation.tailrec
 import scala.util.hashing.MurmurHash3
-import java.util.UUID
+
 import cats.{ Eq, Show }
 import cats.data.State
 import cats.implicits._
@@ -146,7 +150,7 @@ sealed trait Model extends Serializable {
   private[this] type StMapP = State[MapP, Unit]
 
   @transient
-  private[this] lazy val cachedPathsAndIds = {
+  private[this] lazy val cachedPathsAndIds: Map[Model, (Model.Path, Int)] = {
     def compositePre(
       label: String,
       c: Model.Ctx,

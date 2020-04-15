@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +32,7 @@ private sealed trait ModelRepr {
   import ModelRepr._
 
   final def toModel: Either[String, Model] = {
-    val res = toModelSt.value.runA(Map.empty).value
+    val res = toModelSt.value.runA(HMap.empty).value
     // do a full traverse, to allow
     // dropping thunks and to ensure
     // that any bug in the decoding
@@ -48,12 +50,17 @@ private object ModelRepr extends ModelReprBase {
 
   private type Error = String
   private type DecSt[A] = EitherT[State[DecMap, ?], Error, A]
-  private type DecMap = Map[Int, Model]
+  type DecMap = HMap[DecMapRel]
+
+  final class DecMapRel[K, V]
+  final object DecMapRel {
+    implicit def ref[M <: Model]: DecMapRel[Ref[M], M] = new DecMapRel
+  }
 
   // TODO: try to simplify
-  sealed trait Composite[C <: Model, T <: Model, TR <: ModelRepr] { this: ModelRepr =>
+  sealed trait Composite[C <: T, T <: Model, TR <: ModelRepr] { this: ModelRepr =>
 
-    def id: Int
+    def ref: Ref[T]
     def head: ModelRepr
     def tail: TR
 
@@ -71,7 +78,7 @@ private object ModelRepr extends ModelReprBase {
           Eval.later(h.value._2.getOrElse(impossible(sh"accessing ${desc} parent of invalid `h`"))),
           Eval.later(t.value._2.getOrElse(impossible(sh"accessing ${desc} parent of invalid `t`")))
         )
-        lazy val newSt: DecMap = st + (id -> res)
+        lazy val newSt: DecMap = st + (ref -> (res : T))
         lazy val h = head.toModelSt.value.run(newSt)
         lazy val lh = Eval.later(h.value._2)
         lazy val t = decTail(tail).value.run(h.value._1)
@@ -95,7 +102,7 @@ private object ModelRepr extends ModelReprBase {
                   // either `h` or `t` failed, so we
                   // must remove the (invalid) inserted
                   // composite instance:
-                  State.modify[DecMap](_ - id).map(_ => res)
+                  State.modify[DecMap](_ - ref).map(_ => res)
                 },
                 _ => State.pure(res)
               )
@@ -127,6 +134,8 @@ private object ModelRepr extends ModelReprBase {
     head: ModelRepr,
     tail: ProdRepr
   ) extends ProdRepr with Composite[Model.HCons[_], Model.HList, ProdRepr] {
+
+    override val ref: Ref[Model.HList] = ProdRef(id)
 
     protected override val desc = "HCons"
 
@@ -162,6 +171,8 @@ private object ModelRepr extends ModelReprBase {
     tail: SumRepr
   ) extends SumRepr with Composite[Model.CCons, Model.Coproduct, SumRepr] {
 
+    override val ref: Ref[Model.Coproduct] = SumRef(id)
+
     protected override val desc = "CCons"
 
     protected override def build(h: Eval[Model], t: Eval[Model.Coproduct]): Model.CCons =
@@ -184,12 +195,25 @@ private object ModelRepr extends ModelReprBase {
       EitherT.fromEither(Right(Model.Atom(id, desc)))
   }
 
-  final case class Ref(id: Int) extends ModelRepr {
-    protected override def toModelSt: DecSt[Model] = {
+  // TODO: maybe optimize encoding, to on the wire all refs are a simple `Ref(id)`
+  sealed abstract class Ref[M <: Model](val id: Int) extends ModelRepr {
+    protected def toModelStImpl: DecSt[M] = {
       EitherT(State.get[DecMap].map { map =>
-        Either.fromOption(map.get(id), sh"invalid ID: $id")
+        Either.fromOption(map.get(this), sh"invalid ID: $id")
       })
     }
+  }
+
+  final case class ProdRef(override val id: Int) extends Ref[Model.HList](id) with ProdRepr {
+    override def toProdSt: DecSt[Model.HList] = toModelStImpl
+  }
+
+  final case class SumRef(override val id: Int) extends Ref[Model.Coproduct](id) with SumRepr {
+    override def toSumSt: DecSt[Model.Coproduct] = toModelStImpl
+  }
+
+  final case class OtherRef(override val id: Int) extends Ref[Model](id) {
+    protected final override def toModelSt = toModelStImpl
   }
 
   def fromModel(model: Model): ModelRepr = {
@@ -221,7 +245,11 @@ private object ModelRepr extends ModelReprBase {
         val id = map.get(c.m).getOrElse {
           impossible(sh"no ID found for cycle at ${c.p} (map is ${map})")
         }
-        Ref(id)
+        c.m match {
+          case _: Model.CCons | Model.CNil => SumRef(id)
+          case _: Model.HCons[_] | Model.HNil => ProdRef(id)
+          case _ => OtherRef(id)
+        }
       }
     )
   }
