@@ -32,14 +32,21 @@ private sealed trait ModelRepr {
   import ModelRepr._
 
   final def toModel: Either[String, Model] = {
-    val res = toModelSt.value.runA(HMap.empty).value
-    // do a full traverse, to allow
-    // dropping thunks and to ensure
-    // that any bug in the decoding
-    // will cause an early failure:
-    res.map { mod =>
-      val _ = mod.desc
-      mod
+    toModelSt.value.runA(HMap.empty).value.flatMap { mod =>
+      try {
+        // We do a full traverse, to allow
+        // dropping thunks and to ensure
+        // that any bug in the decoding
+        // will cause an early failure.
+        // Also, reference errors will be
+        // thrown here as `DecodingError`s.
+        mod.desc
+        // OK, no bugs or reference errors:
+        Right(mod)
+      } catch {
+        case DecodingError(err) =>
+          Left(err)
+      }
     }
   }
 
@@ -57,6 +64,9 @@ private object ModelRepr extends ModelReprBase {
     implicit def ref[M <: Model]: DecMapRel[Ref[M], M] = new DecMapRel
   }
 
+  final case class DecodingError(err: Error)
+    extends Exception(sh"error while decoding model: ${err}")
+
   // TODO: try to simplify
   sealed trait Composite[C <: T, T <: Model, TR <: ModelRepr] { this: ModelRepr =>
 
@@ -71,44 +81,30 @@ private object ModelRepr extends ModelReprBase {
     protected def decTail(tr: TR): DecSt[T]
 
     protected def toCompositeModel: DecSt[C] = {
-      val x = for {
-        st <- State.get[DecMap]
-      } yield {
+      val x = State.get[DecMap].map { st =>
+        // Note: reference errors will cause
+        // these exceptions to be thrown. That
+        // is why in `toModel` we catch these
+        // exceptions, and convert them into
+        // proper errors (see there).
         lazy val res: C = build(
-          Eval.later(h.value._2.getOrElse(impossible(sh"accessing ${desc} parent of invalid `h`"))),
-          Eval.later(t.value._2.getOrElse(impossible(sh"accessing ${desc} parent of invalid `t`")))
+          Eval.defer(h.map(_._2.fold(e => throw new DecodingError(e), m => m))),
+          Eval.defer(t.map(_._2.fold(e => throw new DecodingError(e), m => m)))
         )
         lazy val newSt: DecMap = st + (ref -> (res : T))
         lazy val h = head.toModelSt.value.run(newSt)
-        lazy val lh = Eval.later(h.value._2)
         lazy val t = decTail(tail).value.run(h.value._1)
-        lazy val lt = Eval.later(t.value._2)
-        (res, t.value._1, (lh, lt))
+        (res, t.value._1)
+      }.flatMap { case (c, map) =>
+        // Note: we don't force `h` and `t`
+        // right now, because that would cause
+        // possibly exponential runtime for
+        // decoding. We force everything all
+        // at once at the end (see `toModel`).
+        State.set(map).as(c)
       }
 
-      EitherT {
-        x.flatMap {
-          case (c, map, (h, t)) =>
-            // now check whether decoding
-            // `h` and `t` succeeds:
-            val res = for {
-              _ <- h.value
-              _ <- t.value
-            } yield c
-
-            State.set(map).flatMap { _ =>
-              res.fold(
-                failure => {
-                  // either `h` or `t` failed, so we
-                  // must remove the (invalid) inserted
-                  // composite instance:
-                  State.modify[DecMap](_ - ref).map(_ => res)
-                },
-                _ => State.pure(res)
-              )
-            }
-        }
-      }
+      EitherT.liftF(x)
     }
   }
 

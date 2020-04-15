@@ -33,8 +33,9 @@ class ModelReprSpec extends tests.BaseSpec {
     assert(r2 === r)
   }
 
+  val modelModel = Reified[Model].model
+
   "Cycles/Refs" in {
-    val modelModel = Reified[Model].model
     val modelUnderTest = Model.Vector(
       Model.HCons(
         '_1,
@@ -49,6 +50,22 @@ class ModelReprSpec extends tests.BaseSpec {
 
     roundtrip(modelModel)
     roundtrip(Model.Vector(modelModel))
+    roundtrip(modelUnderTest)
+  }
+
+  "Long HCons" in {
+    val modelUnderTest = Model.Vector(
+      'a -> modelModel ::
+      'b -> modelModel ::
+      'c -> modelModel ::
+      'd -> modelModel ::
+      'e -> modelModel ::
+      'f -> modelModel ::
+      'g -> modelModel ::
+      'h -> modelModel ::
+      Model.HNil
+    )
+
     roundtrip(modelUnderTest)
   }
 }
