@@ -21,7 +21,7 @@ package core
 
 import java.util.UUID
 
-import cats.Eval
+import cats.{ Eval, Eq }
 import cats.data.{ State, EitherT }
 import cats.implicits._
 
@@ -266,6 +266,9 @@ private object ModelRepr extends ModelReprBase {
     override def to(m: Model): ModelRepr =
       fromModel(m)
   }
+
+  implicit val eqInstance: Eq[ModelRepr] =
+    Eq.fromUniversalEquals[ModelRepr] // only case classes/objects
 }
 
 /**

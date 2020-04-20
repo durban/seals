@@ -26,11 +26,19 @@ import org.scalatest.compatible.Assertion
 class ModelReprSpec extends tests.BaseSpec {
 
   def roundtrip(m: Model): Assertion = {
-    val r = ModelRepr.fromModel(m)
-    val m2 = r.toModel.fold(err => fail(sh"cannot decode ModelRepr: ${err}"), m => m)
+    val r = reprFromModel(m)
+    val m2 = modelFromRepr(r)
     assert(Model.modelEquality.eqv(m2, m))
-    val r2 = ModelRepr.fromModel(m2)
-    assert(r2 === r)
+    val r2 = reprFromModel(m2)
+    assert(ModelRepr.eqInstance.eqv(r2, r))
+  }
+
+  private def reprFromModel(m: Model): ModelRepr = {
+    ModelRepr.fromModel(m)
+  }
+
+  private def modelFromRepr(r: ModelRepr): Model = {
+    r.toModel.fold(err => fail(sh"cannot decode ModelRepr: ${err}"), m => m)
   }
 
   val modelModel = Reified[Model].model
@@ -67,5 +75,19 @@ class ModelReprSpec extends tests.BaseSpec {
     )
 
     roundtrip(modelUnderTest)
+  }
+
+  final val N = 300000
+
+  "Encoding performance" ignore {
+    (1 to N).map { _ =>
+      reprFromModel(modelModel)
+    }
+  }
+
+  "Decoding performance" ignore {
+    (1 to N).map { _ =>
+      reprFromModel(modelModel)
+    }
   }
 }

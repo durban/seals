@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -303,6 +305,9 @@ object IdentitySetSpec {
 
     final override def hashCode: Int =
       throw new RuntimeException("hashCode called")
+
+    final override def toString: String =
+      "Cls instance"
   }
 
   object Cls {
@@ -316,7 +321,7 @@ object IdentitySetSpec {
       )
     )
 
-    private val existingInstances =
+    private val existingInstances: Vector[Cls] =
       Vector.fill(10)(cls())
   }
 

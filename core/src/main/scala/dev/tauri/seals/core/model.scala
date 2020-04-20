@@ -103,7 +103,11 @@ sealed trait Model extends Serializable {
       false
   }
 
-  final override def hashCode: Int = {
+  @transient
+  final override lazy val hashCode: Int =
+    hashCodeImpl
+
+  private[this] final def hashCodeImpl: Int = {
     val st = this.foldImpl[State[(Int, Int), Unit]](
       hNil = _ => hash.mix(hash.hNil),
       hCons = (_, l, o, r, h, t) => hash.mix(o) *> hash.mix(r.map(_.uuid)) *> hash.mixLht(l, h, t, hash.hCons),
@@ -219,8 +223,8 @@ object Model {
 
   final case class Ctx(m: Model, p: Path)
 
-  type Path = scala.Vector[String]
-  val Path = scala.Vector
+  type Path = cats.data.Chain[String]
+  val Path = cats.data.Chain
 
   private[core] type Memo = Memo.Memo[Model]
 
