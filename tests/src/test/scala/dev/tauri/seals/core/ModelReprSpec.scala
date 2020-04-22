@@ -41,7 +41,8 @@ class ModelReprSpec extends tests.BaseSpec {
     r.toModel.fold(err => fail(sh"cannot decode ModelRepr: ${err}"), m => m)
   }
 
-  val modelModel = Reified[Model].model
+  private val modelModel = Reified[Model].model
+  private val modelModelRepr = reprFromModel(modelModel)
 
   "Cycles/Refs" in {
     val modelUnderTest = Model.Vector(
@@ -77,17 +78,17 @@ class ModelReprSpec extends tests.BaseSpec {
     roundtrip(modelUnderTest)
   }
 
-  final val N = 300000
+  final val N = 30000
 
-  "Encoding performance" ignore {
+  "Encoding performance" in {
     (1 to N).map { _ =>
       reprFromModel(modelModel)
     }
   }
 
-  "Decoding performance" ignore {
+  "Decoding performance" in {
     (1 to N).map { _ =>
-      reprFromModel(modelModel)
+      modelFromRepr(modelModelRepr)
     }
   }
 }

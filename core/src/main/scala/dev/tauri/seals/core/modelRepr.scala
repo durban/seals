@@ -22,17 +22,17 @@ package core
 import java.util.UUID
 
 import cats.{ Eval, Eq }
-import cats.data.{ State, EitherT }
 import cats.implicits._
 
 import shapeless._
 
 private sealed trait ModelRepr {
 
+  import ModelDecoding._
   import ModelRepr._
 
   final def toModel: Either[String, Model] = {
-    toModelSt.value.runA(HMap.empty).value.flatMap { mod =>
+    Api.procInstance[DecMap].force(toModelSt[DecSt](Api.procInstance), HMap.empty).flatMap { mod =>
       try {
         // We do a full traverse, to allow
         // dropping thunks and to ensure
@@ -50,22 +50,19 @@ private sealed trait ModelRepr {
     }
   }
 
-  protected def toModelSt: DecSt[Model]
+  protected def toModelSt[F[_] : DecCtx]: F[Model]
 }
 
 private object ModelRepr extends ModelReprBase {
 
-  private type Error = String
-  private type DecSt[A] = EitherT[State[DecMap, ?], Error, A]
-  type DecMap = HMap[DecMapRel]
+  private type DecSt[A] = ModelDecoding.Api.F[DecMap, A]
+  private type DecCtx[F[_]] = ModelDecoding.Proc[F, DecMap]
 
+  type DecMap = HMap[DecMapRel]
   final class DecMapRel[K, V]
   final object DecMapRel {
     implicit def ref[M <: Model]: DecMapRel[Ref[M], M] = new DecMapRel
   }
-
-  final case class DecodingError(err: Error)
-    extends Exception(sh"error while decoding model: ${err}")
 
   // TODO: try to simplify
   sealed trait Composite[C <: T, T <: Model, TR <: ModelRepr] { this: ModelRepr =>
@@ -78,48 +75,50 @@ private object ModelRepr extends ModelReprBase {
 
     protected def build(h: Eval[Model], t: Eval[T]): C
 
-    protected def decTail(tr: TR): DecSt[T]
+    protected def decTail[F[_] : DecCtx](tr: TR): F[T]
 
-    protected def toCompositeModel: DecSt[C] = {
-      val x = State.get[DecMap].map { st =>
+    protected def toCompositeModel[F[_]](implicit F: DecCtx[F]): F[C] = {
+      F.flatMap(F.map(F.get) { st =>
         // Note: reference errors will cause
         // these exceptions to be thrown. That
         // is why in `toModel` we catch these
         // exceptions, and convert them into
         // proper errors (see there).
+        // (Unfortunately, here we're relying
+        // on the fact that Proc.raise is the
+        // same as throwing a DecodingError.)
         lazy val res: C = build(
-          Eval.defer(h.map(_._2.fold(e => throw new DecodingError(e), m => m))),
-          Eval.defer(t.map(_._2.fold(e => throw new DecodingError(e), m => m)))
+          Eval.later(h._2.fold(e => throw new ModelDecoding.DecodingError(e), m => m)),
+          Eval.later(t._2.fold(e => throw new ModelDecoding.DecodingError(e), m => m))
         )
         lazy val newSt: DecMap = st + (ref -> (res : T))
-        lazy val h = head.toModelSt.value.run(newSt)
-        lazy val t = decTail(tail).value.run(h.value._1)
-        (res, t.value._1)
-      }.flatMap { case (c, map) =>
+        lazy val h = F.forceAS(head.toModelSt[F], newSt)
+        lazy val t = F.forceAS(decTail[F](tail), h._1)
+        (res, t._1)
+      }) { case (c, map) =>
         // Note: we don't force `h` and `t`
         // right now, because that would cause
         // possibly exponential runtime for
         // decoding. We force everything all
         // at once at the end (see `toModel`).
-        State.set(map).as(c)
+        F.map(F.set(map))(_ => c)
       }
-
-      EitherT.liftF(x)
     }
   }
 
   sealed trait ProdRepr extends ModelRepr {
 
-    protected final override def toModelSt: DecSt[Model] =
-      toProdSt.map[Model](identity)
+    protected final override def toModelSt[F[_]](implicit F: DecCtx[F]): F[Model] = {
+      F.map[Model.HList, Model](toProdSt[F])(identity)
+    }
 
-    private[ModelRepr] def toProdSt: DecSt[Model.HList]
+    private[ModelRepr] def toProdSt[F[_] : DecCtx]: F[Model.HList]
   }
 
   final case object HNil extends ProdRepr {
 
-    private[ModelRepr] override def toProdSt: DecSt[Model.HList] =
-      EitherT.liftF(State.pure(Model.HNil))
+    private[ModelRepr] override def toProdSt[F[_]](implicit F: DecCtx[F]): F[Model.HList] =
+      F.pure(Model.HNil)
   }
 
   final case class HCons(
@@ -138,25 +137,26 @@ private object ModelRepr extends ModelReprBase {
     protected override def build(h: Eval[Model], t: Eval[Model.HList]): Model.HCons[_] =
       Model.HCons(label, optional, refinement, h.value, t.value)
 
-    protected override def decTail(tr: ProdRepr): DecSt[Model.HList] =
-      tr.toProdSt
+    protected override def decTail[F[_]](tr: ProdRepr)(implicit F: DecCtx[F]): F[Model.HList] =
+      tr.toProdSt[F]
 
-    private[ModelRepr] override def toProdSt: DecSt[Model.HList] =
-      toCompositeModel.map(identity)
+    private[ModelRepr] override def toProdSt[F[_]](implicit F: DecCtx[F]): F[Model.HList] = {
+      F.map(toCompositeModel[F])(identity)
+    }
   }
 
   sealed trait SumRepr extends ModelRepr {
 
-    protected final override def toModelSt: DecSt[Model] =
-      toSumSt.map[Model](identity)
+    protected final override def toModelSt[F[_]](implicit F: DecCtx[F]): F[Model] =
+      F.map(toSumSt[F])(identity)
 
-    private[ModelRepr] def toSumSt: DecSt[Model.Coproduct]
+    private[ModelRepr] def toSumSt[F[_]](implicit F: DecCtx[F]): F[Model.Coproduct]
   }
 
   final case object CNil extends SumRepr {
 
-    private[ModelRepr] override def toSumSt: DecSt[Model.Coproduct] =
-      EitherT.liftF(State.pure(Model.CNil))
+    private[ModelRepr] override def toSumSt[F[_]](implicit F: DecCtx[F]): F[Model.Coproduct] =
+      F.pure(Model.CNil)
   }
 
   final case class CCons(
@@ -174,42 +174,47 @@ private object ModelRepr extends ModelReprBase {
     protected override def build(h: Eval[Model], t: Eval[Model.Coproduct]): Model.CCons =
       Model.CCons(label, refinement, h.value, t.value)
 
-    protected override def decTail(tr: SumRepr): DecSt[Model.Coproduct] =
-      tr.toSumSt
+    protected override def decTail[F[_]](tr: SumRepr)(implicit F: DecCtx[F]): F[Model.Coproduct] =
+      tr.toSumSt[F]
 
-    private[ModelRepr] override def toSumSt: DecSt[Model.Coproduct] =
-      toCompositeModel.map(identity)
+    private[ModelRepr] override def toSumSt[F[_]](implicit F: DecCtx[F]): F[Model.Coproduct] = {
+      F.map(toCompositeModel[F])(identity)
+    }
   }
 
   final case class Vector(refinement: Option[Model.Ref] = None, elems: ModelRepr) extends ModelRepr {
-    protected override def toModelSt: DecSt[Model] =
-      elems.toModelSt.map(els => Model.Vector(els, refinement))
+    protected override def toModelSt[F[_]](implicit F: DecCtx[F]): F[Model] = {
+      F.map(elems.toModelSt[F])(els => Model.Vector(els, refinement))
+    }
   }
 
   final case class Atom(id: UUID, desc: String) extends ModelRepr {
-    protected override def toModelSt: DecSt[Model] =
-      EitherT.fromEither(Right(Model.Atom(id, desc)))
+    protected override def toModelSt[F[_]](implicit F: DecCtx[F]): F[Model] =
+      F.pure(Model.Atom(id, desc))
   }
 
   // TODO: maybe optimize encoding, to on the wire all refs are a simple `Ref(id)`
   sealed abstract class Ref[M <: Model](val id: Int) extends ModelRepr {
-    protected def toModelStImpl: DecSt[M] = {
-      EitherT(State.get[DecMap].map { map =>
-        Either.fromOption(map.get(this), sh"invalid ID: $id")
-      })
+    protected def toModelStImpl[F[_]](implicit F: DecCtx[F]): F[M] = {
+      F.flatMap(F.get) { map =>
+        map.get(this) match {
+          case Some(r) => F.pure(r)
+          case None => F.raise(sh"invalid ID: $id")
+        }
+      }
     }
   }
 
   final case class ProdRef(override val id: Int) extends Ref[Model.HList](id) with ProdRepr {
-    override def toProdSt: DecSt[Model.HList] = toModelStImpl
+    override def toProdSt[F[_]](implicit F: DecCtx[F]): F[Model.HList] = toModelStImpl[F]
   }
 
   final case class SumRef(override val id: Int) extends Ref[Model.Coproduct](id) with SumRepr {
-    override def toSumSt: DecSt[Model.Coproduct] = toModelStImpl
+    override def toSumSt[F[_]](implicit F: DecCtx[F]): F[Model.Coproduct] = toModelStImpl[F]
   }
 
   final case class OtherRef(override val id: Int) extends Ref[Model](id) {
-    protected final override def toModelSt = toModelStImpl
+    protected final override def toModelSt[F[_]](implicit F: DecCtx[F]) = toModelStImpl[F]
   }
 
   def fromModel(model: Model): ModelRepr = {

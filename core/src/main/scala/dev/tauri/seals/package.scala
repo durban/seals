@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +33,8 @@ package object seals {
   type Reified[A] = core.Reified[A]
   val Reified = core.Reified
 
+  // TODO: This seems to cause sporadic object initialization
+  // TODO: problems (probably there is a cycle through `Model`).
   type Model = core.Model
   val Model = core.Model
 
