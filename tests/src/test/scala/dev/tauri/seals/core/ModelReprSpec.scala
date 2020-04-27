@@ -26,15 +26,25 @@ import org.scalatest.compatible.Assertion
 class ModelReprSpec extends tests.BaseSpec {
 
   def roundtrip(m: Model): Assertion = {
-    val r = ModelRepr.fromModel(m)
-    val m2 = r.toModel.fold(err => fail(sh"cannot decode ModelRepr: ${err}"), m => m)
+    val r = reprFromModel(m)
+    val m2 = modelFromRepr(r)
     assert(Model.modelEquality.eqv(m2, m))
-    val r2 = ModelRepr.fromModel(m2)
-    assert(r2 === r)
+    val r2 = reprFromModel(m2)
+    assert(ModelRepr.eqInstance.eqv(r2, r))
   }
 
+  private def reprFromModel(m: Model): ModelRepr = {
+    ModelRepr.fromModel(m)
+  }
+
+  private def modelFromRepr(r: ModelRepr): Model = {
+    r.toModel.fold(err => fail(sh"cannot decode ModelRepr: ${err}"), m => m)
+  }
+
+  private val modelModel = Reified[Model].model
+  private val modelModelRepr = reprFromModel(modelModel)
+
   "Cycles/Refs" in {
-    val modelModel = Reified[Model].model
     val modelUnderTest = Model.Vector(
       Model.HCons(
         '_1,
@@ -50,5 +60,35 @@ class ModelReprSpec extends tests.BaseSpec {
     roundtrip(modelModel)
     roundtrip(Model.Vector(modelModel))
     roundtrip(modelUnderTest)
+  }
+
+  "Long HCons" in {
+    val modelUnderTest = Model.Vector(
+      'a -> modelModel ::
+      'b -> modelModel ::
+      'c -> modelModel ::
+      'd -> modelModel ::
+      'e -> modelModel ::
+      'f -> modelModel ::
+      'g -> modelModel ::
+      'h -> modelModel ::
+      Model.HNil
+    )
+
+    roundtrip(modelUnderTest)
+  }
+
+  final val N = 30000
+
+  "Encoding performance" in {
+    (1 to N).map { _ =>
+      reprFromModel(modelModel)
+    }
+  }
+
+  "Decoding performance" in {
+    (1 to N).map { _ =>
+      modelFromRepr(modelModelRepr)
+    }
   }
 }
