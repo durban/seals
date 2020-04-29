@@ -24,10 +24,6 @@ import scala.language.implicitConversions
 
 import cats.Show
 
-import scodec.bits.ByteVector
-
-import dev.tauri.seals.core.UUIDBuilder
-
 package object seals {
 
   type Reified[A] = core.Reified[A]
@@ -53,11 +49,8 @@ package object seals {
   type Wire[A] = core.Wire[A]
   val Wire = core.Wire
 
-  private[seals] implicit final class UUIDSyntax(private val self: UUID) extends AnyVal {
-    def / (sub: UUID): UUIDBuilder = UUIDBuilder(self) / sub
-    def / (sub: ByteVector): UUIDBuilder = UUIDBuilder(self) / sub
-    def / (sub: String): UUIDBuilder = UUIDBuilder(self) / sub
-  }
+  private[seals] implicit def uuidSyntax(self: UUID): core.UUIDUtils.UUIDSyntax =
+    new core.UUIDUtils.UUIDSyntax(self)
 
   private[seals] implicit def uuidLiteralSyntax(sc: StringContext): macros.UUIDSyntax =
     new macros.UUIDSyntax(sc)

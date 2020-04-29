@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +26,8 @@ import scala.util.{ Try, Success, Failure }
 import io.circe._
 
 import _root_.scodec.bits._
+
+import UUIDUtils.UUIDBuilder
 
 class NsUUIDSpec extends tests.BaseSpec {
 

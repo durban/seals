@@ -26,13 +26,6 @@ import java.nio.charset.StandardCharsets
 
 import scodec.bits.ByteVector
 
-private[seals] final case class UUIDBuilder(namespace: UUID, name: Vector[ByteVector] = Vector.empty) {
-  def / (sub: UUID): UUIDBuilder = copy(name = name :+ core.NsUUID.bvFromUUID(sub))
-  def / (sub: ByteVector): UUIDBuilder = copy(name = name :+ sub)
-  def / (sub: String): UUIDBuilder = copy(name = name :+ ByteVector.view(sub.getBytes(StandardCharsets.UTF_8)))
-  def uuid: UUID = NsUUID.uuid5nestedBv(namespace, name: _*)
-}
-
 private[seals] object NsUUID {
 
   def uuid5(ns: UUID, name: String): UUID =
