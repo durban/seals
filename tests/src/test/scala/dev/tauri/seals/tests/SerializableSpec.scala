@@ -215,6 +215,12 @@ class SerializableSpec extends BaseSpec {
     "ExtMap" in {
       roundtripSer(core.ExtMap[Map, String, Boolean])
     }
+
+    "ExtReified" in {
+      final class Foo
+      val v = core.ExtReified.instance[Foo, Unit](_ => (), _ => new Foo)
+      roundtripSer(v)
+    }
   }
 
   "Compat" - {

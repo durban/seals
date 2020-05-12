@@ -29,7 +29,7 @@ import shapeless.test.typed
 
 import scodec.bits._
 
-import core.{ Refinement, CanonicalRepr }
+import core.{ Refinement, CanonicalRepr, ExtReified }
 import laws.{ TestInstances, TestTypes }
 
 class ReifiedSpec extends BaseSpec {
@@ -237,6 +237,66 @@ class ReifiedSpec extends BaseSpec {
 
       "Inside ADTs" in {
         Reified[Adt].model should === (Adt.expModel)
+      }
+    }
+
+    "ExtReified extension point" - {
+
+      "Simple extension" in {
+        final class MyClass
+        final object MyClass {
+          implicit val v: ExtReified.Aux[MyClass, Model.Atom, Reified.FFirst] =
+            ExtReified.instance[MyClass, Unit](_ => (), _ => new MyClass)
+        }
+
+        Reified[MyClass].model should === (Reified[Unit].model)
+      }
+
+      "Less precise type" in {
+        final class MyClass
+        final object MyClass {
+          implicit val v: ExtReified[MyClass] =
+            ExtReified.instance[MyClass, Unit](_ => (), _ => new MyClass)
+        }
+
+        Reified[MyClass].model should === (Reified[Unit].model)
+      }
+
+      "Subtype extension" in {
+        trait MyTypeClass[A] extends ExtReified[A] {
+          def foo(a: A): Int
+        }
+        final class MyClass
+        final object MyClass {
+          implicit def myTypeClassInstance: MyTypeClass[MyClass] = {
+            new ExtReified.Simple[MyClass, Unit](_ => new MyClass, _ => ())
+              with MyTypeClass[MyClass] {
+              override def foo(a: MyClass) = 42
+            }
+          }
+        }
+
+        Reified[MyClass].model should === (Reified[Unit].model)
+      }
+
+      "Subtype extension deriving" in {
+        trait MyTypeClass[A] extends ExtReified[A] {
+          def foo(a: A): Int
+        }
+        final class MyClass
+        final object MyClass {
+          implicit def myTypeClassInstance: MyTypeClass[MyClass] = {
+            new ExtReified.Simple[MyClass, Unit](_ => new MyClass, _ => ())
+              with MyTypeClass[MyClass] {
+              override def foo(a: MyClass) = 42
+            }
+          }
+        }
+
+        def foo[A : Reified]: Int = 42
+        def bar[A : MyTypeClass]: Int = foo[A]
+
+        bar[MyClass] should === (42)
       }
     }
 
