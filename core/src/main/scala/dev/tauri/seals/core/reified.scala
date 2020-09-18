@@ -355,6 +355,12 @@ object Reified extends LowPrioReified1 {
       unfoldKleene[A, B, E, S](u)(b).map { case (vec, b) => (F.fromVector(vec), b) }
   }
 
+  implicit def reifiedFromExtReified[A](
+    implicit A: ExtReified[A]
+  ): Reified.Aux[A, A.Mod, A.Fold] = {
+    A.reify
+  }
+
   implicit def reifiedFromExtSet[F[_], A](
     implicit
     F: ExtSet[F, A],
