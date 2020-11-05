@@ -284,8 +284,8 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "2.1.0"
-  val circeVersion = "0.13.0-RC1"
+  val catsVersion = "2.2.0"
+  val circeVersion = "0.13.0"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.3"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
@@ -298,16 +298,16 @@ lazy val dependencies = new {
 
   val circeTesting = "io.circe" %% "circe-testing" % circeVersion
 
-  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.12"
+  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.20"
   val scodecCats = "org.scodec" %% "scodec-cats" % "1.0.0"
   val scodec = Seq(
     scodecBits,
-    "org.scodec" %% "scodec-core" % "1.11.4",
+    "org.scodec" %% "scodec-core" % "1.11.7",
     "org.scodec" %% "scodec-stream" % "2.0.0",
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.9.10"
+  val refined = "eu.timepit" %% "refined" % "0.9.17"
 
   val laws = Seq(
     scodecCats,
@@ -316,11 +316,11 @@ lazy val dependencies = new {
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.1.0",
+    "org.scalatest" %% "scalatest" % "3.1.4",
     "org.typelevel" %% "discipline-scalatest" % "1.0.0-RC4"
   )
 
-  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.6.1"
+  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.8.1"
 }
 
 addCommandAlias("testAll", ";test;examples/test")
@@ -420,8 +420,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.21.0-RC1"
-  val fs2Version = "2.2.1"
+  val http4sVersion = "0.21.8"
+  val fs2Version = "2.4.4"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -431,17 +431,17 @@ lazy val exampleDependencies = new {
     "org.slf4j" % "slf4j-simple" % "1.7.25"
   )
 
-  val spire = "org.typelevel" %% "spire" % "0.17.0-M1"
+  val spire = "org.typelevel" %% "spire" % "0.17.0"
 
   val fs2 = Seq(
     "co.fs2" %% "fs2-core" % fs2Version,
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val catsEffect = "org.typelevel" %% "cats-effect" % "2.0.0"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "2.2.0"
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.27",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.32",
     "co.fs2" %% "fs2-reactive-streams" % fs2Version
   )
 }
