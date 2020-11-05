@@ -52,7 +52,7 @@ class ClientSpec extends AnyFlatSpec with Matchers with com.example.lib.TcpTest 
       .drain
       .unsafeRunAsync(_ => ())
     try {
-      val resp = Await.result(Client.client(1237), 2.seconds)
+      val resp = Await.result(Client.client(1237), 5.seconds)
       // constant, because we always seed with the same value:
       resp should === (Vector[Response](Seeded, RandInt(42)))
     } finally {

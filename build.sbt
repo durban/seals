@@ -113,7 +113,7 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.12.12",
   crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
@@ -246,12 +246,12 @@ lazy val checkerSettings = Seq[Setting[_]](
 
 lazy val macroSettings = Seq[Setting[_]](
   libraryDependencies += scalaOrganization.value % "scala-reflect" % scalaVersion.value,
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
 )
 
 lazy val pluginSettings = Seq[Setting[_]](
   sbtPlugin := true,
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.12.12",
   crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
   libraryDependencies += Defaults.sbtPluginExtra(
@@ -391,7 +391,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile;test->test")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.12.12",
   crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
