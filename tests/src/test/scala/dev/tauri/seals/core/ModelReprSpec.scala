@@ -47,10 +47,10 @@ class ModelReprSpec extends tests.BaseSpec {
   "Cycles/Refs" in {
     val modelUnderTest = Model.Vector(
       Model.HCons(
-        '_1,
+        Symbol("_1"),
         Atomic[Int].atom,
         Model.HCons(
-          '_2,
+          Symbol("_2"),
           modelModel,
           Model.HNil
         )
@@ -64,14 +64,14 @@ class ModelReprSpec extends tests.BaseSpec {
 
   "Long HCons" in {
     val modelUnderTest = Model.Vector(
-      'a -> modelModel ::
-      'b -> modelModel ::
-      'c -> modelModel ::
-      'd -> modelModel ::
-      'e -> modelModel ::
-      'f -> modelModel ::
-      'g -> modelModel ::
-      'h -> modelModel ::
+      Symbol("a") -> modelModel ::
+      Symbol("b") -> modelModel ::
+      Symbol("c") -> modelModel ::
+      Symbol("d") -> modelModel ::
+      Symbol("e") -> modelModel ::
+      Symbol("f") -> modelModel ::
+      Symbol("g") -> modelModel ::
+      Symbol("h") -> modelModel ::
       Model.HNil
     )
 

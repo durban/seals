@@ -22,20 +22,67 @@ package core
 import scala.annotation.tailrec
 import scala.collection.AbstractIterator
 import scala.collection.immutable.HashMap
-import scala.collection.generic.CanBuildFrom
-import scala.collection.mutable.Builder
-import scala.collection.mutable.SetBuilder
-import scala.collection.SetLike
+
+import cats.syntax.eq._
 
 private sealed abstract class IdentitySet[A <: AnyRef]
-    extends Set[A]
-    with SetLike[A, IdentitySet[A]] { self =>
+  extends Function1[A, Boolean] { self =>
 
-  override def empty: IdentitySet[A] =
-    IdentitySet.empty[A]
+  def iterator: Iterator[A]
+
+  def +(a: A): IdentitySet[A]
+
+  def -(a: A): IdentitySet[A]
+
+  def contains(a: A): Boolean
+
+  def size: Int
+
+  final def apply(a: A): Boolean =
+    this contains a
+
+  def toList: List[A] =
+    this.iterator.toList
+
+  def foldLeft[R](z: R)(f: (R, A) => R): R =
+    this.iterator.foldLeft(z)(f)
+
+  def union(that: IdentitySet[A]): IdentitySet[A] = {
+    this.iterator.foldLeft(that) { _ + _ }
+  }
+
+  def intersect(that: IdentitySet[A]): IdentitySet[A] = {
+    this.iterator.foldLeft(IdentitySet.empty[A]) { (set, a) =>
+      if (that.contains(a)) set + a
+      else set
+    }
+  }
+
+  def subsetOf(that: IdentitySet[A]): Boolean = {
+    this.iterator.forall(that.contains)
+  }
+
+  override def equals(that: Any): Boolean = that match {
+    case that: IdentitySet[A] =>
+      (this.size === that.size) && this.subsetOf(that)
+    case _ =>
+      false
+  }
 }
 
 private object IdentitySet {
+
+  def empty[A <: AnyRef]: IdentitySet[A] =
+    identitySet0
+
+  def of[A <: AnyRef](as: A*): IdentitySet[A] =
+    as.foldLeft(empty[A]) { _ + _ }
+
+  private def id[A <: AnyRef](a: A): Int =
+    System.identityHashCode(a)
+
+  private def lstContains[A <: AnyRef](lst: List[A], a: A): Boolean =
+    lst.exists(_ eq a)
 
   private final object HashIdentitySet {
 
@@ -90,6 +137,9 @@ private object IdentitySet {
       lstContains(map.getOrElse(id(elem), Nil), elem)
     }
 
+    override def size: Int =
+      this.iterator.size
+
     override def iterator: Iterator[A] = new AbstractIterator[A] {
 
       private[this] val lsts = self.map.valuesIterator
@@ -131,6 +181,9 @@ private object IdentitySet {
     final override def iterator =
       Iterator.empty
 
+    final override def size: Int =
+      0
+
     final override def +(a: AnyRef) =
       new IdentitySet1(a)
 
@@ -145,6 +198,9 @@ private object IdentitySet {
 
     final override def iterator: Iterator[A] =
       Iterator(e)
+
+    final override def size: Int =
+      1
 
     final override def +(a: A): IdentitySet[A] = {
       if (a eq e) this
@@ -165,6 +221,9 @@ private object IdentitySet {
     final override def iterator: Iterator[A] =
       Iterator(e1, e2)
 
+    final override def size: Int =
+      2
+
     final override def +(a: A): IdentitySet[A] = {
       if ((a eq e1) || (a eq e2)) this
       else new IdentitySet3(e1, e2, a)
@@ -184,6 +243,9 @@ private object IdentitySet {
 
     final override def iterator: Iterator[A] =
       Iterator(e1, e2, e3)
+
+    final override def size: Int =
+      3
 
     final override def +(a: A): IdentitySet[A] = {
       if ((a eq e1) || (a eq e2) || (a eq e3)) this
@@ -207,6 +269,9 @@ private object IdentitySet {
 
     final override def iterator: Iterator[A] =
       arr.iterator.asInstanceOf[Iterator[A]]
+
+    final override def size: Int =
+      arr.length
 
     final override def +(a: A): IdentitySet[A] = {
       if (this.contains(a)) this
@@ -236,22 +301,4 @@ private object IdentitySet {
       arr.exists(_ eq a)
     }
   }
-
-  def empty[A <: AnyRef]: IdentitySet[A] =
-    identitySet0
-
-  implicit def identitySetCanBuildFrom[A <: AnyRef]: CanBuildFrom[IdentitySet[A], A, IdentitySet[A]] = {
-    new CanBuildFrom[IdentitySet[A], A, IdentitySet[A]] {
-      def apply(): Builder[A, IdentitySet[A]] =
-        new SetBuilder[A, IdentitySet[A]](empty[A])
-      def apply(from: IdentitySet[A]): Builder[A, IdentitySet[A]] =
-        apply()
-    }
-  }
-
-  private def id[A <: AnyRef](a: A): Int =
-    System.identityHashCode(a)
-
-  private def lstContains[A <: AnyRef](lst: List[A], a: A): Boolean =
-    lst.exists(_ eq a)
 }

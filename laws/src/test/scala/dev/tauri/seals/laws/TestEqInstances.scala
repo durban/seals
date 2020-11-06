@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,8 +47,8 @@ trait TestEqInstances {
 
   protected def sampleSize: Int = 100
 
-  private def testInstances[A](arb: Arbitrary[A]): Stream[A] =
-    Stream.continually(arb.arbitrary.sample).flatten.take(sampleSize)
+  private def testInstances[A](arb: Arbitrary[A]): Iterator[A] =
+    Iterator.continually(arb.arbitrary.sample).flatten.take(sampleSize)
 
   /** Just forwarding to cats */
   implicit val symbolEq: Eq[Symbol] =

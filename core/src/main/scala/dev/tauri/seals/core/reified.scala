@@ -292,8 +292,8 @@ object Reified extends LowPrioReified1 {
 
   implicit val reifiedInvariantMonoidalFunctor: InvariantMonoidal[Reified] = new InvariantMonoidal[Reified] {
 
-    type Fst = Witness.`'_1`.T
-    type Snd = Witness.`'_2`.T
+    type Fst = Witness.`_root_.scala.Symbol("_1")`.T
+    type Snd = Witness.`_root_.scala.Symbol("_2")`.T
 
     override def unit: Reified[Unit] =
       point(())
@@ -444,8 +444,8 @@ object Reified extends LowPrioReified1 {
     }
   }
 
-  private type SomeRepr[A] = Record.`'value -> A`.T
-  private type OptionRepr[A] = Union.`'None -> HNil, 'Some -> SomeRepr[A]`.T
+  private type SomeRepr[A] = Record.`_root_.scala.Symbol("value") -> A`.T
+  private type OptionRepr[A] = Union.`_root_.scala.Symbol("None") -> HNil, _root_.scala.Symbol("Some") -> SomeRepr[A]`.T
 
   // TODO: workaround for false positive unused warning
   locally { val _: SomeRepr[Int] = Record(value = 0) }
@@ -465,7 +465,7 @@ object Reified extends LowPrioReified1 {
 
     Reified[OptionRepr[A]].imap[Option[A]] {
       case Inl(_) => None
-      case Inr(Inl(r)) => Some(r('value))
+      case Inr(Inl(r)) => Some(r(Symbol("value")))
       case Inr(Inr(cnil)) => cnil.impossible
     } {
       case None => Union[OptionRepr[A]](None = HNil : HNil)
@@ -519,7 +519,7 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
       })
   }
 
-  private type MathContextRepr = Record.`'precision -> Int, 'roundingMode -> RoundingMode`.T
+  private type MathContextRepr = Record.`_root_.scala.Symbol("precision") -> Int, _root_.scala.Symbol("roundingMode") -> RoundingMode`.T
 
   implicit lazy val reifiedForMathContext: Reified.Aux[MathContext, Model.HCons[Model.HCons[Model.HNil.type]], FSecond] = {
     Reified[MathContextRepr].refined(new Refinement[MathContext] {
@@ -542,12 +542,13 @@ private[core] sealed trait LowPrioReified1 extends LowPrioReified2 {
     })
   }
 
-  private type BigDecimalRepr = Record.`'intVal -> BigInt, 'scale -> Int, 'ctx -> MathContext`.T
+  private type BigDecimalRepr =
+    Record.`_root_.scala.Symbol("intVal") -> BigInt, _root_.scala.Symbol("scale") -> Int, _root_.scala.Symbol("ctx") -> MathContext`.T
 
   implicit lazy val reifiedForBigDecimal: Reified.Aux[BigDecimal, Model.HCons[Model.HCons[Model.HCons[Model.HNil.type]]], FSecond] = {
     Reified[BigDecimalRepr].imap[BigDecimal] { r =>
-      val ctx = r('ctx)
-      new BigDecimal(new java.math.BigDecimal(r('intVal).bigInteger, r('scale), ctx), ctx)
+      val ctx = r(Symbol("ctx"))
+      new BigDecimal(new java.math.BigDecimal(r(Symbol("intVal")).bigInteger, r(Symbol("scale")), ctx), ctx)
     } { a =>
       Record(intVal = new BigInt(a.bigDecimal.unscaledValue), scale = a.bigDecimal.scale, ctx = a.mc)
     }

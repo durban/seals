@@ -24,7 +24,7 @@ import scala.language.implicitConversions
 
 import cats.Show
 
-package object seals {
+package object seals extends ScalaVersionCompat {
 
   type Reified[A] = core.Reified[A]
   val Reified = core.Reified

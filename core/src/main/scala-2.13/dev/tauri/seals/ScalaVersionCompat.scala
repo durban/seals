@@ -1,5 +1,5 @@
 /*
- * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Daniel Urban and contributors listed in AUTHORS
  * Copyright 2020 Nokia
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,27 +17,7 @@
  */
 
 package dev.tauri.seals
-package scodec
 
-import _root_.scodec.bits.BitVector
-import _root_.scodec.{ Err => SErr }
-
-object Wires extends Wires
-
-trait Wires {
-
-  implicit def wireFromReified[A](
-    implicit A: Reified[A]
-  ): Wire.Aux[A, BitVector, SErr] = new Wire[A] {
-    type Repr = BitVector
-    type Err = SErr
-
-    override def toWire(a: A): Either[Err, BitVector] =
-      Codecs.encoderFromReified(A).encode(a).toEither
-
-    override def fromWire(r: BitVector): Either[Err, A] =
-      Codecs.decoderFromReified(A).decode(r).toEither.map(_.value)
-
-    override def reified = A
-  }
+abstract class ScalaVersionCompat {
+  // Nothing needed if Scala 2.13
 }

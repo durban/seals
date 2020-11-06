@@ -65,11 +65,11 @@ object TestTypes {
         final case class Foo(s: String, i: Int) extends Adt1
         object Foo {
           val expModel =
-            's -> atom[String] :: 'i -> atom[Int] :: Model.HNil
+            Symbol("s") -> atom[String] :: Symbol("i") -> atom[Int] :: Model.HNil
         }
         final case object Boo extends Adt1
         val expModel =
-          'Boo -> Model.HNil :+: 'Foo -> ('s -> atom[String] :: 'i -> atom[Int] :: Model.HNil) :+: Model.CNil
+          Symbol("Boo") -> Model.HNil :+: Symbol("Foo") -> (Symbol("s") -> atom[String] :: Symbol("i") -> atom[Int] :: Model.HNil) :+: Model.CNil
       }
 
       sealed trait Adt2
@@ -99,17 +99,17 @@ object TestTypes {
         final case class C(a: Int, b: String = "boo", c: Float = 0.5f) extends Adt2
         object C {
           val expModel = {
-            'a -> atom[Int] :: Model.HCons(
-              'b,
+            Symbol("a") -> atom[Int] :: Model.HCons(
+              Symbol("b"),
               true,
               atom[String],
-              Model.HCons('c, true, atom[Float], Model.HNil)
+              Model.HCons(Symbol("c"), true, atom[Float], Model.HNil)
             )
           }
         }
 
         val expModel = {
-          'C -> C.expModel :+: 'Dummy -> Model.HNil :+: Model.CNil
+          Symbol("C") -> C.expModel :+: Symbol("Dummy") -> Model.HNil :+: Model.CNil
         }
 
         implicit val adt2Eq: Eq[Adt2] =
@@ -169,8 +169,8 @@ object TestTypes {
         implicit val intListShow: Show[IntList] =
           Show.fromToString[IntList]
         lazy val expModel: Model.Coproduct = {
-          'IntCons -> Model.HCons('head, atom[Int], Model.HCons('tail, expModel, Model.HNil)) :+:
-          'IntNil -> (Model.HNil) :+:
+          Symbol("IntCons") -> Model.HCons(Symbol("head"), atom[Int], Model.HCons(Symbol("tail"), expModel, Model.HNil)) :+:
+          Symbol("IntNil") -> (Model.HNil) :+:
           Model.CNil
         }
       }
@@ -224,7 +224,7 @@ object TestTypes {
     object WithUuid {
       val expModel = {
         import TestInstances.atomic.atomicMyUUID
-        'i -> atom[Int] :: 'u -> atom[MyUUID] :: Model.HNil
+        Symbol("i") -> atom[Int] :: Symbol("u") -> atom[MyUUID] :: Model.HNil
       }
     }
 
@@ -243,13 +243,13 @@ object TestTypes {
 
       lazy val expModel: Model = {
         Model.CCons(
-          'WithList,
+          Symbol("WithList"),
           WithList.expModel,
           Model.CCons(
-            'WithSet,
+            Symbol("WithSet"),
             WithSet.expModel,
             Model.CCons(
-              'WithVector,
+              Symbol("WithVector"),
               WithVector.expModel,
               Model.CNil
             )
@@ -285,17 +285,17 @@ object TestTypes {
 
     final case class WithList(i: Int, l: List[Float]) extends Adt
     object WithList {
-      val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float]) :: Model.HNil
+      val expModel = Symbol("i") -> atom[Int] :: Symbol("l") -> Model.Vector(atom[Float]) :: Model.HNil
     }
 
     final case class WithSet(i: Int, l: Set[Float]) extends Adt
     object WithSet {
-      val expModel = 'i -> atom[Int] :: 'l -> Model.Vector(atom[Float], Some(Refinement.Semantics.set)) :: Model.HNil
+      val expModel = Symbol("i") -> atom[Int] :: Symbol("l") -> Model.Vector(atom[Float], Some(Refinement.Semantics.set)) :: Model.HNil
     }
 
     final case class WithVector(els: Vector[Adt]) extends Adt
     object WithVector {
-      lazy val expModel = Model.HCons('els, Model.Vector(Adt.expModel), Model.HNil)
+      lazy val expModel = Model.HCons(Symbol("els"), Model.Vector(Adt.expModel), Model.HNil)
     }
 
     sealed trait Cyclic
@@ -316,14 +316,14 @@ object TestTypes {
     object STr {
       implicit val r: Reified[STr] =
         shapeless.cachedImplicit
-      val expModel = 'Boo -> Model.HNil :+: Model.CNil
+      val expModel = Symbol("Boo") -> Model.HNil :+: Model.CNil
     }
 
     final case class Jack(i: Int)
     object Jack {
       implicit val r: Reified[Jack] =
         shapeless.cachedImplicit
-      val expModel = 'i -> atom[Int] :: Model.HNil
+      val expModel = Symbol("i") -> atom[Int] :: Model.HNil
     }
 
     sealed trait StrList
@@ -333,9 +333,9 @@ object TestTypes {
       implicit val r: Reified[StrList] =
         shapeless.cachedImplicit
       lazy val expModel: Model = Model.CCons(
-        'StrCons,
-        Model.HCons('h, atom[String], Model.HCons('t, expModel, Model.HNil)),
-        Model.CCons('StrNil, Model.HNil, Model.CNil)
+        Symbol("StrCons"),
+        Model.HCons(Symbol("h"), atom[String], Model.HCons(Symbol("t"), expModel, Model.HNil)),
+        Model.CCons(Symbol("StrNil"), Model.HNil, Model.CNil)
       )
     }
   }

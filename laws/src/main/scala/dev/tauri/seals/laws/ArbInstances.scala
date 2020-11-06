@@ -47,7 +47,7 @@ trait ArbInstances {
     Arbitrary {
       for {
         precision <- Gen.chooseNum(0, Int.MaxValue)
-        rounding <- Gen.oneOf(java.math.RoundingMode.values())
+        rounding <- Gen.oneOf(java.math.RoundingMode.values().toList)
       } yield new java.math.MathContext(precision, rounding)
     }
   }

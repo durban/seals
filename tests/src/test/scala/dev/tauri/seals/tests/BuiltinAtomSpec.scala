@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -270,7 +272,7 @@ class BuiltinAtomSpec extends BaseSpec {
     def check[A: Atomic](as: Vector[A], strs: Vector[String], bins: Vector[ByteVector]): Unit = {
       as.length should === (strs.length)
       as.length should === (bins.length)
-      for ((a, s, b) <- (as, strs, bins).zipped) {
+      for ((a, s, b) <- as.lazyZip(strs).lazyZip(bins)) {
         str(a) should === (s)
         bin(a) should === (b)
       }

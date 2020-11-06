@@ -20,7 +20,7 @@ package dev.tauri.seals
 package checker
 
 import scala.io.Codec
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 import scala.reflect.runtime.{ universe => ru }
 import scala.reflect.io.AbstractFile
@@ -34,15 +34,17 @@ object Extractor {
   def apply(classloader: ClassLoader, jarOrDir: java.io.File): Extractor =
     new Extractor(classloader, jarOrDir)
 
-  def main(args: Array[String]): Unit = {
-    val jarOrDir :: target :: packs = args.toList
-    val main = apply(this.getClass.getClassLoader, new java.io.File(jarOrDir))
-    val modelSet = main.extractAllPackages(packs.toVector)
-    val json = io.circe.syntax.EncoderOps(modelSet).asJson
-    java.nio.file.Files.write(
-      java.nio.file.Paths.get(target),
-      List(json.spaces2).asJava
-    )
+  def main(args: Array[String]): Unit = args.toList match {
+    case jarOrDir :: target :: packs =>
+      val main = apply(this.getClass.getClassLoader, new java.io.File(jarOrDir))
+      val modelSet = main.extractAllPackages(packs.toVector)
+      val json = io.circe.syntax.EncoderOps(modelSet).asJson
+      java.nio.file.Files.write(
+        java.nio.file.Paths.get(target),
+        List(json.spaces2).asJava
+      )
+    case _ =>
+      throw new IllegalArgumentException(sh"invalid arguments: ${args.mkString(", ")}")
   }
 }
 

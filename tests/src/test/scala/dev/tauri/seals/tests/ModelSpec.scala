@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,12 +36,12 @@ class ModelSpec extends BaseSpec {
 
   import Model.Atom.atom
 
-  val l = 'l
-  val m = 'm
-  val n = 'n
-  val p = 'p
-  val q = 'q
-  val r = 'r
+  val l = Symbol("l")
+  val m = Symbol("m")
+  val n = Symbol("n")
+  val p = Symbol("p")
+  val q = Symbol("q")
+  val r = Symbol("r")
 
   val a1a = atom[Int]
   val a1b = atom[Int]
@@ -78,7 +80,7 @@ class ModelSpec extends BaseSpec {
   val p1b = l -> atom[String] :: m -> a1a :: Model.HNil
   val p1r = Model.CanBeRefined.hConsCanBeRefined.refine(p1a, r1.semantics)
   val p2 = n -> a1a :: p -> a1b :: Model.HNil
-  val p2plus = n -> a1a :: p -> a1b :: Model.HCons('x, optional = true, a2, Model.HNil)
+  val p2plus = n -> a1a :: p -> a1b :: Model.HCons(Symbol("x"), optional = true, a2, Model.HNil)
   val p2plusR = Model.CanBeRefined.hConsCanBeRefined.refine(p2plus, r1.semantics)
   val p3 = p -> a2 :: q -> a2 :: r -> a1a :: Model.HNil
   val p3o = p -> a2 :: q -> a2 :: Model.HCons(r, optional = true, a1a, Model.HNil)
@@ -104,8 +106,8 @@ class ModelSpec extends BaseSpec {
   val k2r = Model.CanBeRefined.vectorCanBeRefined.refine(k2a, r1.semantics)
   val k2rr = Model.CanBeRefined.vectorCanBeRefined.refine(Model.Vector(pc1rr), r1.semantics)
   val k2b = Model.Vector(pc1b)
-  val k3a = 'x -> Model.Vector(p3o) :: Model.HNil
-  val k3aMinus = 'x -> Model.Vector(p3oMinus) :: Model.HNil
+  val k3a = Symbol("x") -> Model.Vector(p3o) :: Model.HNil
+  val k3aMinus = Symbol("x") -> Model.Vector(p3oMinus) :: Model.HNil
 
   lazy val cy1a: Model.CCons = Model.CCons(
     l,
@@ -299,16 +301,16 @@ class ModelSpec extends BaseSpec {
     }
 
     "labels should matter" in {
-      val x1 = 'p -> a2 :: 'q -> ac :: Model.HNil
-      val x2 = 'p -> a2 :: 'q -> ac :: Model.HNil
-      val y = 'p -> a2 :: 'x -> ac :: Model.HNil
+      val x1 = Symbol("p") -> a2 :: Symbol("q") -> ac :: Model.HNil
+      val x2 = Symbol("p") -> a2 :: Symbol("q") -> ac :: Model.HNil
+      val y = Symbol("p") -> a2 :: Symbol("x") -> ac :: Model.HNil
       checkEqHashCompat(x1, x2)
       checkEqHashCompat(x2, x1)
       checkNotEqHashCompat(x1, y)
       checkNotEqHashCompat(y, x1)
-      val p1 = 'p -> a2 :+: 'q -> ac :+: Model.CNil
-      val p2 = 'p -> a2 :+: 'q -> ac :+: Model.CNil
-      val q = 'p -> a2 :+: 'x -> ac :+: Model.CNil
+      val p1 = Symbol("p") -> a2 :+: Symbol("q") -> ac :+: Model.CNil
+      val p2 = Symbol("p") -> a2 :+: Symbol("q") -> ac :+: Model.CNil
+      val q = Symbol("p") -> a2 :+: Symbol("x") -> ac :+: Model.CNil
       checkEqHashCompat(p1, p2)
       checkEqHashCompat(p2, p1)
       checkNotEqHashCompat(p1, q)
@@ -363,7 +365,7 @@ class ModelSpec extends BaseSpec {
       "'p -> String :: 'q -> String :: 'r -> Int? :: HNil"
     )
 
-    (('p, ac) :: Model.HNil).desc should === ("'p -> MyUUID :: HNil")
+    ((Symbol("p"), ac) :: Model.HNil).desc should === ("'p -> MyUUID :: HNil")
 
     k1a.desc should === ("Int*")
     k2a.desc should === (sh"(${pc1aExp})*")
@@ -383,13 +385,13 @@ class ModelSpec extends BaseSpec {
   }
 
   "illegal structures" in {
-    illTyped("Model.HCons('a, Atom[Int], Atom[String])")
-    illTyped("Model.HCons('a, Atom[Int], Model.CNil)")
-    illTyped("Model.HCons('a, Atom[Int], Model.CCons('b, Atom[String], Model.CNil))")
+    illTyped("""Model.HCons(Symbol("a"), Atom[Int], Atom[String])""")
+    illTyped("""Model.HCons(Symbol("a"), Atom[Int], Model.CNil)""")
+    illTyped("""Model.HCons(Symbol("a"), Atom[Int], Model.CCons(Symbol("b"), Atom[String], Model.CNil))""")
 
-    illTyped("Model.CCons('a, Atom[Int], Atom[String])")
-    illTyped("Model.CCons('a, Atom[Int], Model.HNil)")
-    illTyped("Model.CCons('a, Atom[Int], Model.HCons('b, Atom[String], Model.HNil))")
+    illTyped("""Model.CCons(Symbol("a"), Atom[Int], Atom[String])""")
+    illTyped("""Model.CCons(Symbol("a"), Atom[Int], Model.HNil)""")
+    illTyped("""Model.CCons(Symbol("a"), Atom[Int], Model.HCons(Symbol("b"), Atom[String], Model.HNil))""")
   }
 
   "fold" - {

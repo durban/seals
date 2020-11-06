@@ -49,17 +49,17 @@ class SerializableSpec extends BaseSpec {
     }
 
     "Products should be serializable" in {
-      checkSer('i -> atom[Int] :: 's -> atom[String] :: Model.HNil)
-      checkSer('i -> atom[Int] :: Model.HCons('s, optional = true, atom[String], Model.HNil))
+      checkSer(Symbol("i") -> atom[Int] :: Symbol("s") -> atom[String] :: Model.HNil)
+      checkSer(Symbol("i") -> atom[Int] :: Model.HCons(Symbol("s"), optional = true, atom[String], Model.HNil))
       checkSer(
-        'x -> ('i -> atom[Int] :+: 's -> atom[String] :+: Model.CNil) :: 'y -> atom[String] :: Model.HNil
+        Symbol("x") -> (Symbol("i") -> atom[Int] :+: Symbol("s") -> atom[String] :+: Model.CNil) :: Symbol("y") -> atom[String] :: Model.HNil
       )
     }
 
     "Sums should be serializable" in {
-      checkSer('i -> atom[Int] :+: 's -> atom[String] :+: Model.CNil)
+      checkSer(Symbol("i") -> atom[Int] :+: Symbol("s") -> atom[String] :+: Model.CNil)
       checkSer(
-        'p -> ('i -> atom[Int] :: Model.HNil) :+: 'q -> atom[String] :+: Model.CNil
+        Symbol("p") -> (Symbol("i") -> atom[Int] :: Model.HNil) :+: Symbol("q") -> atom[String] :+: Model.CNil
       )
     }
 
@@ -70,11 +70,11 @@ class SerializableSpec extends BaseSpec {
 
     "Cyclic models should be serializable" in {
       lazy val mod1: Model.CCons = Model.CCons(
-        'p,
-        Model.HCons('s, atom[String], Model.HNil),
+        Symbol("p"),
+        Model.HCons(Symbol("s"), atom[String], Model.HNil),
         Model.CCons(
-          'q,
-          Model.HCons('r, mod1, Model.HCons('s, atom[String], Model.HNil)),
+          Symbol("q"),
+          Model.HCons(Symbol("r"), mod1, Model.HCons(Symbol("s"), atom[String], Model.HNil)),
           Model.CNil
         )
       )
@@ -85,9 +85,9 @@ class SerializableSpec extends BaseSpec {
       checkSer(mod1)
 
       lazy val mod2: Model.HCons[Model.HCons[Model.HNil.type]] = Model.HCons(
-        'm1,
+        Symbol("m1"),
         mod1,
-        Model.HCons('m2, mod2, Model.HNil)
+        Model.HCons(Symbol("m2"), mod2, Model.HNil)
       )
       checkSer(mod2)
       // force evaluate thunks:
@@ -107,8 +107,8 @@ class SerializableSpec extends BaseSpec {
 
     "Refined models" in {
       checkSer(Model.CanBeRefined.atomCanBeRefined.refine(atom[Int], Refinement.enum[DayOfWeek].semantics))
-      checkSer(Model.CanBeRefined.hConsCanBeRefined.refine('i -> atom[Int] :: Model.HNil, Refinement.enum[DayOfWeek].semantics))
-      checkSer(Model.CanBeRefined.cConsCanBeRefined.refine('i -> atom[Int] :+: Model.CNil, Refinement.enum[DayOfWeek].semantics))
+      checkSer(Model.CanBeRefined.hConsCanBeRefined.refine(Symbol("i") -> atom[Int] :: Model.HNil, Refinement.enum[DayOfWeek].semantics))
+      checkSer(Model.CanBeRefined.cConsCanBeRefined.refine(Symbol("i") -> atom[Int] :+: Model.CNil, Refinement.enum[DayOfWeek].semantics))
       checkSer(Model.CanBeRefined.vectorCanBeRefined.refine(Model.Vector(atom[String]), Refinement.enum[DayOfWeek].semantics))
     }
   }

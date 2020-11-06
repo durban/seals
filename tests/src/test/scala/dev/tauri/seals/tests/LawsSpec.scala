@@ -23,6 +23,8 @@ import java.util.UUID
 import java.math.{ MathContext, RoundingMode }
 import java.time.{ DayOfWeek, Month }
 
+import scala.annotation.tailrec
+
 import cats.kernel.laws.discipline._
 import cats.laws.discipline.InvariantMonoidalTests
 import cats.Eq
@@ -101,8 +103,30 @@ class LawsSpec extends BaseLawsSpec {
 
     locally {
       import TestInstances.kleene._
-      checkKleeneLaws[Stream, Int]("Stream, Int")
-      checkKleeneLaws[Stream, TestTypes.adts.recursive.IntList]("Stream, IntList")
+      implicit def eqIterable[A : Eq]: Eq[Iterable[A]] = { (x, y) =>
+        val xit = x.iterator
+        val yit = y.iterator
+        @tailrec
+        def go(): Boolean = {
+          if (xit.hasNext) {
+            if (yit.hasNext) {
+              if (xit.next() === yit.next()) {
+                go()
+              } else {
+                false
+              }
+            } else {
+              false
+            }
+          } else {
+            if (yit.hasNext) false
+            else true
+          }
+        }
+        go()
+      }
+      checkKleeneLaws[Iterable, Int]("Iterable, Int")
+      checkKleeneLaws[Iterable, TestTypes.adts.recursive.IntList]("Iterable, IntList")
     }
   }
 

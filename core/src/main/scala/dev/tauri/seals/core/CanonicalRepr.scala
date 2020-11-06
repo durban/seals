@@ -95,7 +95,7 @@ object CanonicalRepr {
     },
     atomErr = (c, err) => sh"cannot decode atom: '${err.msg}'",
     hNil = {
-      case hn @ HNil => Right(hn)
+      case hn: HNil.type => Right(hn)
       case hc @ HCons(_, _, _) => Right(hc) // ignore unneeded field
       case _ => Left("not HNil (or ignored HCons)")
     },

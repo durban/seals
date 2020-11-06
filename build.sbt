@@ -113,8 +113,8 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.12",
-  crossScalaVersions := Seq(scalaVersion.value),
+  scalaVersion := "2.13.3",
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.12"),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
@@ -122,12 +122,16 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     "-unchecked",
     "-encoding", "UTF-8",
     "-language:higherKinds,experimental.macros",
-    "-Xfuture",
     "-Xfatal-warnings",
-    "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
-    "-Ypartial-unification"
+    // TODO: add unused params, implicits
+    "-Ywarn-unused:imports",
+    "-Ywarn-unused:locals",
+    "-Ywarn-unused:patvars",
+    "-Ywarn-unused:privates",
+    "-Ywarn-macros:after",
+    "-Xmigration:2.12.10"
     // TODO: set -sourcepath and -doc-source-url
     // TODO: probably also set autoAPIMappings and apiURL
   ),
@@ -135,16 +139,12 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, 12)) =>
         Seq(
-          // TODO: add unused params, implicits
-          "-Xlint:-unused,_",
-          "-Ywarn-unused:imports",
-          "-Ywarn-unused:locals",
-          "-Ywarn-unused:patvars",
-          "-Ywarn-unused:privates",
-          "-Ywarn-macros:after"
+          "-Ypartial-unification",
+          "-Yno-adapted-args",
+          "-Xlint:-unused,_"
         )
       case _ =>
-        Seq()
+        Seq("-Xlint:-unused,-byname-implicit,_")
     }
   },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
@@ -229,7 +229,14 @@ lazy val noPublishSettings = Seq[Setting[_]](
 )
 
 lazy val coreSettings = Seq[Setting[_]](
-  libraryDependencies += dependencies.scodecBits
+  libraryDependencies += dependencies.scodecBits,
+  libraryDependencies ++= {
+    if (scalaVersion.value.startsWith("2.12.")) {
+      List(dependencies.collectionCompat)
+    } else {
+      List()
+    }
+  }
 )
 
 lazy val macrosSettings = Seq[Setting[_]](
@@ -246,7 +253,20 @@ lazy val checkerSettings = Seq[Setting[_]](
 
 lazy val macroSettings = Seq[Setting[_]](
   libraryDependencies += scalaOrganization.value % "scala-reflect" % scalaVersion.value,
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full)
+  libraryDependencies ++= {
+    if (scalaVersion.value.startsWith("2.12.")) {
+      List(compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
+    } else {
+      List()
+    }
+  },
+  scalacOptions ++= {
+    if (scalaVersion.value.startsWith("2.12.")) {
+      List()
+    } else {
+      List("-Ymacro-annotations")
+    }
+  }
 )
 
 lazy val pluginSettings = Seq[Setting[_]](
@@ -289,6 +309,7 @@ lazy val dependencies = new {
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.3"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
+  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0"
 
   val circe = Seq(
     "io.circe" %% "circe-core" % circeVersion,
@@ -312,7 +333,7 @@ lazy val dependencies = new {
   val laws = Seq(
     scodecCats,
     "org.typelevel" %% "cats-laws" % catsVersion,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.6"
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % "1.2.5"
   )
 
   val test = Seq(
@@ -391,21 +412,28 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile;test->test")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.12",
-  crossScalaVersions := Seq(scalaVersion.value),
+  scalaVersion := "2.13.3",
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.12"),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
     "-unchecked",
     "-encoding", "UTF-8",
-    "-Xlint:_",
     "-Xfuture",
-    "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
-    "-Ywarn-unused-import"
+    "-Ywarn-unused:imports",
+    "-Xmigration:2.12.10"
   ),
+  scalacOptions ++= {
+    if (scalaVersion.value.startsWith("2.12.")) List(
+      "-Yno-adapted-args",
+      "-Xlint:_"
+     ) else List(
+      "-Xlint:-byname-implicit,_"
+     )
+  },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   libraryDependencies ++= dependencies.test.map(_ % "test-internal"),
