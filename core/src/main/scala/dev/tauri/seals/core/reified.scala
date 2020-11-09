@@ -26,7 +26,6 @@ import cats.{ Monad, InvariantMonoidal, Order }
 import cats.implicits._
 
 import shapeless._
-import shapeless.union._
 import shapeless.record._
 import shapeless.labelled.{ field, FieldType }
 import shapeless.ops.hlist.ToTraversable
@@ -441,35 +440,6 @@ object Reified extends LowPrioReified1 {
       rec.map { case (b, _, v) =>
         (v, b)
       }
-    }
-  }
-
-  private type SomeRepr[A] = Record.`_root_.scala.Symbol("value") -> A`.T
-  private type OptionRepr[A] = Union.`_root_.scala.Symbol("None") -> HNil, _root_.scala.Symbol("Some") -> SomeRepr[A]`.T
-
-  // TODO: workaround for false positive unused warning
-  locally { val _: SomeRepr[Int] = Record(value = 0) }
-
-  /**
-   * `Reified` instance for `Option[A]`.
-   *
-   * Necessary to be able to manually control the
-   * model for Options, since the automatically
-   * generated model is different for Scala 2.11
-   * and 2.12 (due to the renaming of the field `x`
-   * of `Some` to `value`).
-   */
-  implicit def reifiedForOption[A](
-    implicit A: Lazy[Reified[A]]
-  ): Reified.Aux[Option[A], Model.CCons, FFirst] = {
-
-    Reified[OptionRepr[A]].imap[Option[A]] {
-      case Inl(_) => None
-      case Inr(Inl(r)) => Some(r(Symbol("value")))
-      case Inr(Inr(cnil)) => cnil.impossible
-    } {
-      case None => Union[OptionRepr[A]](None = HNil : HNil)
-      case Some(value) => Union[OptionRepr[A]](Some = Record(value = value))
     }
   }
 }
