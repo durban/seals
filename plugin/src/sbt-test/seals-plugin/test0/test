@@ -1,4 +1,6 @@
 #*  Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+#*  Copyright 2020 Nokia
+#*  SPDX-License-Identifier: Apache-2.0
 #*
 #*  Licensed under the Apache License, Version 2.0 (the "License");
 #*  you may not use this file except in compliance with the License.
@@ -16,8 +18,8 @@
 $ copy-file changes/Test0_original.scala src/main/scala/com/example/test0/Test0.scala
 > + publishLocal
 > + sealsExtractSchema
-$ exists target/scala-2.12/seals/current.json
-$ exists target/scala-2.12/seals/previous/com.example:test0_2.12:0.1.0-SNAPSHOT.json
+$ exists target/scala-2.13/seals/current.json
+$ exists target/scala-2.13/seals/previous/com.example:test0_2.13:0.1.0-SNAPSHOT.json
 > + checkExpectedModels
 > + sealsCheckSchema
 
