@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Daniel Urban and contributors listed in AUTHORS
  * Copyright 2020 Nokia
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -17,21 +17,11 @@
  */
 
 package dev.tauri.seals
-package refined
 
-import eu.timepit.refined.api.RefType
+/** Annotation for intentionally unused parameters */
+private[seals] final class unused
+  extends scala.annotation.nowarn("msg=parameter value .* never used")
 
-import core.Refinement
-
-object ReifiedInstances extends ReifiedInstances
-
-trait ReifiedInstances {
-
-  implicit def reifiedFromRefinedType[A, M <: Model, P, R[_, _]](
-    implicit
-    A: Reified.Aux2[A, M],
-    @proof R: RefType[R],
-    refinement: Refinement.Aux[R[A, P], A],
-    canRefine: Model.CanBeRefined[M]
-  ): Reified.Aux[R[A, P], M, A.Fold] = A.refined[R[A, P]](refinement)
-}
+/** Annotation for parameters which are "unused", but required as proof/evidence */
+private[seals] final class proof
+  extends scala.annotation.nowarn("msg=parameter value .* never used")

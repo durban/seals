@@ -93,7 +93,7 @@ object CanonicalRepr {
       case a @ Atom(r) => Right(Reified.StringResult(r, a))
       case _ => Left("not an atom")
     },
-    atomErr = (c, err) => sh"cannot decode atom: '${err.msg}'",
+    atomErr = (_, err) => sh"cannot decode atom: '${err.msg}'",
     hNil = {
       case hn: HNil.type => Right(hn)
       case hc @ HCons(_, _, _) => Right(hc) // ignore unneeded field

@@ -141,14 +141,14 @@ sealed trait Model extends Serializable {
 
   @transient
   private[this] lazy val cachedPaths =
-    cachedPathsAndIds.transform((k, v) => v._1)
+    cachedPathsAndIds.transform((_, v) => v._1)
 
   final def localIds: Map[Model, Int] =
     cachedIds
 
   @transient
   private[this] lazy val cachedIds =
-    cachedPathsAndIds.transform((k, v) => v._2)
+    cachedPathsAndIds.transform((_, v) => v._2)
 
   private[this] type MapP = (Map[Model, (Model.Path, Int)], Int)
   private[this] type StMapP = State[MapP, Unit]
@@ -156,9 +156,7 @@ sealed trait Model extends Serializable {
   @transient
   private[this] lazy val cachedPathsAndIds: Map[Model, (Model.Path, Int)] = {
     def compositePre(
-      label: String,
       c: Model.Ctx,
-      l: Symbol,
       h: StMapP,
       t: StMapP
     ): StMapP = {
@@ -172,11 +170,11 @@ sealed trait Model extends Serializable {
     }
     val st = this.foldC[StMapP](
         hNil = _ => State.pure(()),
-        hCons = (c, l, _, _, h, t) => compositePre("HCons", c, l, h, t),
+        hCons = (c, _, _, _, h, t) => compositePre(c, h, t),
         cNil = _ => State.pure(()),
-        cCons = (c, l, _, h, t) => compositePre("CCons", c, l, h, t),
-        vector = (c, _, e) => e,
-        atom = (_, a) => State.pure(()),
+        cCons = (c, _, _, h, t) => compositePre(c, h, t),
+        vector = (_, _, e) => e,
+        atom = (_, _) => State.pure(()),
         cycle = _ => State.pure(())
     )
     st.runS((Map.empty, 0)).value._1

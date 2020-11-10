@@ -46,7 +46,7 @@ object Rules extends Serialization {
     }
   }
 
-  def identitySerializable[A <: AnyRef : Arbitrary](a: A): (String, Prop) = {
+  def identitySerializable[A <: AnyRef : Arbitrary]: (String, Prop) = {
     "serializable-roundtrip-identity" -> forAll { (a: A) =>
       withCatchNonFatal {
         val r: A = roundtripSer(a)

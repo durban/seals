@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -158,7 +160,7 @@ trait ReifiedLaws[A] extends Laws {
             case Vect(els) => Either.right((t, els))
             case _ => Either.left(sh"not Vect: $t")
           },
-          vectorFold = (t, v) => if (v.isEmpty) {
+          vectorFold = (_, v) => if (v.isEmpty) {
             Either.right(None)
           } else {
             Either.right(Some((v.head, v.tail)))

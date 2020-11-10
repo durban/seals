@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,6 +18,8 @@
 
 package dev.tauri.seals
 package core
+
+import scala.annotation.nowarn
 
 import shapeless._
 import shapeless.labelled.FieldType
@@ -57,6 +61,7 @@ object Compat extends LowPrioCompat1 {
     new Compat[A, A] {}
 }
 
+@nowarn // lots of "unused" parameters
 private[core] trait LowPrioCompat1 extends LowPrioCompat2 {
 
   /**
@@ -109,6 +114,7 @@ private[core] trait LowPrioCompat1 extends LowPrioCompat2 {
   }
 }
 
+@nowarn // lots of "unused" parameters
 private[core] trait LowPrioCompat2 {
 
   /**
@@ -251,6 +257,7 @@ trait LongerRepr[A, B] {
 /**
  * Provides instances for `LongerRepr`
  */
+@nowarn // lots of "unused" parameters
 object LongerRepr extends LowPrioLongerRepr {
 
   type Aux[A, B, L, LR <: HList, S, SR <: HList] = LongerRepr[A, B] {
@@ -282,6 +289,7 @@ object LongerRepr extends LowPrioLongerRepr {
   }
 }
 
+@nowarn // lots of "unused" parameters
 private[core] trait LowPrioLongerRepr extends Serializable {
 
   /**

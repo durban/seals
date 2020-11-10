@@ -37,7 +37,7 @@ object ArbInstances extends ArbInstances
 
 trait ArbInstances {
 
-  implicit def arbUuid(implicit al: Arbitrary[Long]): Arbitrary[UUID] =
+  implicit def arbUuid: Arbitrary[UUID] =
     Arbitrary(Gen.uuid)
 
   implicit val cogenUuid: Cogen[UUID] =

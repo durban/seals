@@ -132,7 +132,7 @@ sealed trait Reified[A] extends Serializable { self =>
     })(ev)
   }
 
-  private[core] def unsafeWithDefaults(defs: List[Option[Any]]): Reified.Aux[A, this.Mod, this.Fold] =
+  private[core] def unsafeWithDefaults(@unused defs: List[Option[Any]]): Reified.Aux[A, this.Mod, this.Fold] =
     this
 }
 

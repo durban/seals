@@ -29,6 +29,7 @@ lazy val doc = project
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(scalacOptions -= "-Xfatal-warnings")
+  .settings(scalacOptions -= "-Werror")
   .enablePlugins(MdocPlugin)
   .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core)
@@ -122,16 +123,9 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     "-unchecked",
     "-encoding", "UTF-8",
     "-language:higherKinds,experimental.macros",
-    "-Xfatal-warnings",
+    "-Xmigration:2.13.3",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
-    // TODO: add unused params, implicits
-    "-Ywarn-unused:imports",
-    "-Ywarn-unused:locals",
-    "-Ywarn-unused:patvars",
-    "-Ywarn-unused:privates",
-    "-Ywarn-macros:after",
-    "-Xmigration:2.12.10"
     // TODO: set -sourcepath and -doc-source-url
     // TODO: probably also set autoAPIMappings and apiURL
   ),
@@ -139,12 +133,19 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, 12)) =>
         Seq(
+          "-Xfatal-warnings",
+          "-Xlint:-unused,_",  
           "-Ypartial-unification",
           "-Yno-adapted-args",
-          "-Xlint:-unused,_"
         )
       case _ =>
-        Seq("-Xlint:-unused,-byname-implicit,_")
+        Seq(
+          "-Werror",
+          "-Wunused:_",
+          "-Wmacros:after",
+          "-Wvalue-discard",
+          "-Xlint:-unused,-byname-implicit,_",
+        )
     }
   },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
@@ -420,7 +421,6 @@ lazy val exampleSettings = Seq(
     "-deprecation",
     "-unchecked",
     "-encoding", "UTF-8",
-    "-Xfuture",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
     "-Ywarn-unused:imports",

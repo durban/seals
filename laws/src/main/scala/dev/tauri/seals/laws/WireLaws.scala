@@ -72,7 +72,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
   )
 
   def roundtripCompat[B](
-    implicit arbB: Arbitrary[B], equB: Eq[B], reiB: Reified[B], compat: Compat[A, B]
+    implicit arbB: Arbitrary[B], equB: Eq[B], reiB: Reified[B], @proof compat: Compat[A, B]
   ): this.RuleSet = new WireRuleSet(
     "roundtripCompat",
     parent = Some(roundtrip),
@@ -85,7 +85,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
   ): Prop = {
     forAll { (x: X) =>
       wir.toWire(x).fold(
-        err => Prop.proved,
+        _ => Prop.proved,
         repr => {
           wir.fromWire(repr).fold(
             err => Prop.falsified :| sh"cannot decode encoded value '${x}': '${err}'",
@@ -116,7 +116,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
   ): Prop = {
     forAll { (x: X, y: Y) =>
       val xy = wirX.toWire(x).fold(
-        err => Prop.proved,
+        _ => Prop.proved,
         repr => {
           wirY.fromWire(repr).fold(
             err => Prop.falsified :| sh"xy: ${err}",
@@ -132,7 +132,7 @@ trait WireLaws[A, R, E] extends Laws with ArbInstances {
         }
       )
       val yx = wirY.toWire(y).fold(
-        err => Prop.proved,
+        _ => Prop.proved,
         repr => {
           wirX.fromWire(repr).fold(
             err => Prop.falsified :| sh"yx: ${err}",

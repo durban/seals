@@ -43,6 +43,7 @@ object Extractor {
         java.nio.file.Paths.get(target),
         List(json.spaces2).asJava
       )
+      ()
     case _ =>
       throw new IllegalArgumentException(sh"invalid arguments: ${args.mkString(", ")}")
   }
