@@ -1,6 +1,6 @@
 <!--
 
-   Copyright 2016-2019 Daniel Urban and contributors listed in AUTHORS
+   Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -25,8 +25,11 @@ Unorganized notes which may be useful during development.
 1. Start a fresh `sbt` session
 1. `validate`
 1. `release` (requires Sonatype credentials)
+1. Verify the 2 new commits and 1 new tag in Git
 1. `sonatypeClose`
 1. `sonatypePromote`
+1. Push the new commits
+1. Push the new tag (e.g., `git push --tags`)
 
 ### Releasing a `SNAPSHOT` version
 
