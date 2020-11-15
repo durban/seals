@@ -18,7 +18,6 @@ package com.example.streaming
 
 import java.io.{ InputStream, OutputStream, FileInputStream, FileOutputStream }
 
-import cats.implicits._
 import cats.effect.{ IO, IOApp, Blocker, ExitCode }
 
 import fs2.{ Stream, Chunk, Pure }

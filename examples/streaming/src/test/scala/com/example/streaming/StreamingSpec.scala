@@ -67,7 +67,7 @@ class StreamingSpec extends AnyFlatSpec with Matchers {
 
   it should "fail with incompatible models" in {
     val mod = Reified[Record.`'Elephant -> Elephant, 'Quokka -> Quokka`.T].model
-    val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail)
+    val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail())
     val tsk: IO[Unit] = for {
       as <- decoder.decode[IO](Stream(bv)).compile.toVector
     } yield {

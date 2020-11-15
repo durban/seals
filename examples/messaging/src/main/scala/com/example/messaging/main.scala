@@ -16,16 +16,14 @@
 
 package com.example.messaging
 
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext.global
 
-import cats.implicits._
 import cats.effect.{ IO, IOApp, ExitCode }
 
 import org.http4s._
 import org.http4s.dsl.io._
 import org.http4s.client.Client
 import org.http4s.circe._
-import org.http4s.server.blaze.BlazeServerBuilder
 import org.http4s.server.Router
 import org.http4s.implicits._
 
@@ -85,7 +83,7 @@ object MyServer extends IOApp {
   }
 
   override def run(args: List[String]): IO[ExitCode] = {
-    BlazeServerBuilder[IO]
+    BlazeServerBuilder.apply[IO](global)
       .bindHttp(1234, "localhost")
       .withHttpApp(Router("/" -> service).orNotFound)
       .serve

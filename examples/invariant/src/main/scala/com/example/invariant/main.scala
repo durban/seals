@@ -36,7 +36,7 @@ object Main extends App with PolySupport {
     original.asJson
 
   val deserialized: Polynomial[Float] =
-    serialized.as[Polynomial[Float]].right.getOrElse(throw new Exception)
+    serialized.as[Polynomial[Float]].getOrElse(throw new Exception)
 
   implicitly[spire.algebra.Eq[Polynomial[Float]]]
 
