@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -272,7 +274,7 @@ object Atomic {
     _.toString,
     tryParseAscii(_.toByte),
     1,
-    _ put _,
+    { (buf, b) => buf.put(b); () },
     _.get
   )
 
@@ -285,7 +287,7 @@ object Atomic {
     _.toString,
     tryParseAscii(_.toShort),
     2,
-    _ putShort _,
+    { (buf, s) => buf.putShort(s); () },
     _.getShort
   )
 
@@ -304,7 +306,7 @@ object Atomic {
       }
     },
     2,
-    _ putChar _,
+    { (buf, c) => buf.putChar(c); () },
     _.getChar
   )
 
@@ -317,7 +319,7 @@ object Atomic {
     _.toString,
     tryParseAscii(_.toInt),
     4,
-    _ putInt _,
+    { (buf, i) => buf.putInt(i); () },
     _.getInt
   )
 
@@ -330,7 +332,7 @@ object Atomic {
     _.toString,
     tryParseAscii(_.toLong),
     8,
-    _ putLong _,
+    { (buf, l) => buf.putLong(l); () },
     _.getLong
   )
 
@@ -519,6 +521,7 @@ object Atomic {
     (buf, u) => {
       buf.putLong(u.getMostSignificantBits)
       buf.putLong(u.getLeastSignificantBits)
+      ()
     },
     buf => {
       val most = buf.getLong

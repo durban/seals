@@ -37,7 +37,7 @@ object ArbInstances extends ArbInstances
 
 trait ArbInstances {
 
-  implicit def arbUuid(implicit al: Arbitrary[Long]): Arbitrary[UUID] =
+  implicit def arbUuid: Arbitrary[UUID] =
     Arbitrary(Gen.uuid)
 
   implicit val cogenUuid: Cogen[UUID] =
@@ -47,7 +47,7 @@ trait ArbInstances {
     Arbitrary {
       for {
         precision <- Gen.chooseNum(0, Int.MaxValue)
-        rounding <- Gen.oneOf(java.math.RoundingMode.values())
+        rounding <- Gen.oneOf(java.math.RoundingMode.values().toList)
       } yield new java.math.MathContext(precision, rounding)
     }
   }

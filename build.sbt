@@ -29,6 +29,7 @@ lazy val doc = project
   .settings(commonSettings)
   .settings(noPublishSettings)
   .settings(scalacOptions -= "-Xfatal-warnings")
+  .settings(scalacOptions -= "-Werror")
   .enablePlugins(MdocPlugin)
   .disablePlugins(ScriptedPlugin) // workaround for https://github.com/sbt/sbt/issues/3514
   .dependsOn(core)
@@ -113,8 +114,8 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.12.10",
-  crossScalaVersions := Seq(scalaVersion.value),
+  scalaVersion := "2.13.3",
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.12"),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
@@ -122,12 +123,9 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     "-unchecked",
     "-encoding", "UTF-8",
     "-language:higherKinds,experimental.macros",
-    "-Xfuture",
-    "-Xfatal-warnings",
-    "-Yno-adapted-args",
+    "-Xmigration:2.13.3",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
-    "-Ypartial-unification"
     // TODO: set -sourcepath and -doc-source-url
     // TODO: probably also set autoAPIMappings and apiURL
   ),
@@ -135,16 +133,19 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     CrossVersion.partialVersion(scalaVersion.value) match {
       case Some((2, 12)) =>
         Seq(
-          // TODO: add unused params, implicits
+          "-Xfatal-warnings",
           "-Xlint:-unused,_",
-          "-Ywarn-unused:imports",
-          "-Ywarn-unused:locals",
-          "-Ywarn-unused:patvars",
-          "-Ywarn-unused:privates",
-          "-Ywarn-macros:after"
+          "-Ypartial-unification",
+          "-Yno-adapted-args",
         )
       case _ =>
-        Seq()
+        Seq(
+          "-Werror",
+          "-Wunused:_",
+          "-Wmacros:after",
+          "-Wvalue-discard",
+          "-Xlint:-unused,-byname-implicit,_",
+        )
     }
   },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
@@ -229,7 +230,14 @@ lazy val noPublishSettings = Seq[Setting[_]](
 )
 
 lazy val coreSettings = Seq[Setting[_]](
-  libraryDependencies += dependencies.scodecBits
+  libraryDependencies += dependencies.scodecBits,
+  libraryDependencies ++= {
+    if (scalaVersion.value.startsWith("2.12.")) {
+      List(dependencies.collectionCompat)
+    } else {
+      List()
+    }
+  }
 )
 
 lazy val macrosSettings = Seq[Setting[_]](
@@ -246,12 +254,25 @@ lazy val checkerSettings = Seq[Setting[_]](
 
 lazy val macroSettings = Seq[Setting[_]](
   libraryDependencies += scalaOrganization.value % "scala-reflect" % scalaVersion.value,
-  addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.full)
+  libraryDependencies ++= {
+    if (scalaVersion.value.startsWith("2.12.")) {
+      List(compilerPlugin("org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.full))
+    } else {
+      List()
+    }
+  },
+  scalacOptions ++= {
+    if (scalaVersion.value.startsWith("2.12.")) {
+      List()
+    } else {
+      List("-Ymacro-annotations")
+    }
+  }
 )
 
 lazy val pluginSettings = Seq[Setting[_]](
   sbtPlugin := true,
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.12.12",
   crossScalaVersions := Seq(scalaVersion.value),
   scalaOrganization := "org.scala-lang",
   libraryDependencies += Defaults.sbtPluginExtra(
@@ -284,11 +305,12 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "2.1.0"
-  val circeVersion = "0.13.0-RC1"
+  val catsVersion = "2.2.0"
+  val circeVersion = "0.13.0"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.3"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
+  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0"
 
   val circe = Seq(
     "io.circe" %% "circe-core" % circeVersion,
@@ -298,29 +320,29 @@ lazy val dependencies = new {
 
   val circeTesting = "io.circe" %% "circe-testing" % circeVersion
 
-  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.12"
+  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.20"
   val scodecCats = "org.scodec" %% "scodec-cats" % "1.0.0"
   val scodec = Seq(
     scodecBits,
-    "org.scodec" %% "scodec-core" % "1.11.4",
+    "org.scodec" %% "scodec-core" % "1.11.7",
     "org.scodec" %% "scodec-stream" % "2.0.0",
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.9.10"
+  val refined = "eu.timepit" %% "refined" % "0.9.17"
 
   val laws = Seq(
     scodecCats,
     "org.typelevel" %% "cats-laws" % catsVersion,
-    "com.github.alexarchambault" %% "scalacheck-shapeless_1.13" % "1.1.6"
+    "com.github.alexarchambault" %% "scalacheck-shapeless_1.14" % "1.2.5"
   )
 
   val test = Seq(
-    "org.scalatest" %% "scalatest" % "3.1.0",
+    "org.scalatest" %% "scalatest" % "3.1.4",
     "org.typelevel" %% "discipline-scalatest" % "1.0.0-RC4"
   )
 
-  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.6.1"
+  val sbtMima = "com.typesafe" % "sbt-mima-plugin" % "0.8.1"
 }
 
 addCommandAlias("testAll", ";test;examples/test")
@@ -391,21 +413,27 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile;test->test")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.12.10",
-  crossScalaVersions := Seq(scalaVersion.value),
+  scalaVersion := "2.13.3",
+  crossScalaVersions := Seq(scalaVersion.value, "2.12.12"),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
     "-feature",
     "-deprecation",
     "-unchecked",
     "-encoding", "UTF-8",
-    "-Xlint:_",
-    "-Xfuture",
-    "-Yno-adapted-args",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
-    "-Ywarn-unused-import"
+    "-Ywarn-unused:imports",
+    "-Xmigration:2.12.10"
   ),
+  scalacOptions ++= {
+    if (scalaVersion.value.startsWith("2.12.")) List(
+      "-Yno-adapted-args",
+      "-Xlint:_"
+     ) else List(
+      "-Xlint:-byname-implicit,_"
+     )
+  },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
   libraryDependencies ++= dependencies.test.map(_ % "test-internal"),
@@ -420,8 +448,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.21.0-RC1"
-  val fs2Version = "2.2.1"
+  val http4sVersion = "0.21.8"
+  val fs2Version = "2.4.4"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -431,17 +459,17 @@ lazy val exampleDependencies = new {
     "org.slf4j" % "slf4j-simple" % "1.7.25"
   )
 
-  val spire = "org.typelevel" %% "spire" % "0.17.0-M1"
+  val spire = "org.typelevel" %% "spire" % "0.17.0"
 
   val fs2 = Seq(
     "co.fs2" %% "fs2-core" % fs2Version,
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val catsEffect = "org.typelevel" %% "cats-effect" % "2.0.0"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "2.2.0"
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.27",
+    "com.typesafe.akka" %% "akka-stream" % "2.5.32",
     "co.fs2" %% "fs2-reactive-streams" % fs2Version
   )
 }

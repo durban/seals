@@ -84,7 +84,6 @@ class IdentitySetSpec extends tests.BaseSpec with ScalaCheckDrivenPropertyChecks
       val a = e + c1 + c2 + c3
       val b = e + c2 + c3 + c4 + cls()
 
-      a filter b
       val i = a intersect b
       i should have size (2)
       i should === (e + c2 + c3)
@@ -120,11 +119,11 @@ class IdentitySetSpec extends tests.BaseSpec with ScalaCheckDrivenPropertyChecks
 
   "Many elements" - {
 
-    val bigSet = Stream.continually(cls()).take(10000).foldLeft(e)(_ + _)
+    val bigSet = List.fill(10000) { cls() }.foldLeft(e)(_ + _)
     val x = cls()
 
     "iterating" in {
-      for (c <- bigSet) {
+      for (c <- bigSet.iterator) {
         bigSet(c) should === (true)
         bigSet(x) should === (false)
       }
@@ -147,7 +146,7 @@ class IdentitySetSpec extends tests.BaseSpec with ScalaCheckDrivenPropertyChecks
     }
 
     "union" in {
-      val bigSet2 = Stream.continually(cls()).take(10000).foldLeft(e)(_ + _)
+      val bigSet2 = List.fill(10000) { cls() }.foldLeft(e)(_ + _)
       val u = bigSet union bigSet2
       u.size should === (bigSet.size + bigSet2.size)
       bigSet.subsetOf(u) should === (true)
@@ -160,7 +159,7 @@ class IdentitySetSpec extends tests.BaseSpec with ScalaCheckDrivenPropertyChecks
     }
 
     "equality" in {
-      val bigSet2 = bigSet.map(identity)
+      val bigSet2 = IdentitySet.of(bigSet.iterator.map(identity).toList: _*)
       bigSet2 shouldNot be theSameInstanceAs(bigSet)
       bigSet2 should === (bigSet)
     }

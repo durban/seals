@@ -276,14 +276,14 @@ class ModelCodecSpec extends BaseJsonSpec {
   )
 
   val optMod: Model = Model.HCons(
-    'x,
+    Symbol("x"),
     optional = true,
     Model.Atom.atom[Int],
     Model.HNil
   )
 
   val optMod2: Model = Model.HCons(
-    'x,
+    Symbol("x"),
     optional = false,
     Model.Atom.atom[Int],
     Model.HNil

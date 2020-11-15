@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +30,7 @@ trait ReifiedInstances {
   implicit def reifiedFromRefinedType[A, M <: Model, P, R[_, _]](
     implicit
     A: Reified.Aux2[A, M],
-    R: RefType[R],
+    @proof R: RefType[R],
     refinement: Refinement.Aux[R[A, P], A],
     canRefine: Model.CanBeRefined[M]
   ): Reified.Aux[R[A, P], M, A.Fold] = A.refined[R[A, P]](refinement)

@@ -141,14 +141,14 @@ sealed trait Model extends Serializable {
 
   @transient
   private[this] lazy val cachedPaths =
-    cachedPathsAndIds.mapValues(_._1)
+    cachedPathsAndIds.transform((_, v) => v._1)
 
   final def localIds: Map[Model, Int] =
     cachedIds
 
   @transient
   private[this] lazy val cachedIds =
-    cachedPathsAndIds.mapValues(_._2)
+    cachedPathsAndIds.transform((_, v) => v._2)
 
   private[this] type MapP = (Map[Model, (Model.Path, Int)], Int)
   private[this] type StMapP = State[MapP, Unit]
@@ -156,9 +156,7 @@ sealed trait Model extends Serializable {
   @transient
   private[this] lazy val cachedPathsAndIds: Map[Model, (Model.Path, Int)] = {
     def compositePre(
-      label: String,
       c: Model.Ctx,
-      l: Symbol,
       h: StMapP,
       t: StMapP
     ): StMapP = {
@@ -172,11 +170,11 @@ sealed trait Model extends Serializable {
     }
     val st = this.foldC[StMapP](
         hNil = _ => State.pure(()),
-        hCons = (c, l, _, _, h, t) => compositePre("HCons", c, l, h, t),
+        hCons = (c, _, _, _, h, t) => compositePre(c, h, t),
         cNil = _ => State.pure(()),
-        cCons = (c, l, _, h, t) => compositePre("CCons", c, l, h, t),
-        vector = (c, _, e) => e,
-        atom = (_, a) => State.pure(()),
+        cCons = (c, _, _, h, t) => compositePre(c, h, t),
+        vector = (_, _, e) => e,
+        atom = (_, _) => State.pure(()),
         cycle = _ => State.pure(())
     )
     st.runS((Map.empty, 0)).value._1
@@ -321,9 +319,9 @@ object Model {
       override def toString = {
         val repr = h match {
           case Branch(_, _, _, _, _, _) | Mapped(Branch(_, _, _, _, _, _), _) =>
-            sh"${l} -> (${h}${headPostfix}) ${label} ${t}"
+            sh"${showSym(l)} -> (${h}${headPostfix}) ${label} ${t}"
           case _ =>
-            sh"${l} -> ${h}${headPostfix} ${label} ${t}"
+            sh"${showSym(l)} -> ${h}${headPostfix} ${label} ${t}"
         }
         if (postfix.nonEmpty) {
           sh"(${repr})${postfix}"
@@ -337,6 +335,10 @@ object Model {
 
       override def map(f: String => String): Desc =
         Mapped(this, r => f(sh"(${r})"))
+
+      /** Symbol#toString is different between Scala 2.12 and 2.13 */
+      private def showSym(s: Symbol): String =
+        "'" + s.name
     }
 
     final case class Mapped(d: Desc, f: String => String) extends Desc {
@@ -568,7 +570,7 @@ object Model {
     private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, h: => Model, t: => T): HCons[T] =
       apply(label, optional, None, h, t)
     private[seals] def apply[T <: HList](label: Symbol, optional: Boolean, refinement: Option[Ref], h: => Model, t: => T): HCons[T] =
-      new HCons(label, optional, h _, t _, refinement)
+      new HCons(label, optional, () => h, () => t, refinement)
   }
 
   sealed trait Coproduct extends Model
@@ -656,7 +658,7 @@ object Model {
     private[seals] def apply(label: Symbol, h: => Model, t: => Coproduct): CCons =
       apply(label, None, h, t)
     private[seals] def apply(label: Symbol, refinement: Option[Ref], h: => Model, t: => Coproduct): CCons =
-      new CCons(label, h _, t _, refinement)
+      new CCons(label, () => h, () => t, refinement)
   }
 
   final class Atom private (

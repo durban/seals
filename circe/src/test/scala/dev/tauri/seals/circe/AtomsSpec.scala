@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,7 +31,7 @@ class AtomsSpec extends BaseJsonSpec {
       BiggerDecimal.fromLong(0L),
       BiggerDecimal.NegativeZero,
       // this is too big for a BigDecimal:
-      BiggerDecimal.parseBiggerDecimal(s"9999e${Int.MaxValue.toLong * 2}").getOrElse(fail)
+      BiggerDecimal.parseBiggerDecimal(s"9999e${Int.MaxValue.toLong * 2}").getOrElse(fail())
     )
     val abd = Atomic[BiggerDecimal]
     for (bd <- bds) {

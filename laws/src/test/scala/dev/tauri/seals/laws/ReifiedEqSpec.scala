@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,10 +34,10 @@ class ReifiedEqSpec extends AnyFlatSpec with Matchers {
   def reifiedEq[A: Arbitrary]: Eq[Reified[A]] =
     ReifiedEqSpec.Helper.testEqForReified
 
-  type XY = Record.`'x -> Int, 'y -> String`.T
-  type XYZ1 = Record.`'a -> XY, 'z -> Float`.T
-  type YZ = Record.`'y -> String, 'z -> Float`.T
-  type XYZ2 = Record.`'x -> Int, 'a -> YZ`.T
+  type XY = Record.`_root_.scala.Symbol("x") -> Int, _root_.scala.Symbol("y") -> String`.T
+  type XYZ1 = Record.`_root_.scala.Symbol("a") -> XY, _root_.scala.Symbol("z") -> Float`.T
+  type YZ = Record.`_root_.scala.Symbol("y") -> String, _root_.scala.Symbol("z") -> Float`.T
+  type XYZ2 = Record.`_root_.scala.Symbol("x") -> Int, _root_.scala.Symbol("a") -> YZ`.T
   implicitly[XYZ1 =:!= XYZ2]
 
   "The test Eq[Reified] instance" should "allow tuple nesting differences" in {
@@ -43,20 +45,20 @@ class ReifiedEqSpec extends AnyFlatSpec with Matchers {
       for {
         t <- arbTup.arbitrary
       } yield {
-        'a ->> ('x ->> t._1 :: 'y ->> t._2 :: HNil) ::
-        'z ->> t._3 ::
+        Symbol("a") ->> (Symbol("x") ->> t._1 :: Symbol("y") ->> t._2 :: HNil) ::
+        Symbol("z") ->> t._3 ::
         HNil
       }
     }
 
     val r1: Reified[XYZ1] = Reified[XYZ1]
     val r2: Reified[XYZ1] = Reified[XYZ2].imap[XYZ1] { xyz2 =>
-      'a ->> ('x ->> xyz2.head :: 'y ->> xyz2.tail.head('y) :: HNil) ::
-      'z ->> xyz2.tail.head('z) ::
+      Symbol("a") ->> (Symbol("x") ->> xyz2.head :: Symbol("y") ->> xyz2.tail.head(Symbol("y")) :: HNil) ::
+      Symbol("z") ->> xyz2.tail.head(Symbol("z")) ::
       HNil
     } { xyz1 =>
-      'x ->> xyz1.head('x) ::
-      'a ->> ('y ->> xyz1.head('y) :: 'z ->> xyz1.tail.head :: HNil) ::
+      Symbol("x") ->> xyz1.head(Symbol("x")) ::
+      Symbol("a") ->> (Symbol("y") ->> xyz1.head(Symbol("y")) :: Symbol("z") ->> xyz1.tail.head :: HNil) ::
       HNil
     }
 

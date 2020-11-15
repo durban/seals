@@ -116,9 +116,9 @@ trait Codecs {
         if (y.isNull) 1
         else y.asBoolean.fold(-1)(yb => Order[Boolean].compare(xb, yb))
       },
-      jsonNumber = { xn =>
+      jsonNumber = { _ =>
         if (y.isNull || y.isBoolean) 1
-        else y.asNumber.fold(-1)(yn => Order[String].compare(x.spaces2, y.spaces2))
+        else y.asNumber.fold(-1)(_ => Order[String].compare(x.spaces2, y.spaces2))
       },
       jsonString = { xs =>
         if (y.isNull || y.isBoolean || y.isNumber) 1

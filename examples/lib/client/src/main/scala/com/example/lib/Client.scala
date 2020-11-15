@@ -67,7 +67,7 @@ object Client {
 
     val requests = fs2.Stream(Seed(0xabcdL), Random(1, 100)).covary[IO]
     val source = Source
-      .fromPublisher(reqCodec.encode(requests).toUnicastPublisher())
+      .fromPublisher(reqCodec.encode[IO](requests).toUnicastPublisher)
       .map(bv => ByteString.fromArrayUnsafe(bv.toByteArray))
 
     // TODO: this would be much less ugly, if we had a decoder `Flow`
@@ -82,7 +82,7 @@ object Client {
         .dequeue
         .unNoneTerminate
         .through(decPipe[IO, Response])
-        .toUnicastPublisher()
+        .toUnicastPublisher
       )
     )
     val sink: Sink[ByteString, Future[Vector[Response]]] = decode.toMat(

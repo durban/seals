@@ -45,7 +45,7 @@ implemented yet. Bugs are to be expected as well.
 
 ## Getting started
 
-*seals* is currently available for Scala 2.12. JARs are available
+*seals* is currently available for Scala 2.12 and 2.13. JARs are available
 on [Maven Central](https://search.maven.org/search?q=g:dev.tauri%20seals).
 To use it, put this into your `build.sbt` (see [below](#project-structure)
 for the available modules):
@@ -120,7 +120,7 @@ check in our build whether our current schemata are compatible with
 previously released versions. (Similarly to how [MiMa] checks binary
 compatibility with previous versions.) For how to do this, see
 [this example](plugin/src/sbt-test/seals-plugin/example). The plugin
-is available for sbt 0.13 and 1.x.
+is available for sbt 1.x.
 
 ### Other features
 

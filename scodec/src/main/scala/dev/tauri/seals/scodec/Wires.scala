@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,7 +36,7 @@ trait Wires {
       Codecs.encoderFromReified(A).encode(a).toEither
 
     override def fromWire(r: BitVector): Either[Err, A] =
-      Codecs.decoderFromReified(A).decode(r).toEither.right.map(_.value)
+      Codecs.decoderFromReified(A).decode(r).toEither.map(_.value)
 
     override def reified = A
   }

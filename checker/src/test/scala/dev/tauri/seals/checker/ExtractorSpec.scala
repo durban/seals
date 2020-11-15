@@ -46,13 +46,14 @@ class ExtractorSpec extends AnyFlatSpec with Matchers {
   )
 
   "Extractor#allClasses" should "find every class" in {
-    extractor.allClasses(pack) should contain allOf (
+    val expected = Set(
       "Foo",
       "Foo$",
       "CC",
       "CC$",
       "Wrap$"
     )
+    assert(expected.subsetOf(extractor.allClasses(pack).toSet))
   }
 
   "Extractor#extractAll" should "find all marked classes in a package" in {

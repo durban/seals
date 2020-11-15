@@ -79,6 +79,7 @@ private[seals] object NsUUID {
   private def putUUIDToBuf(u: UUID, buf: ByteBuffer): Unit = {
     buf.putLong(u.getMostSignificantBits)
     buf.putLong(u.getLeastSignificantBits)
+    ()
   }
 
   def bvFromUUID(u: UUID): ByteVector = {

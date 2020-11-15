@@ -38,7 +38,7 @@ import laws.TestInstances.atomic._
 
 class CodecsSpec extends tests.BaseSpec {
 
-  type U = Union.`'a -> Int, 'b -> Int`.T
+  type U = Union.`_root_.scala.Symbol("a") -> Int, _root_.scala.Symbol("b") -> Int`.T
 
   def vi(i: Int): ByteVector =
     vint.encode(i).getOrElse(fail()).bytes
@@ -70,7 +70,7 @@ class CodecsSpec extends tests.BaseSpec {
     }
 
     "Products" in {
-      encoderFromReified[Record.`'a -> Int`.T].encode(Record(a = 42)) should === (
+      encoderFromReified[Record.`_root_.scala.Symbol("a") -> Int`.T].encode(Record(a = 42)) should === (
         Attempt.successful(hex"A2 ${vl(4)} ${ci(42)}  A1".bits)
       )
       encoderFromReified[CaseClass].encode(CaseClass(42L)) should === (
@@ -115,7 +115,7 @@ class CodecsSpec extends tests.BaseSpec {
     }
 
     "Products" in {
-      decoderFromReified[Record.`'a -> Int`.T].decode(hex"A2 ${vl(4)} ${ci(42)}  A1   abcd".bits) should === (
+      decoderFromReified[Record.`_root_.scala.Symbol("a") -> Int`.T].decode(hex"A2 ${vl(4)} ${ci(42)}  A1   abcd".bits) should === (
         Attempt.successful(DecodeResult(Record(a = 42), hex"abcd".bits))
       )
       decoderFromReified[CaseClass].decode(hex"A2 ${vl(8)} ${cl(42L)}  A1".bits) should === (
@@ -146,13 +146,13 @@ class CodecsSpec extends tests.BaseSpec {
       "Sets" in {
         decoderFromReified[Set[Int]].decode(
           hex"0000 0002  ${ci(42)}  ${ci(42)}   dead".bits
-        ).toEither.swap.getOrElse(fail).message should === ("duplicate elements")
+        ).toEither.swap.getOrElse(fail()).message should === ("duplicate elements")
       }
 
       "Maps" in {
         decoderFromReified[Map[Int, Int]].decode(
           hex"0000 0002  A2 ${vl(4)} ${ci(42)}  A2 ${vl(4)} ${ci(0)}  A1   A2 ${vl(4)} ${ci(42)}  A2 ${vl(4)} ${ci(1)}  A1  dead".bits
-        ).toEither.swap.getOrElse(fail).message should === ("duplicate keys")
+        ).toEither.swap.getOrElse(fail()).message should === ("duplicate keys")
       }
     }
   }
@@ -160,26 +160,26 @@ class CodecsSpec extends tests.BaseSpec {
   "Roundtrip" - {
 
     "Implicit Codec from Reified" in {
-      Codec.decode[Int](Codec.encode[Int](42).getOrElse(fail)).getOrElse(fail).value should === (42)
-      Codec.decode[Whatever.type](Codec.encode[Whatever.type](Whatever).getOrElse(fail)).getOrElse(fail).value should === (Whatever)
-      Codec.decode[Record.`'a -> Int`.T](Codec.encode[Record.`'a -> Int`.T](Record(a = 42)).getOrElse(fail)).getOrElse(fail).value should === (Record(a = 42))
-      Codec.decode[CaseClass](Codec.encode[CaseClass](CaseClass(42L)).getOrElse(fail)).getOrElse(fail).value should === (CaseClass(42L))
-      Codec.decode[U](Codec.encode[U](Union[U](b = 42)).getOrElse(fail)).getOrElse(fail).value should === (Union[U](b = 42))
-      Codec.decode[Adt1](Codec.encode[Adt1](Adt1.C(42)).getOrElse(fail)).getOrElse(fail).value should === (Adt1.C(42))
-      Codec.decode[Vector[Int]](Codec.encode[Vector[Int]](Vector(42, 43)).getOrElse(fail)).getOrElse(fail).value should === (Vector(42, 43))
-      Codec.decode[Set[Int]](Codec.encode[Set[Int]](Set(1, 3, 4)).getOrElse(fail)).getOrElse(fail).value should === (Set(1, 3, 4))
-      Codec.decode[Map[Int, Int]](Codec.encode[Map[Int, Int]](Map(1 -> 2, 3 -> 6)).getOrElse(fail)).getOrElse(fail).value should === (Map(1 -> 2, 3 -> 6))
-      Codec.decode[WithList](Codec.encode[WithList](WithList(42, List(42.0f))).getOrElse(fail)).getOrElse(fail).value should === (WithList(42, List(42.0f)))
+      Codec.decode[Int](Codec.encode[Int](42).getOrElse(fail())).getOrElse(fail()).value should === (42)
+      Codec.decode[Whatever.type](Codec.encode[Whatever.type](Whatever).getOrElse(fail())).getOrElse(fail()).value should === (Whatever)
+      Codec.decode[Record.`_root_.scala.Symbol("a") -> Int`.T](Codec.encode[Record.`_root_.scala.Symbol("a") -> Int`.T](Record(a = 42)).getOrElse(fail())).getOrElse(fail()).value should === (Record(a = 42))
+      Codec.decode[CaseClass](Codec.encode[CaseClass](CaseClass(42L)).getOrElse(fail())).getOrElse(fail()).value should === (CaseClass(42L))
+      Codec.decode[U](Codec.encode[U](Union[U](b = 42)).getOrElse(fail())).getOrElse(fail()).value should === (Union[U](b = 42))
+      Codec.decode[Adt1](Codec.encode[Adt1](Adt1.C(42)).getOrElse(fail())).getOrElse(fail()).value should === (Adt1.C(42))
+      Codec.decode[Vector[Int]](Codec.encode[Vector[Int]](Vector(42, 43)).getOrElse(fail())).getOrElse(fail()).value should === (Vector(42, 43))
+      Codec.decode[Set[Int]](Codec.encode[Set[Int]](Set(1, 3, 4)).getOrElse(fail())).getOrElse(fail()).value should === (Set(1, 3, 4))
+      Codec.decode[Map[Int, Int]](Codec.encode[Map[Int, Int]](Map(1 -> 2, 3 -> 6)).getOrElse(fail())).getOrElse(fail()).value should === (Map(1 -> 2, 3 -> 6))
+      Codec.decode[WithList](Codec.encode[WithList](WithList(42, List(42.0f))).getOrElse(fail())).getOrElse(fail()).value should === (WithList(42, List(42.0f)))
     }
 
     "Models" in {
       val mod: Model = Reified[U].model
-      Codec.decode[Model](Codec.encode(mod).getOrElse(fail)).getOrElse(fail).value should === (mod)
+      Codec.decode[Model](Codec.encode(mod).getOrElse(fail())).getOrElse(fail()).value should === (mod)
     }
 
     "Envelopes" in {
       val env: Envelope[U] = Envelope(Union[U](b = 42))
-      Codec.decode[Envelope[U]](Codec.encode(env).getOrElse(fail)).getOrElse(fail).value should === (env)
+      Codec.decode[Envelope[U]](Codec.encode(env).getOrElse(fail())).getOrElse(fail()).value should === (env)
     }
   }
 }

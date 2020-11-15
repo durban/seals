@@ -22,7 +22,7 @@ package checker
 import java.nio.file.{ Files, Paths }
 import java.nio.charset.StandardCharsets
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 import scala.util.control.NoStackTrace
 
 import cats.implicits._

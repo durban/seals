@@ -14,25 +14,10 @@
  * limitations under the License.
  */
 
-package dev.tauri.seals
-package core
-
-/**
- * This is an ugly workaround for SI-7046,
- * regarding `Model` and some of its subclasses.
- */
-@deprecated("SI-7046 workaround", since = "forever")
-private final class AnSi7046Workaround {
-
-  def `This is to force Composite`: Model.Composite[_, _] =
-    sys.error("This should never be called")
-
-  def `This is to force HCons`: Model.HCons[_] =
-    sys.error("This should never be called")
-
-  def `This is to force CCons`: Model.CCons =
-    sys.error("This should never be called")
-
-  def `And this is to force Vector`: Model.Vector =
-    sys.error("This should never be called")
+val pluginVersion = System.getProperty("plugin.version") match {
+  case null => throw new RuntimeException("missing plugin.version system property")
+  case "" => throw new RuntimeException("plugin.version system property is an empty string")
+  case str => str
 }
+
+addSbtPlugin("dev.tauri" % "seals-plugin" % pluginVersion)

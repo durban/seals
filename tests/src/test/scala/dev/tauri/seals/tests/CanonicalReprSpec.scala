@@ -61,18 +61,18 @@ class CanonicalReprSpec
   "product" should "create correct HCons/HNil" in {
     import CanonicalRepr.{ HCons, HNil }
     val act = CanonicalRepr.product(
-      'a -> CanonicalRepr.Atom("1"),
-      'b -> CanonicalRepr.Atom("2"),
-      'c -> CanonicalRepr.Atom("3")
+      Symbol("a") -> CanonicalRepr.Atom("1"),
+      Symbol("b") -> CanonicalRepr.Atom("2"),
+      Symbol("c") -> CanonicalRepr.Atom("3")
     )
     val exp = HCons(
-      'a,
+      Symbol("a"),
       CanonicalRepr.Atom("1"),
       HCons(
-        'b,
+        Symbol("b"),
         CanonicalRepr.Atom("2"),
         HCons(
-          'c,
+          Symbol("c"),
           CanonicalRepr.Atom("3"),
           HNil
         )

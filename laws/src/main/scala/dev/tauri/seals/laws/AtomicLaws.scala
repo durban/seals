@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -127,7 +129,7 @@ trait AtomicLaws[A] extends Laws {
     },
     "fromString-stringRepr" -> forAll { (s: String) =>
       Atc.fromString(s).fold(
-        err => provedIsEq[String],
+        _ => provedIsEq[String],
         a => {
           Atc.stringRepr(a) <-> s
         }
@@ -138,7 +140,7 @@ trait AtomicLaws[A] extends Laws {
     },
     "fromBinary-binaryRepr" -> forAll { (b: ByteVector) =>
       Atc.fromBinary(b).fold(
-        err => provedIsEq[ByteVector],
+        _ => provedIsEq[ByteVector],
         { case (a, r) => (Atc.binaryRepr(a) ++ r) <-> b }
       )
     }

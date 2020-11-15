@@ -1,0 +1,95 @@
+{
+  "com.example.test2" : {
+    "com.example.test2.Test2.Message" : {
+      "CCons" : {
+        "id" : "4",
+        "label" : "Get",
+        "refinement" : {
+          "None" : {
+            
+          }
+        },
+        "head" : {
+          "HCons" : {
+            "id" : "0",
+            "label" : "k",
+            "optional" : "false",
+            "refinement" : {
+              "None" : {
+                
+              }
+            },
+            "head" : {
+              "Atom" : {
+                "id" : "8cd4c733-4392-4a8c-9014-8decf160fffe",
+                "desc" : "String"
+              }
+            },
+            "tail" : {
+              "HNil" : {
+                
+              }
+            }
+          }
+        },
+        "tail" : {
+          "CCons" : {
+            "id" : "3",
+            "label" : "Put",
+            "refinement" : {
+              "None" : {
+                
+              }
+            },
+            "head" : {
+              "HCons" : {
+                "id" : "2",
+                "label" : "k",
+                "optional" : "false",
+                "refinement" : {
+                  "None" : {
+                    
+                  }
+                },
+                "head" : {
+                  "Atom" : {
+                    "id" : "8cd4c733-4392-4a8c-9014-8decf160fffe",
+                    "desc" : "String"
+                  }
+                },
+                "tail" : {
+                  "HCons" : {
+                    "id" : "1",
+                    "label" : "v",
+                    "optional" : "false",
+                    "refinement" : {
+                      "None" : {
+                        
+                      }
+                    },
+                    "head" : {
+                      "Atom" : {
+                        "id" : "d9bfd653-c875-4dd0-8287-b806ee6eb85b",
+                        "desc" : "Int"
+                      }
+                    },
+                    "tail" : {
+                      "HNil" : {
+                        
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "tail" : {
+              "CNil" : {
+                
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

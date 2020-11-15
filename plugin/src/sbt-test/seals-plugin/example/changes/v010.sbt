@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +20,7 @@ lazy val proto = project
   .settings(name := "example-proto")
   .settings(commonSettings)
   .settings(
-    addCompilerPlugin("org.scalamacros" % "paradise" % "2.1.0" cross CrossVersion.patch),
+    scalacOptions += "-Ymacro-annotations",
     mimaPreviousArtifacts := Set(organization.value %% name.value % "0.1.0-SNAPSHOT"),
     sealsSchemaPackages += "com.example.proto"
   )
@@ -29,7 +31,7 @@ lazy val server = project
   .dependsOn(proto)
   .settings(libraryDependencies ++= Seq(
     "dev.tauri" %% "seals-scodec" % sealsVersion,
-    "co.fs2" %% "fs2-io" % "2.2.1"
+    "co.fs2" %% "fs2-io" % "2.4.4"
   ))
 
 lazy val example = project.in(file("."))
@@ -40,10 +42,10 @@ lazy val example = project.in(file("."))
 lazy val commonSettings = Seq[Setting[_]](
   organization := "com.example",
   version := "0.1.0-SNAPSHOT",
-  scalaVersion := "2.12.10",
+  scalaVersion := "2.13.3",
   libraryDependencies ++= Seq(
     "dev.tauri" %% "seals-core" % sealsVersion,
-    "org.scalatest" %% "scalatest" % "3.0.3" % Test
+    "org.scalatest" %% "scalatest" % "3.1.4" % Test
   )
 )
 

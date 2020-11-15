@@ -42,9 +42,9 @@ class ReifiedSpec extends BaseSpec {
 
       "should exist" in {
         Reified[HNil].model should === (Model.HNil)
-        Reified[Record.`'p -> Int`.T].model should === ('p -> atom[Int] :: Model.HNil)
-        Reified[Record.`'s -> String, 'i -> Int`.T].model should === (
-          's -> atom[String] :: 'i -> atom[Int] :: Model.HNil
+        Reified[Record.`_root_.scala.Symbol("p") -> Int`.T].model should === (Symbol("p") -> atom[Int] :: Model.HNil)
+        Reified[Record.`_root_.scala.Symbol("s") -> String, _root_.scala.Symbol("i") -> Int`.T].model should === (
+          Symbol("s") -> atom[String] :: Symbol("i") -> atom[Int] :: Model.HNil
         )
       }
     }
@@ -53,9 +53,9 @@ class ReifiedSpec extends BaseSpec {
 
       "should exist" in {
         Reified[CNil].model should === (Model.CNil)
-        Reified[Union.`'i -> Int`.T].model should === ('i -> atom[Int] :+: Model.CNil)
-        Reified[Union.`'s -> String, 'i -> Int`.T].model should === (
-          's -> atom[String] :+: 'i -> atom[Int] :+: Model.CNil
+        Reified[Union.`_root_.scala.Symbol("i") -> Int`.T].model should === (Symbol("i") -> atom[Int] :+: Model.CNil)
+        Reified[Union.`_root_.scala.Symbol("s") -> String, _root_.scala.Symbol("i") -> Int`.T].model should === (
+          Symbol("s") -> atom[String] :+: Symbol("i") -> atom[Int] :+: Model.CNil
         )
       }
     }
@@ -63,10 +63,10 @@ class ReifiedSpec extends BaseSpec {
     "for tuples" - {
 
       "should exist" in {
-        Reified[Tuple1[Int]].model should === ('_1 -> atom[Int] :: Model.HNil)
-        Reified[Tuple2[Int, String]].model should === ('_1 -> atom[Int] :: '_2 -> atom[String] :: Model.HNil)
+        Reified[Tuple1[Int]].model should === (Symbol("_1") -> atom[Int] :: Model.HNil)
+        Reified[Tuple2[Int, String]].model should === (Symbol("_1") -> atom[Int] :: Symbol("_2") -> atom[String] :: Model.HNil)
         Reified[Tuple5[Int, Int, Float, Unit, Int]].model should === (
-          '_1 -> atom[Int] :: '_2 -> atom[Int] :: '_3 -> atom[Float] :: '_4 -> atom[Unit] :: '_5 -> atom[Int] :: Model.HNil
+          Symbol("_1") -> atom[Int] :: Symbol("_2") -> atom[Int] :: Symbol("_3") -> atom[Float] :: Symbol("_4") -> atom[Unit] :: Symbol("_5") -> atom[Int] :: Model.HNil
         )
       }
     }
@@ -89,7 +89,7 @@ class ReifiedSpec extends BaseSpec {
 
           "should work with Option" in {
             Reified[Option[Int]].model should === (
-              'None -> (Model.HNil) :+: 'Some -> ('value -> atom[Int] :: Model.HNil) :+: Model.CNil
+              Symbol("None") -> (Model.HNil) :+: Symbol("Some") -> (Symbol("value") -> atom[Int] :: Model.HNil) :+: Model.CNil
             )
           }
         }
@@ -221,7 +221,7 @@ class ReifiedSpec extends BaseSpec {
       "Map" in {
         import scala.collection.immutable.ListMap
         val cbr = Model.CanBeRefined[Model.Vector]
-        val expMod = cbr.refine(Model.Vector('_1 -> atom[Int] :: '_2 -> atom[Boolean] :: Model.HNil), Refinement.Semantics.map)
+        val expMod = cbr.refine(Model.Vector(Symbol("_1") -> atom[Int] :: Symbol("_2") -> atom[Boolean] :: Model.HNil), Refinement.Semantics.map)
         Reified[Map[Int, Boolean]].model should === (expMod)
         Reified[Map[Int, Boolean]].model should !== (Reified[Vector[Boolean]].model)
         Reified[Map[Int, Boolean]].model should !== (Reified[Set[(Int, Boolean)]].model)
@@ -229,9 +229,9 @@ class ReifiedSpec extends BaseSpec {
           ListMap.empty[Int, Boolean] + (3 -> true) + (1 -> true) + (2 -> false)
         )(Wrap.folder)
         r should === (Wrap(CanonicalRepr.Vect(Vector(
-          CanonicalRepr.product('_1 -> CanonicalRepr.Atom("1"), '_2 -> CanonicalRepr.Atom("true")),
-          CanonicalRepr.product('_1 -> CanonicalRepr.Atom("2"), '_2 -> CanonicalRepr.Atom("false")),
-          CanonicalRepr.product('_1 -> CanonicalRepr.Atom("3"), '_2 -> CanonicalRepr.Atom("true"))
+          CanonicalRepr.product(Symbol("_1") -> CanonicalRepr.Atom("1"), Symbol("_2") -> CanonicalRepr.Atom("true")),
+          CanonicalRepr.product(Symbol("_1") -> CanonicalRepr.Atom("2"), Symbol("_2") -> CanonicalRepr.Atom("false")),
+          CanonicalRepr.product(Symbol("_1") -> CanonicalRepr.Atom("3"), Symbol("_2") -> CanonicalRepr.Atom("true"))
         ))))
       }
 
@@ -326,7 +326,7 @@ class ReifiedSpec extends BaseSpec {
     "for Model" - {
 
       val r = Reified[Model]
-      val m = 'i -> Model.Atom.atom[Int] :: 's -> Model.Atom.atom[String] :: Model.HNil
+      val m = Symbol("i") -> Model.Atom.atom[Int] :: Symbol("s") -> Model.Atom.atom[String] :: Model.HNil
 
       "sanity check" in {
         r shouldBe theSameInstanceAs (Model.reifiedForModel)
@@ -360,7 +360,7 @@ class ReifiedSpec extends BaseSpec {
         val r = Reified[BigDecimal]
         val mcRepr = fold[MathContext](mc)
         for (s <- BuiltinAtomSpec.nonAsciiDigits) {
-          val repr = HCons('intVal, Atom(s), HCons('scale, Atom("0"), HCons('ctx, mcRepr, HNil)))
+          val repr = HCons(Symbol("intVal"), Atom(s), HCons(Symbol("scale"), Atom("0"), HCons(Symbol("ctx"), mcRepr, HNil)))
           unfold[BigDecimal](repr)(r) match {
             case Left(err) => assert(err.contains("non-ASCII"))
             case Right(res) => fail(sh"Expected a failure, got ${res}")
@@ -383,15 +383,15 @@ class ReifiedSpec extends BaseSpec {
     final case class IS(i: Int, s: String) extends Adt
     final case class IX(i: Int) extends Adt
 
-    val hl = Reified[Record.`'i -> Int, 's -> String`.T]
+    val hl = Reified[Record.`_root_.scala.Symbol("i") -> Int, _root_.scala.Symbol("s") -> String`.T]
     val cc = Reified[IS]
-    type H1 = Record.`'i -> Int, 's -> String`.T
+    type H1 = Record.`_root_.scala.Symbol("i") -> Int, _root_.scala.Symbol("s") -> String`.T
     // TODO: workaround for false positive unused warning
     locally { val _: H1 = Record(i = 0, s = "") }
-    type H2 = Record.`'i -> Int`.T
+    type H2 = Record.`_root_.scala.Symbol("i") -> Int`.T
     // TODO: workaround for false positive unused warning
     locally { val _: H2 = Record(i = 0) }
-    val cp = Reified[Union.`'IS -> H1, 'IX -> H2`.T]
+    val cp = Reified[Union.`_root_.scala.Symbol("IS") -> H1, _root_.scala.Symbol("IX") -> H2`.T]
     val st = Reified[Adt]
 
     "toString should show the Model" in {

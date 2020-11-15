@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,6 +39,7 @@ trait BaseSpec
     b should === (a)
     a.## should === (b.##)
     a.hashCode should === (b.hashCode)
+    ()
   }
 
   def checkEqHashCompat(a: Model, b: Model): Unit = {
@@ -54,6 +57,7 @@ trait BaseSpec
       if (a !== b) {
         a.## should !== (b.##)
         a.hashCode should !== (b.hashCode)
+        ()
       }
     }
   }
@@ -62,6 +66,7 @@ trait BaseSpec
     a should !== (b)
     a.## should !== (b.##)
     a.hashCode should !== (b.hashCode)
+    ()
   }
 
   def checkNotEqHashCompat(a: Model, b: Model): Unit = {
@@ -78,6 +83,7 @@ trait BaseSpec
     } else {
       a.## should !== (b.##)
       a.hashCode should !== (b.hashCode)
+      ()
     }
   }
 
