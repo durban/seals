@@ -114,7 +114,7 @@ lazy val consts = new {
 }
 
 lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
-  scalaVersion := "2.13.3",
+  scalaVersion := "2.13.4",
   crossScalaVersions := Seq(scalaVersion.value, "2.12.12"),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
@@ -123,7 +123,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
     "-unchecked",
     "-encoding", "UTF-8",
     "-language:higherKinds,experimental.macros",
-    "-Xmigration:2.13.3",
+    "-Xmigration:2.13.4",
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
     // TODO: set -sourcepath and -doc-source-url
@@ -424,7 +424,7 @@ lazy val exampleSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
     "-Ywarn-unused:imports",
-    "-Xmigration:2.13.13"
+    "-Xmigration:2.13.4"
   ),
   scalacOptions ++= {
     if (scalaVersion.value.startsWith("2.12.")) List(

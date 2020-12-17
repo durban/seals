@@ -31,7 +31,7 @@ lazy val server = project
   .dependsOn(proto)
   .settings(libraryDependencies ++= Seq(
     "dev.tauri" %% "seals-scodec" % sealsVersion,
-    "co.fs2" %% "fs2-io" % "2.4.4"
+    "co.fs2" %% "fs2-io" % "2.4.6"
   ))
 
 lazy val example = project.in(file("."))
@@ -42,7 +42,7 @@ lazy val example = project.in(file("."))
 lazy val commonSettings = Seq[Setting[_]](
   organization := "com.example",
   version := "0.1.0-SNAPSHOT",
-  scalaVersion := "2.13.3",
+  scalaVersion := "2.13.4",
   libraryDependencies ++= Seq(
     "dev.tauri" %% "seals-core" % sealsVersion,
     "org.scalatest" %% "scalatest" % "3.1.4" % Test
