@@ -150,7 +150,7 @@ lazy val commonSettings: Seq[Setting[_]] = Seq[Setting[_]](
   },
   scalacOptions in (Compile, console) ~= { _.filterNot("-Ywarn-unused-import" == _).filterNot("-Ywarn-unused:imports" == _) },
   scalacOptions in (Test, console) := (scalacOptions in (Compile, console)).value,
-  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.0" cross CrossVersion.full),
+  addCompilerPlugin("org.typelevel" % "kind-projector" % "0.11.2" cross CrossVersion.full),
 
   // We need both of these, due to https://github.com/scalastyle/scalastyle-sbt-plugin/issues/44
   scalastyleConfig in Test := (baseDirectory in ThisBuild).value / "scalastyle-test-config.xml",

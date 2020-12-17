@@ -425,7 +425,7 @@ object Reified extends LowPrioReified1 {
     implicit R: Reified[A]
   ): Either[E, (Vector[A], B)] = {
     u.vectorInit(b).flatMap { case (b, s) =>
-      val rec = Monad[Either[E, ?]].tailRecM((b, s, Vector.empty[A])) { case (b, s, v) =>
+      val rec = Monad[Either[E, *]].tailRecM((b, s, Vector.empty[A])) { case (b, s, v) =>
         u.vectorFold(b, s).flatMap {
           case Some((b, s)) =>
             val b2 = R.unfold[B, E, S](u)(b)

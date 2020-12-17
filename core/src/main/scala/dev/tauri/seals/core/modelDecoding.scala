@@ -35,7 +35,7 @@ final object ModelDecoding {
 
   sealed abstract class Api {
     type F[S, A]
-    implicit def procInstance[S]: Proc[F[S, ?], S]
+    implicit def procInstance[S]: Proc[F[S, *], S]
   }
 
   val Api: Api = Impl
@@ -47,8 +47,8 @@ final object ModelDecoding {
 
   private final object Impl extends Api {
     override type F[S, A] = Kleisli[Eval, LocRef[S], A]
-    implicit override def procInstance[S]: Proc[F[S, ?], S] = {
-      new Proc[F[S, ?], S] {
+    implicit override def procInstance[S]: Proc[F[S, *], S] = {
+      new Proc[F[S, *], S] {
         override def pure[A](x: A) =
           Kleisli.pure(x)
         override def flatMap[A, B](fa: Kleisli[Eval, LocRef[S], A])(

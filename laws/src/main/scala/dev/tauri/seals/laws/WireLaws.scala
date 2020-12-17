@@ -31,7 +31,7 @@ import core.{ Wire, CanonicalRepr }
 
 object WireLaws {
 
-  def apply[A, R, E](wfr: Reified ~> Wire.Aux[?, R, E])(
+  def apply[A, R, E](wfr: Reified ~> Wire.Aux[*, R, E])(
     implicit
     arbA: Arbitrary[A],
     equA: Eq[A],
