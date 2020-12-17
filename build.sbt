@@ -305,12 +305,12 @@ lazy val refinedSettings = Seq[Setting[_]](
 
 lazy val dependencies = new {
 
-  val catsVersion = "2.2.0"
-  val circeVersion = "0.13.0"
+  val catsVersion = "2.3.0"
+  val circeVersion = "0.14.0-M1"
 
   val shapeless = "com.chuusai" %% "shapeless" % "2.3.3"
   val cats = "org.typelevel" %% "cats-core" % catsVersion
-  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.2.0"
+  val collectionCompat = "org.scala-lang.modules" %% "scala-collection-compat" % "2.3.1"
 
   val circe = Seq(
     "io.circe" %% "circe-core" % circeVersion,
@@ -320,8 +320,8 @@ lazy val dependencies = new {
 
   val circeTesting = "io.circe" %% "circe-testing" % circeVersion
 
-  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.20"
-  val scodecCats = "org.scodec" %% "scodec-cats" % "1.0.0"
+  val scodecBits = "org.scodec" %% "scodec-bits" % "1.1.22"
+  val scodecCats = "org.scodec" %% "scodec-cats" % "1.1.0-M3"
   val scodec = Seq(
     scodecBits,
     "org.scodec" %% "scodec-core" % "1.11.7",
@@ -329,7 +329,7 @@ lazy val dependencies = new {
     scodecCats
   )
 
-  val refined = "eu.timepit" %% "refined" % "0.9.17"
+  val refined = "eu.timepit" %% "refined" % "0.9.19"
 
   val laws = Seq(
     scodecCats,
@@ -413,7 +413,7 @@ lazy val exLibClient = project.in(file("examples/lib/client"))
   .dependsOn(core, scodec, exLibProto, exLibServer % "test->compile;test->test")
 
 lazy val exampleSettings = Seq(
-  scalaVersion := "2.13.3",
+  scalaVersion := "2.13.4",
   crossScalaVersions := Seq(scalaVersion.value, "2.12.12"),
   scalaOrganization := "org.scala-lang",
   scalacOptions ++= Seq(
@@ -424,7 +424,7 @@ lazy val exampleSettings = Seq(
     "-Ywarn-numeric-widen",
     "-Ywarn-dead-code",
     "-Ywarn-unused:imports",
-    "-Xmigration:2.12.10"
+    "-Xmigration:2.13.13"
   ),
   scalacOptions ++= {
     if (scalaVersion.value.startsWith("2.12.")) List(
@@ -448,8 +448,8 @@ lazy val exampleSettings = Seq(
 
 lazy val exampleDependencies = new {
 
-  val http4sVersion = "0.21.8"
-  val fs2Version = "2.4.4"
+  val http4sVersion = "0.21.14"
+  val fs2Version = "2.4.6"
 
   val http4s = Seq(
     "org.http4s" %% "http4s-dsl" % http4sVersion,
@@ -466,10 +466,10 @@ lazy val exampleDependencies = new {
     "co.fs2" %% "fs2-io" % fs2Version
   )
 
-  val catsEffect = "org.typelevel" %% "cats-effect" % "2.2.0"
+  val catsEffect = "org.typelevel" %% "cats-effect" % "2.3.0"
 
   val akka = Seq(
-    "com.typesafe.akka" %% "akka-stream" % "2.5.32",
+    "com.typesafe.akka" %% "akka-stream" % "2.6.10",
     "co.fs2" %% "fs2-reactive-streams" % fs2Version
   )
 }

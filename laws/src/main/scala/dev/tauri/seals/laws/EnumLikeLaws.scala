@@ -1,5 +1,7 @@
 /*
  * Copyright 2017-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,8 +54,8 @@ trait EnumLikeLaws[A] extends Laws {
       Enu.fromName(Enu.name(a)) <-> Right(a)
     },
     "fromName-name" -> forAll { s: String =>
-      Enu.fromName(s).fold(
-        _ => provedIsEq[String],
+      Enu.fromName(s).fold[Prop](
+        _ => Prop.proved,
         a => Enu.name(a) <-> s
       )
     }
@@ -66,8 +68,8 @@ trait EnumLikeLaws[A] extends Laws {
       Enu.fromIndex(Enu.index(a)) <-> Right(a)
     },
     "fromIndex-index" -> forAll { i: Int =>
-      Enu.fromIndex(i).fold(
-        _ => provedIsEq[Int],
+      Enu.fromIndex(i).fold[Prop](
+        _ => Prop.proved,
         a => Enu.index(a) <-> i
       )
     }

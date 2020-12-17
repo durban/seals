@@ -25,7 +25,7 @@ import cats.implicits._
 
 import _root_.scodec.bits.BitVector
 import _root_.scodec.Err
-import _root_.scodec.interop.cats.BitVectorEqInstance
+import _root_.scodec.interop.cats.BitVectorOrderInstance
 
 class ScodecWireSpec
     extends tests.BaseLawsSpec
@@ -39,7 +39,7 @@ class ScodecWireSpec
     "BitVector"
 
   override def equR: Eq[BitVector] =
-    _root_.scodec.interop.cats.BitVectorEqInstance
+    _root_.scodec.interop.cats.BitVectorOrderInstance
 
   override def shwE =
     _root_.scodec.interop.cats.ErrShowInstance
@@ -47,5 +47,5 @@ class ScodecWireSpec
   override def mkWire[A](r: Reified[A]): Wire.Aux[A, BitVector, Err] =
     Wires.wireFromReified(r)
 
-  checkAll("Order[BitVector]", OrderTests[BitVector](Codecs.orderForBitVector).order)
+  checkAll("Order[BitVector]", OrderTests[BitVector].order)
 }
