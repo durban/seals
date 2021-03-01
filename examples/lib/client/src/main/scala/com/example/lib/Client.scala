@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +49,6 @@ object Client {
 
   def main(args: Array[String]): Unit = {
     implicit val sys: ActorSystem = ActorSystem("ClientSystem")
-    implicit val mat: Materializer = ActorMaterializer()
     try {
       val resp = Await.result(client(1234), 10.seconds)
       println(resp)

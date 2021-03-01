@@ -21,8 +21,6 @@ package scodec
 
 import java.nio.charset.StandardCharsets
 
-import scala.annotation.tailrec
-
 import cats.implicits._
 import cats.{ Traverse, Monad, Order }
 
@@ -88,36 +86,6 @@ trait Codecs {
    */
   implicit private val orderForErr: Order[Err] =
     Order.by { err => (err.message, err.context) }
-
-  implicit private[scodec] val orderForBitVector: Order[BitVector] = { (x, y) =>
-    val ySize = y.size
-    if (x.sizeLessThan(ySize)) {
-      -1
-    } else if (x.sizeGreaterThan(ySize)) {
-      1
-    } else {
-      // they have the same size
-      @tailrec
-      def go(idx: Long): Int = {
-        val left: Int = (ySize - idx) match {
-          case x if x >= 64 =>
-            64
-          case x =>
-            x.toInt
-        }
-        if (left > 0) {
-          val xc = x.sliceToLong(start = idx, bits = left, signed = false, ordering = ByteOrdering.BigEndian)
-          val yc = y.sliceToLong(start = idx, bits = left, signed = false, ordering = ByteOrdering.BigEndian)
-          if (xc > yc) 1
-          else if (xc < yc) -1
-          else go(idx + left)
-        } else {
-          0
-        }
-      }
-      go(0L)
-    }
-  }
 
   implicit private def orderForAttempt[A : Order]: Order[Attempt[A]] =
     Order.by { att => att.fold[Either[Err, A]](Left(_), Right(_)) }

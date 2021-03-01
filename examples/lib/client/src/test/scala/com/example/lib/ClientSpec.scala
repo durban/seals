@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,14 +29,13 @@ import org.scalatest.flatspec.AnyFlatSpec
 import fs2.Stream
 
 import akka.actor.ActorSystem
-import akka.stream.{ Materializer, ActorMaterializer }
 
 import Protocol.v1.{ Response, RandInt, Seeded }
+import scala.concurrent.Promise
 
 class ClientSpec extends AnyFlatSpec with Matchers with com.example.lib.TcpTest {
 
-  implicit lazy val sys: ActorSystem = ActorSystem("InteropSpec")
-  implicit lazy val mat: Materializer = ActorMaterializer()
+  implicit lazy val sys: ActorSystem = ActorSystem("ClientSpec")
 
   protected override def ec = sys.dispatcher
 
@@ -52,7 +53,18 @@ class ClientSpec extends AnyFlatSpec with Matchers with com.example.lib.TcpTest 
       .drain
       .unsafeRunAsync(_ => ())
     try {
-      val resp = Await.result(Client.client(1237), 5.seconds)
+      val resp = {
+        // wait a bit before sending a request, so
+        // that the server can start listening:
+        val p = Promise[Unit]()
+        sys.scheduler.scheduleOnce(0.1.seconds) {
+          p.success(())
+        } (sys.dispatcher)
+        Await.result(
+          p.future.flatMap { _ => Client.client(1237) } (sys.dispatcher),
+          5.seconds
+        )
+      }
       // constant, because we always seed with the same value:
       resp should === (Vector[Response](Seeded, RandInt(42)))
     } finally {

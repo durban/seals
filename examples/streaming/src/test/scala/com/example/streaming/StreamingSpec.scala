@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -66,7 +68,7 @@ class StreamingSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "fail with incompatible models" in {
-    val mod = Reified[Record.`'Elephant -> Elephant, 'Quokka -> Quokka`.T].model
+    val mod = Reified[Record.`Symbol("Elephant") -> Elephant, Symbol("Quokka") -> Quokka`.T].model
     val bv: BitVector = Codec[Model].encode(mod).getOrElse(fail())
     val tsk: IO[Unit] = for {
       as <- decoder.decode[IO](Stream(bv)).compile.toVector

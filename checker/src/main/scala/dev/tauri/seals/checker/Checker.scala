@@ -43,7 +43,10 @@ object Checker {
     throw new Error(msg)
 
   def main(args: Array[String]): Unit = {
-    val Array(curr, prev) = args
+    val (curr, prev) = args match {
+      case Array(c, p) => (c, p)
+      case _ => throw new IllegalArgumentException(args.mkString(", "))
+    }
     val currModels = loadModels(curr)
     val prevModels = loadModels(prev)
 

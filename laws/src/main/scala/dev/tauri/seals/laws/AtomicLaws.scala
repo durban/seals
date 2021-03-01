@@ -128,8 +128,8 @@ trait AtomicLaws[A] extends Laws {
       Atc.fromString(Atc.stringRepr(a)) <-> Either.right(a)
     },
     "fromString-stringRepr" -> forAll { (s: String) =>
-      Atc.fromString(s).fold(
-        _ => provedIsEq[String],
+      Atc.fromString(s).fold[Prop](
+        _ => Prop.proved,
         a => {
           Atc.stringRepr(a) <-> s
         }
@@ -139,8 +139,8 @@ trait AtomicLaws[A] extends Laws {
       Atc.fromBinary(Atc.binaryRepr(a)) <-> Either.right((a, ByteVector.empty))
     },
     "fromBinary-binaryRepr" -> forAll { (b: ByteVector) =>
-      Atc.fromBinary(b).fold(
-        _ => provedIsEq[ByteVector],
+      Atc.fromBinary(b).fold[Prop](
+        _ => Prop.proved,
         { case (a, r) => (Atc.binaryRepr(a) ++ r) <-> b }
       )
     }

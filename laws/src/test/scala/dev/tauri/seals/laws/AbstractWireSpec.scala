@@ -1,5 +1,7 @@
 /*
  * Copyright 2016-2020 Daniel Urban and contributors listed in AUTHORS
+ * Copyright 2020 Nokia
+ * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,7 +43,7 @@ trait AbstractWireSpec[R, E] { this: Discipline with Configuration =>
   implicit def equR: Eq[R]
   implicit def shwE: Show[E]
 
-  val mkWireNt = λ[Reified ~> Wire.Aux[?, R, E]](
+  val mkWireNt = λ[Reified ~> Wire.Aux[*, R, E]](
     r => mkWire(r)
   )
 
